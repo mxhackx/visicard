@@ -19,6 +19,13 @@ model Card {
   id             BigInt   @id @default(autoincrement())
   slug           String   @unique
   imageUrl       String   @map("image_url")
+  ownerId        String?  @map("owner_id")
+  /// `page` (page digitale), `media` (image / vidéo) ou `document` (PDF).
+  serviceType    String   @default("page") @map("service_type")
+  title          String?
+  contentUrl     String?  @map("content_url")
+  contentType    String?  @map("content_type")
+  fileName       String?  @map("file_name")
   userName       String?  @map("user_name")
   clientName     String?  @map("client_name")
   workDone       String?  @map("work_done")
@@ -40,7 +47,115 @@ model Card {
   cardLayout     String?  @default("classic") @map("card_layout")
   themeId        String?  @default("theme-1") @map("theme_id")
   qrStyle        String?  @default("style-1") @map("qr_style")
+  /// `draft` : aperçu, non payé (page publique et téléchargement bloqués).
+  /// `active` : payé, ou créé par un administrateur.
+  /// `rejected` : refusé par un administrateur (contenu non conforme) ; motif dans `moderationNote`.
+  status         String   @default("active")
+  moderationNote String?  @map("moderation_note")
+  rejectedAt     DateTime? @map("rejected_at")
+  /// Colonnes déjà présentes en base (déclarées pour ne pas être supprimées par db push).
+  isActive       Boolean  @default(true) @map("is_active")
+  updatedAt      DateTime @default(now()) @map("updated_at")
   createdAt      DateTime @default(now()) @map("created_at")
 
+  owner          AdminUser? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  orders         Order[]
+  scans          CardScan[]
+
   @@map("cards")
+}
+
+/// Commande d'un client sans compte : un devis, puis une facture une fois payée.
+/// `kind` = `creation` (nouveau QR code) ou `modification` (changement de contenu,
+/// appliqué à la carte seulement après paiement, depuis `pendingChanges`).
+model Order {
+  id              String    @id @default(uuid())
+  reference       String    @unique
+  kind            String    @default("creation")
+  serviceType     String    @map("service_type")
+  /// `quote` (devis émis), `pending` (paiement en cours), `paid`, `cancelled`.
+  status          String    @default("quote")
+  items           Json
+  amount          Int
+  currency        String    @default("XOF")
+  customerName    String    @map("customer_name")
+  customerPhone   String    @map("customer_phone")
+  customerEmail   String?   @map("customer_email")
+  /// Empreinte SHA-256 du jeton du lien privé : le jeton lui-même n'est jamais stocké.
+  accessTokenHash String    @map("access_token_hash")
+  quoteNumber     String    @unique @map("quote_number")
+  invoiceNumber   String?   @unique @map("invoice_number")
+  pendingChanges  Json?     @map("pending_changes")
+  paidAt          DateTime? @map("paid_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  cardId          BigInt    @map("card_id")
+  card            Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  parentId        String?   @map("parent_id")
+  payments        Payment[]
+
+  @@index([cardId])
+  @@map("orders")
+}
+
+/// Tentative de paiement auprès d'un fournisseur (`fedapay` ou `momo`).
+model Payment {
+  id          String   @id @default(uuid())
+  provider    String
+  /// Identifiant chez le fournisseur : id de transaction FedaPay, X-Reference-Id MoMo.
+  providerRef String   @map("provider_ref")
+  /// `pending`, `succeeded`, `failed`.
+  status      String   @default("pending")
+  amount      Int
+  currency    String
+  phone       String?
+  raw         Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orderId     String   @map("order_id")
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerRef])
+  @@index([orderId])
+  @@map("payments")
+}
+
+/// Compteurs de numérotation continue (devis, factures), un par clé et par année.
+model Counter {
+  key   String @id
+  value Int    @default(0)
+
+  @@map("counters")
+}
+
+/// Compte administrateur servi par la base elle-même, et non par Supabase Auth.
+/// Le mot de passe en clair n'est jamais stocké : seulement `passwordHash`, un
+/// scrypt (voir src/auth/mot-de-passe.ts). La ligne se crée avec `npm run seed`,
+/// qui lit ADMIN_EMAIL et ADMIN_PASSWORD depuis l'environnement.
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         String   @default("user")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  cards        Card[]
+
+  @@map("admin_users")
+}
+
+/// Scans enregistrés par carte (table déjà présente en base).
+model CardScan {
+  id        BigInt   @id @default(autoincrement())
+  cardId    BigInt   @map("card_id")
+  device    String   @default("other")
+  createdAt DateTime @default(now()) @map("created_at")
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, createdAt])
+  @@map("card_scans")
 }

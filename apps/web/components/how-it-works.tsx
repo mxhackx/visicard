@@ -1,34 +1,129 @@
-"use client";
+import Image from "next/image";
+import SectionHeading from "@/components/section-heading";
+import { Layers, QrCode, Smartphone, UploadCloud } from "lucide-react";
 
-import { ArrowRight, Calendar, CheckCircle2 } from "lucide-react";
+const ownerSteps = [
+  {
+    title: "Vous choisissez le service",
+    text: "Page digitale, image / vidéo ou document PDF. Chaque service correspond à un seul QR code.",
+  },
+  {
+    title: "Vous envoyez le contenu",
+    text: "Vous remplissez la page ou déposez le fichier. Tout se fait depuis votre compte, sans compétence technique.",
+  },
+  {
+    title: "Vous recevez le QR code",
+    text: "Le code est généré immédiatement, téléchargeable et prêt à imprimer. Le contenu peut évoluer ensuite.",
+  },
+];
 
-const steps = [
-  { number: "1", title: "Créez votre compte", text: "Inscrivez-vous et configurez votre établissement en quelques minutes." },
-  { number: "2", title: "Personnalisez votre menu", text: "Ajoutez les infos, photos, horaires et le style visuel de votre marque." },
-  { number: "3", title: "Générez votre QR code", text: "Téléchargez votre code QR unique et partagez-le auprès de vos clients." },
-  { number: "4", title: "Publiez et analysez", text: "Suivez les scans et optimisez votre expérience client de manière simple." },
+const guestSteps = [
+  {
+    title: "Il scanne",
+    text: "L'appareil photo du téléphone suffit. Aucune application à installer.",
+  },
+  {
+    title: "Il consulte",
+    text: "La page, l'image, la vidéo ou le PDF s'ouvre immédiatement, avec le contact à portée de main.",
+  },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="fonctionnement" className="bg-white py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Comment ça marche</p>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">En 4 étapes simples</h2>
-        </div>
+    <section id="fonctionnement" className="anchor">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+        <SectionHeading
+          title="Trois étapes, un seul scan"
+          subtitle="Vous préparez le contenu une fois, vos clients le consultent à chaque scan."
+        />
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {steps.map((step, idx) => (
-            <div key={step.number} className="relative rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              {idx < steps.length - 1 && <div className="absolute right-[-18px] top-12 hidden h-0.5 w-9 bg-blue-200 xl:block" />}
-              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white">{step.number}</div>
-              <h3 className="text-xl font-bold text-slate-900">{step.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{step.text}</p>
+        <div className="mt-14 grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
+          <div data-reveal>
+            <Track
+              label="Côté client Moncode"
+              meta="En quelques minutes, une seule fois"
+              icon={Layers}
+              items={ownerSteps}
+            />
+          </div>
+
+          <div className="surface overflow-hidden" data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
+            {/* Photo : Unsplash (licence libre), stockée dans public/images. */}
+            <div className="relative aspect-[16/9] bg-cream-deep">
+              <Image
+                src="/images/scan-qr.jpg"
+                alt="Une main tient un téléphone qui affiche un QR code"
+                fill
+                sizes="(max-width: 1024px) 100vw, 440px"
+                className="object-cover object-[center_40%]"
+              />
             </div>
-          ))}
+            <div className="p-6 sm:p-8">
+            <Track
+              label="Côté visiteur"
+              meta="Instantané, au premier scan"
+              icon={Smartphone}
+              items={guestSteps}
+              compact
+            />
+            <div className="mt-7 flex items-start gap-3 border-t border-line pt-6">
+              <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
+              <p className="text-[15px] leading-7 text-sage">
+                Un QR code par contenu. Pour plusieurs codes ou plusieurs points de vente, le
+                sur-mesure est chiffré séparément.
+              </p>
+            </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function Track({
+  label,
+  meta,
+  icon: Icon,
+  items,
+  compact = false,
+}: {
+  label: string;
+  meta: string;
+  icon: typeof Layers;
+  items: { title: string; text: string }[];
+  compact?: boolean;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-4">
+        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink">
+          <Icon className="h-4 w-4 text-forest" />
+          {label}
+        </h3>
+        <p className="text-xs text-sage">{meta}</p>
+      </div>
+
+      <ol className="mt-7 space-y-7">
+        {items.map((item, idx) => (
+          <li key={item.title} className="flex gap-5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-leaf text-sm font-semibold text-forest">
+              {String(idx + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <h4 className="text-base font-semibold text-ink">{item.title}</h4>
+              <p className="mt-1.5 text-[15px] leading-7 text-sage">{item.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {!compact && (
+        <p className="mt-7 border-l-2 border-forest/40 pl-4 text-[15px] leading-7 text-sage">
+          <UploadCloud className="mb-1 inline h-4 w-4 text-ink" /> Vos fichiers restent accessibles
+          depuis votre espace client, avec leur QR code.
+        </p>
+      )}
+    </div>
   );
 }

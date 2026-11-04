@@ -3,4 +3,8 @@ dist
 .turbo
 node_modules
 .env*
+# Les gabarits d'environnement sont destinés à être versionnés ; les valeurs
+# restent dans `.env`, jamais suivis par git.
+!.env.example
+!.env.*.example
 *.tsbuildinfo

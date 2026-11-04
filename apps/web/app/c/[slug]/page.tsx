@@ -1,5 +1,6 @@
 "use client";
 import RestaurantCardLayout from "../../../components/RestaurantCardLayout";
+import MediaCardView from "../../../components/media-card-view";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +9,11 @@ interface CardData {
   slug: string;
   imageUrl: string;
   cardUrl: string;
+  serviceType?: "page" | "media" | "document" | string | null;
+  title?: string | null;
+  contentUrl?: string | null;
+  contentType?: string | null;
+  fileName?: string | null;
   restaurantName?: string | null;
   address?: string | null;
   logoUrl?: string | null;
@@ -25,12 +31,13 @@ interface CardData {
   cardLayout?: string | null;
   qrStyle?: string | null;
   createdAt: string;
+  status?: "draft" | "active";
 }
 
 export default function CardViewPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  
+
   const [card, setCard] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +51,7 @@ export default function CardViewPage() {
     fetch(`${apiUrl}/cards/${slug}`)
       .then(async (res) => {
         if (!res.ok) {
-          throw new Error("Cette carte ou ce restaurant est introuvable.");
+          throw new Error("Ce QR code est introuvable.");
         }
         return res.json();
       })
@@ -69,10 +76,33 @@ export default function CardViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+      <div className="min-h-screen flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium">Chargement du menu...</p>
+          <div className="w-10 h-10 border-4 border-line border-t-ink rounded-full animate-spin"></div>
+          <p className="text-sage font-medium">Chargement du contenu…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Commande pas encore payée : le contenu n'est pas publié.
+  if (card?.status === "draft") {
+    return (
+      <div className="min-h-screen flex items-center justify-center font-sans p-6 text-center">
+        <div className="surface max-w-md w-full p-8">
+          <div className="w-14 h-14 bg-leaf text-forest rounded-xl flex items-center justify-center mx-auto mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-ink/90 mb-2">QR code pas encore activé</h1>
+          <p className="text-sage mb-6">
+            Ce contenu sera visible dès que la commande associée aura été réglée.
+          </p>
+          <Link href="/" className="btn btn-primary">
+            Découvrir Moncode
+          </Link>
         </div>
       </div>
     );
@@ -80,34 +110,62 @@ export default function CardViewPage() {
 
   if (error || !card) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-6 text-center">
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-          <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-            😕
+      <div className="min-h-screen flex items-center justify-center font-sans p-6 text-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-line">
+          <div className="w-14 h-14 bg-leaf text-forest rounded-xl flex items-center justify-center mx-auto mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M12 7v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="12" cy="16" r="0.8" fill="currentColor" />
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Oops !</h1>
-          <p className="text-slate-500 mb-6">{error || "Carte introuvable."}</p>
-          <Link href="/" className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-full hover:bg-blue-700 transition-colors">
-            Créer ma carte Visicard
+          <h1 className="text-xl font-semibold text-ink mb-2">QR code introuvable</h1>
+          <p className="text-sage mb-6">{error || "Ce contenu n'existe plus ou a été supprimé."}</p>
+          <Link href="/" className="btn btn-primary">
+            Créer mon QR code
           </Link>
         </div>
       </div>
     );
   }
 
-  const cleanPhone = card.phoneNumber ? card.phoneNumber.replace(/\D/g, '') : null;
-  const safeLocationUrl = card.locationUrl && (card.locationUrl.startsWith("http://") || card.locationUrl.startsWith("https://"))
-    ? card.locationUrl
-    : card.locationUrl 
-      ? `https://${card.locationUrl}`
-      : null;
+  const serviceType = (card.serviceType ?? "page") as "page" | "media" | "document";
+
+  if (serviceType === "media" || serviceType === "document") {
+    return (
+      <MediaCardView
+        card={{
+          slug: card.slug,
+          serviceType,
+          title: card.title,
+          contentUrl: card.contentUrl,
+          contentType: card.contentType,
+          fileName: card.fileName,
+          restaurantName: card.restaurantName,
+        }}
+      />
+    );
+  }
+
+  const cleanPhone = card.phoneNumber ? card.phoneNumber.replace(/\D/g, "") : null;
+  const safeLocationUrl =
+    card.locationUrl && (card.locationUrl.startsWith("http://") || card.locationUrl.startsWith("https://"))
+      ? card.locationUrl
+      : card.locationUrl
+        ? `https://${card.locationUrl}`
+        : null;
 
   const themeClass = `restaurant-${card.themeId || "theme-1"}`;
 
   return (
-    <div className={`min-h-screen w-full bg-slate-100 flex items-center justify-center font-sans ${themeClass}`}>
-      <main className="w-full sm:max-w-[420px] min-h-screen sm:min-h-[100dvh] relative bg-white sm:shadow-2xl sm:border-x border-slate-200 overflow-x-hidden" style={{ backgroundColor: "var(--theme-bg)" }}>
-        <RestaurantCardLayout 
+    <div
+      className={`min-h-screen w-full flex items-center justify-center font-sans ${themeClass}`}
+    >
+      <main
+        className="w-full sm:max-w-[420px] min-h-screen sm:min-h-[100dvh] relative bg-white sm:shadow-2xl sm:border-x border-slate-200 overflow-x-hidden"
+        style={{ backgroundColor: "var(--theme-bg)" }}
+      >
+        <RestaurantCardLayout
           restaurantName={card.restaurantName || ""}
           address={card.address || undefined}
           logoUrl={card.logoUrl || undefined}

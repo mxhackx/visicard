@@ -1,0 +1,176 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    /* ancres #tarifs, #avis... ne passent pas sous le header fixe */
+    scroll-padding-top: 4.5rem;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Thèmes originaux conservés pour rétrocompatibilité */
+.restaurant-theme-default {
+  --theme-bg: var(--background);
+  --theme-text: var(--foreground);
+  --theme-card-bg: var(--card);
+  --theme-accent: var(--primary);
+  --theme-border: var(--border);
+}
+.restaurant-theme-1 {
+  --theme-bg: #0d0b09;
+  --theme-text: #fdf8e2;
+  --theme-card-bg: #151310;
+  --theme-accent: #d4af37;
+  --theme-border: rgba(212, 175, 55, 0.2);
+}
+.restaurant-theme-2 {
+  --theme-bg: #fcf8f2;
+  --theme-text: #321d14;
+  --theme-card-bg: #ffffff;
+  --theme-accent: #c85a32;
+  --theme-border: rgba(200, 90, 50, 0.15);
+}
+.restaurant-theme-3 {
+  --theme-bg: #ffffff;
+  --theme-text: #2d2a28;
+  --theme-card-bg: #fcfcfc;
+  --theme-accent: #827a72;
+  --theme-border: rgba(0, 0, 0, 0.08);
+}
+.restaurant-theme-4 {
+  --theme-bg: #f2f7f4;
+  --theme-text: #193626;
+  --theme-card-bg: #ffffff;
+  --theme-accent: #2c5f43;
+  --theme-border: rgba(44, 95, 67, 0.15);
+}
+.restaurant-theme-5 {
+  --theme-bg: #13100e;
+  --theme-text: #fff5ec;
+  --theme-card-bg: #1c1815;
+  --theme-accent: #ef6a22;
+  --theme-border: rgba(239, 106, 34, 0.2);
+}
+.restaurant-theme-6 {
+  --theme-bg: #000000;
+  --theme-text: #ffffff;
+  --theme-card-bg: #111111;
+  --theme-accent: #00ffcc;
+  --theme-border: rgba(0, 255, 204, 0.3);
+}
+.restaurant-theme-7 {
+  --theme-bg: #f0f8ff;
+  --theme-text: #003366;
+  --theme-card-bg: #ffffff;
+  --theme-accent: #0066cc;
+  --theme-border: rgba(0, 102, 204, 0.15);
+}
+.restaurant-theme-8 {
+  --theme-bg: #fff5f5;
+  --theme-text: #4a3030;
+  --theme-card-bg: #ffffff;
+  --theme-accent: #d4a373;
+  --theme-border: rgba(212, 163, 115, 0.2);
+}
+.restaurant-theme-9 {
+  --theme-bg: #3e2723;
+  --theme-text: #efebe9;
+  --theme-card-bg: #4e342e;
+  --theme-accent: #ffb300;
+  --theme-border: rgba(255, 179, 0, 0.2);
+}
+.restaurant-theme-10 {
+  --theme-bg: #282a36;
+  --theme-text: #f8f8f2;
+  --theme-card-bg: #44475a;
+  --theme-accent: #bd93f9;
+  --theme-border: rgba(189, 147, 249, 0.3);
+}

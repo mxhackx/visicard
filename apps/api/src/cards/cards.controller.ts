@@ -12,13 +12,18 @@ import {
   UploadedFiles,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import 'multer';
 import { CardsService } from './cards.service';
 import { AuthService } from '../auth/auth.service';
+import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from './card-files';
+
 export class UpdateCardDto {
+  serviceType?: string;
+  title?: string;
   userName?: string;
   clientName?: string;
   workDone?: string;
@@ -39,12 +44,15 @@ export class UpdateCardDto {
   qrStyle?: string;
 }
 export class CreateCardDto {
+  serviceType?: string;
+  title?: string;
   userName?: string;
   clientName?: string;
   workDone?: string;
   amountReceived?: number;
   currency?: string;
   restaurantName?: string;
+  address?: string;
   locationUrl?: string;
   phoneNumber?: string;
   facebookUrl?: string;
@@ -89,20 +97,24 @@ export class CardsController {
       { name: 'logo', maxCount: 1 },
       { name: 'menu', maxCount: 8 },
       { name: 'place', maxCount: 8 },
+      { name: 'media', maxCount: 1 },
+      { name: 'document', maxCount: 1 },
     ], {
-      limits: { fileSize: 6 * 1024 * 1024, files: 10 },
-      fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-        if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-          return callback(new BadRequestException(`Le fichier "${file.originalname}" n'est pas une image valide`), false);
-        }
-        callback(null, true);
-      }
+      limits: { fileSize: 32 * 1024 * 1024, files: 12 },
+      fileFilter: cardFileFilter,
     })
   )
   async uploadCardProtected(
     @Req() req: Request,
     @Headers('authorization') authHeader: string | undefined,
-    @UploadedFiles() files: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; },
+    @UploadedFiles() files: {
+      file?: Express.Multer.File[];
+      logo?: Express.Multer.File[];
+      menu?: Express.Multer.File[];
+      place?: Express.Multer.File[];
+      media?: Express.Multer.File[];
+      document?: Express.Multer.File[];
+    },
     @Body() body?: CreateCardDto,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -110,20 +122,47 @@ export class CardsController {
       token = (req as any).cookies['access_token'];
     }
     if (!token) {
-      throw new UnauthorizedException("Authentification requise pour enregistrer une fiche d'intervention.");
+      throw new UnauthorizedException("Authentification requise pour générer un QR code.");
     }
-    const isValid = await this.authService.validateUserToken(token);
-    if (!isValid) {
+    const { valid, user } = await this.authService.validateToken(token);
+    if (!valid || !user) {
       throw new UnauthorizedException("Session utilisateur expirée ou invalide.");
     }
+    // Création directe et gratuite : réservée à l'admin. Les clients passent par /orders.
+    if (user.role !== 'admin') {
+      throw new ForbiddenException("Les QR codes clients se créent via une commande (devis puis paiement).");
+    }
+
     const singleFile = files?.file?.[0];
     const logoFile = files?.logo?.[0];
     const menuFiles = files?.menu ?? [];
     const placeFiles = files?.place ?? [];
-    if (!singleFile && !logoFile && menuFiles.length === 0) {
+    const mediaFile = files?.media?.[0];
+    const documentFile = files?.document?.[0];
+    const serviceType = body?.serviceType ?? 'page';
+
+    if (serviceType === 'page' && !singleFile && !logoFile && menuFiles.length === 0) {
       throw new BadRequestException('Veuillez fournir au moins une image (carte, logo ou menu).');
     }
-    return this.cardsService.createCard({ file: singleFile, logo: logoFile, menu: menuFiles, place: placeFiles }, body);
+    if (serviceType === 'media' && !mediaFile) {
+      throw new BadRequestException('Veuillez fournir une image ou une vidéo.');
+    }
+    if (serviceType === 'document' && !documentFile) {
+      throw new BadRequestException('Veuillez fournir un document PDF.');
+    }
+
+    return this.cardsService.createCard(
+      {
+        file: singleFile,
+        logo: logoFile,
+        menu: menuFiles,
+        place: placeFiles,
+        media: mediaFile,
+        document: documentFile,
+      },
+      body,
+      user.id,
+    );
   }
   /**
    * Création de carte de visite publique (Non protégée)
@@ -135,34 +174,92 @@ export class CardsController {
       { name: 'logo', maxCount: 1 },
       { name: 'menu', maxCount: 8 },
       { name: 'place', maxCount: 8 },
+      { name: 'media', maxCount: 1 },
+      { name: 'document', maxCount: 1 },
     ], {
-      limits: { fileSize: 6 * 1024 * 1024, files: 10 },
-      fileFilter: (_req: Request, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-        if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-          return callback(new BadRequestException(`Le fichier "${file.originalname}" n'est pas une image valide`), false);
-        }
-           callback(null, true);
-      }
+      limits: { fileSize: 32 * 1024 * 1024, files: 12 },
+      fileFilter: cardFileFilter,
     })
   )
   async uploadCardPublic(
-    @UploadedFiles() files: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; },
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @UploadedFiles() files: {
+      file?: Express.Multer.File[];
+      logo?: Express.Multer.File[];
+      menu?: Express.Multer.File[];
+      place?: Express.Multer.File[];
+      media?: Express.Multer.File[];
+      document?: Express.Multer.File[];
+    },
     @Body() body?: CreateCardDto,
   ) {
+    // Ancienne route publique : elle créait des QR actifs sans paiement. Réservée à l'admin.
+    let adminToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!adminToken && (req as any).cookies) adminToken = (req as any).cookies['access_token'];
+    if (!adminToken || !(await this.authService.validateAdminToken(adminToken))) {
+      throw new ForbiddenException("Les QR codes clients se créent via une commande (devis puis paiement).");
+    }
     const singleFile = files?.file?.[0];
     const logoFile = files?.logo?.[0];
     const menuFiles = files?.menu ?? [];
     const placeFiles = files?.place ?? [];
-    if (!singleFile && !logoFile && menuFiles.length === 0) {
+    const mediaFile = files?.media?.[0];
+    const documentFile = files?.document?.[0];
+    const serviceType = body?.serviceType ?? 'page';
+
+    if (serviceType === 'page' && !singleFile && !logoFile && menuFiles.length === 0) {
       throw new BadRequestException('Veuillez fournir au moins une image (carte, logo ou menu).');
     }
-    const sanitizedBody = { ...body };
-    delete sanitizedBody.userName;
-    delete sanitizedBody.clientName;
-    delete sanitizedBody.workDone;
-    delete sanitizedBody.amountReceived;
-    delete sanitizedBody.currency;
-    return this.cardsService.createCard({ file: singleFile, logo: logoFile, menu: menuFiles }, sanitizedBody);
+    if (serviceType === 'media' && !mediaFile) {
+      throw new BadRequestException('Veuillez fournir une image ou une vidéo.');
+    }
+    if (serviceType === 'document' && !documentFile) {
+      throw new BadRequestException('Veuillez fournir un document PDF.');
+    }
+
+    // Associe le QR code au compte connecté s'il existe, sans obliger à se connecter.
+    let ownerId: string | null = null;
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token && (req as any).cookies) {
+      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
+    }
+    if (token) {
+      const { valid, user } = await this.authService.validateToken(token);
+      if (valid && user?.id) {
+        ownerId = user.id;
+      }
+    }
+
+    const sanitizedBody = { ...(body ?? {}) };
+    if (serviceType !== 'page') {
+      delete sanitizedBody.userName;
+      delete sanitizedBody.clientName;
+      delete sanitizedBody.workDone;
+      delete sanitizedBody.amountReceived;
+      delete sanitizedBody.currency;
+      delete sanitizedBody.restaurantName;
+      delete sanitizedBody.address;
+      delete sanitizedBody.phoneNumber;
+      delete sanitizedBody.facebookUrl;
+      delete sanitizedBody.instagramUrl;
+      delete sanitizedBody.xUrl;
+      delete sanitizedBody.snapchatUrl;
+      delete sanitizedBody.schedule;
+      delete sanitizedBody.additionalInfo;
+    } else {
+      delete sanitizedBody.userName;
+      delete sanitizedBody.clientName;
+      delete sanitizedBody.workDone;
+      delete sanitizedBody.amountReceived;
+      delete sanitizedBody.currency;
+    }
+
+    return this.cardsService.createCard(
+      { file: singleFile, logo: logoFile, menu: menuFiles, place: placeFiles, media: mediaFile, document: documentFile },
+      sanitizedBody,
+      ownerId,
+    );
   }
   @Get()
   async getAllCards(@Req() req: Request, @Headers('authorization') authHeader?: string) {
@@ -179,27 +276,36 @@ export class CardsController {
     }
     return this.cardsService.getAllCards();
   }
+
+  /** QR codes du client connecté, pour son espace personnel. */
+  @Get('mine')
+  async getMyCards(
+    @Req() req: Request,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token && (req as any).cookies) {
+      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
+    }
+    if (!token) {
+      throw new UnauthorizedException('Connectez-vous pour retrouver vos QR codes.');
+    }
+    const { valid, user } = await this.authService.validateToken(token);
+    if (!valid || !user) {
+      throw new UnauthorizedException('Session expirée ou invalide.');
+    }
+    return this.cardsService.getCardsByOwner(user.id);
+  }
+
   @Patch(':slug')
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'file', maxCount: 1 },
-      { name: 'logo', maxCount: 1 },
-      { name: 'menu', maxCount: 10 },
-    ], {
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
-      fileFilter: (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-          return callback(new BadRequestException('Seules les images sont autorisées'), false);
-        }
-        callback(null, true);
-      },
-    }),
+    FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, fileFilter: cardFileFilter }),
   )
   async updateCard(
     @Req() req: Request,
     @Headers('authorization') authHeader: string | undefined,
     @Param('slug') slug: string,
-    @UploadedFiles() files: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; },
+    @UploadedFiles() files: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; media?: Express.Multer.File[]; document?: Express.Multer.File[]; },
     @Body() body: UpdateCardDto,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -215,6 +321,46 @@ export class CardsController {
     }
     return this.cardsService.updateCardBySlug(slug, body, files);
   }
+  /** Fiche complète d'une carte pour l'administration (contenu même non payé, commandes). */
+  @Get(':slug/admin')
+  async getAdminDetail(
+    @Req() req: Request,
+    @Param('slug') slug: string,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    await this.requireAdmin(req, authHeader);
+    return this.cardsService.getAdminDetail(slug);
+  }
+
+  @Post(':slug/reject')
+  async rejectCard(
+    @Req() req: Request,
+    @Param('slug') slug: string,
+    @Body() body: { reason?: string },
+    @Headers('authorization') authHeader?: string,
+  ) {
+    await this.requireAdmin(req, authHeader);
+    return this.cardsService.rejectCard(slug, body?.reason ?? '');
+  }
+
+  @Post(':slug/restore')
+  async restoreCard(
+    @Req() req: Request,
+    @Param('slug') slug: string,
+    @Headers('authorization') authHeader?: string,
+  ) {
+    await this.requireAdmin(req, authHeader);
+    return this.cardsService.restoreCard(slug);
+  }
+
+  private async requireAdmin(req: Request, authHeader?: string) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = (req as Request & { cookies?: Record<string, string> }).cookies?.['access_token'] ?? null;
+    if (!token || !(await this.authService.validateAdminToken(token))) {
+      throw new UnauthorizedException('Accès réservé aux administrateurs.');
+    }
+  }
+
   @Get(':slug/download')
   async downloadCard(@Param('slug') slug: string, @Res() res: Response) {
     const fileData = await this.cardsService.getCardFile(slug);
@@ -229,18 +375,22 @@ export class CardsController {
 
   @Delete(':slug')
   async deleteCard(
+    @Req() req: Request,
     @Param('slug') slug: string,
-    @Headers('authorization') authHeader: string | undefined
+    @Headers('authorization') authHeader: string | undefined,
   ) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Token d\'authentification manquant');
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token && (req as any).cookies) {
+      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
     }
-    const token = authHeader.split(' ')[1];
-    const isValid = await this.authService.validateAdminToken(token);
-    if (!isValid) {
-      throw new UnauthorizedException('Seul un administrateur peut supprimer une carte');
+    if (!token) {
+      throw new UnauthorizedException("Token d'authentification manquant");
     }
-    return this.cardsService.deleteCardBySlug(slug);
+    const { valid, user } = await this.authService.validateToken(token);
+    if (!valid || !user) {
+      throw new UnauthorizedException('Session expirée ou invalide');
+    }
+    return this.cardsService.deleteCardBySlug(slug, { id: user.id, role: user.role });
   }
 
 }

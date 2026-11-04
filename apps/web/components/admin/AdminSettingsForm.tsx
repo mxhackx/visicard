@@ -68,11 +68,11 @@ export default function AdminSettingsForm({ adminToken }: AdminSettingsFormProps
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-          <Lock className="w-5 h-5 text-blue-600" /> Sécurité du compte
+        <h2 className="text-xl font-bold text-ink/90 flex items-center gap-2">
+          <Lock className="w-5 h-5 text-forest" /> Sécurité du compte
         </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Modifiez l'adresse e-mail de connexion ou le mot de passe administrateur.
+        <p className="text-sm text-sage mt-1">
+          Modifiez l’adresse e-mail de connexion ou le mot de passe administrateur.
         </p>
       </div>
 
@@ -93,52 +93,52 @@ export default function AdminSettingsForm({ adminToken }: AdminSettingsFormProps
         )}
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700 block" htmlFor="new-email">
+          <label className="text-sm font-medium text-ink/80 block" htmlFor="new-email">
             Nouvel E-mail
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Mail className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 w-4 h-4 text-sage" />
             <input
               id="new-email"
               type="email"
               placeholder="admin@example.com"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
+              className="field pl-9"
             />
           </div>
         </div>
 
         <div className="space-y-1.5 pt-2">
-          <label className="text-sm font-medium text-slate-700 block" htmlFor="new-pass">
+          <label className="text-sm font-medium text-ink/80 block" htmlFor="new-pass">
             Nouveau Mot de passe
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Lock className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 w-4 h-4 text-sage" />
             <input
               id="new-pass"
               type="password"
               placeholder="••••••••"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
+              className="field pl-9"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700 block" htmlFor="confirm-pass">
+          <label className="text-sm font-medium text-ink/80 block" htmlFor="confirm-pass">
             Confirmer le mot de passe
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Lock className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 w-4 h-4 text-sage" />
             <input
               id="confirm-pass"
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
+              className="field pl-9"
             />
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function AdminSettingsForm({ adminToken }: AdminSettingsFormProps
           <button
             type="submit"
             disabled={isUpdatingCreds || (!newEmail && !newPassword)}
-            className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 w-full bg-forest text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-forest-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUpdatingCreds ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

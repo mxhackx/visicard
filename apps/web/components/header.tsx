@@ -3,79 +3,72 @@
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import Logo from "@/components/logo";
+
+const navLinks = [
+  { href: "/", label: "Accueil" },
+  { href: "/#services", label: "Services" },
+  { href: "/#fonctionnement", label: "Fonctionnement" },
+  { href: "/#tarifs", label: "Tarifs" },
+  { href: "/#avis", label: "Avis" },
+  { href: "/contact", label: "Contact" },
+];
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="Moncode - accueil" className="flex items-center gap-3 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 shadow-sm">
-            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" aria-hidden="true">
-              <rect width="200" height="200" rx="38" fill="#0f172a" opacity="0.12"/>
-              <g fill="#ffffff">
-                <rect x="20" y="20" width="12" height="12"/>
-                <rect x="35" y="20" width="12" height="12"/>
-                <rect x="50" y="20" width="12" height="12"/>
-                <rect x="20" y="35" width="12" height="12"/>
-                <rect x="50" y="35" width="12" height="12"/>
-                <rect x="20" y="50" width="12" height="12"/>
-                <rect x="35" y="50" width="12" height="12"/>
-                <rect x="50" y="50" width="12" height="12"/>
-                <rect x="128" y="20" width="12" height="12"/>
-                <rect x="143" y="20" width="12" height="12"/>
-                <rect x="158" y="20" width="12" height="12"/>
-                <rect x="128" y="35" width="12" height="12"/>
-                <rect x="158" y="35" width="12" height="12"/>
-                <rect x="128" y="50" width="12" height="12"/>
-                <rect x="143" y="50" width="12" height="12"/>
-                <rect x="158" y="50" width="12" height="12"/>
-                <rect x="20" y="128" width="12" height="12"/>
-                <rect x="35" y="128" width="12" height="12"/>
-                <rect x="50" y="128" width="12" height="12"/>
-                <rect x="20" y="143" width="12" height="12"/>
-                <rect x="50" y="143" width="12" height="12"/>
-                <rect x="20" y="158" width="12" height="12"/>
-                <rect x="35" y="158" width="12" height="12"/>
-                <rect x="50" y="158" width="12" height="12"/>
-                <circle cx="100" cy="100" r="8" fill="#22d3ee"/>
-                <circle cx="75" cy="100" r="5" fill="#22d3ee"/>
-                <circle cx="125" cy="100" r="5" fill="#22d3ee"/>
-                <circle cx="100" cy="75" r="5" fill="#22d3ee"/>
-                <circle cx="100" cy="125" r="5" fill="#22d3ee"/>
-              </g>
-            </svg>
-          </div>
-          <span className="text-lg font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">Moncode</span>
+    <header className="fixed inset-x-0 top-0 z-50 brand-surface border-b border-white/10 shadow-[0_8px_30px_rgba(15,42,107,0.25)]">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
+          <Logo variant="light" />
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
-          <Link href="/about" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">À propos</Link>
-          <Link href="/pricing" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">Tarifs</Link>
-          <Link href="/blog" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">Blog</Link>
-          <Link href="/contact" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">Contact</Link>
-          <Link href="/connexion" className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Se connecter</Link>
+        <nav aria-label="Sections du site" className="hidden items-center gap-7 lg:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-[15px] font-medium text-white/80 transition-colors hover:text-white"
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
+
+        <div className="hidden items-center gap-5 lg:flex">
+          <Link href="/creer" className="btn btn-light btn-sm">
+            Créer un QR code
+          </Link>
+        </div>
 
         <button
           type="button"
-          aria-label="Ouvrir le menu"
+          aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={isOpen}
           onClick={() => setIsOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 md:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 lg:hidden"
         >
-          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </div>
 
       {isOpen && (
-        <div className="border-t border-slate-200 bg-white md:hidden">
-          <nav className="mx-auto flex max-w-7xl flex-col gap-2 p-4">
-            <Link href="/about" onClick={() => setIsOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">À propos</Link>
-            <Link href="/pricing" onClick={() => setIsOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Tarifs</Link>
-            <Link href="/blog" onClick={() => setIsOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Blog</Link>
-            <Link href="/contact" onClick={() => setIsOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Contact</Link>
-            <Link href="/connexion" onClick={() => setIsOpen(false)} className="mt-2 block rounded-lg bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white">Se connecter</Link>
+        <div className="border-t border-white/10 lg:hidden">
+          <nav aria-label="Sections du site" className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className="block border-b border-white/10 py-3 text-base font-medium text-white/85 last:border-0 hover:text-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-light btn-sm my-3 w-full">
+              Créer un QR code
+            </Link>
           </nav>
         </div>
       )}

@@ -1,10 +1,18 @@
 import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { PrismaService } from '../database/prisma.service';
+import { hashPassword, verifyPassword } from './mot-de-passe';
+import { createLocalToken, readLocalToken } from './jetons-locaux';
 
 export interface AuthSessionUser {
   id: string;
   email?: string;
   role: 'admin' | 'user';
+  /**
+   * Émetteur de la session : `supabase` pour le chemin d'origine, `local` pour
+   * un compte de la table `admin_users`. Absent sur les sessions plus anciennes.
+   */
+  provider?: 'local' | 'supabase';
 }
 
 export interface AuthResult {
@@ -25,8 +33,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private supabase: SupabaseClient | null = null;
 
-  constructor() {
-    this.logger.log('Initialisation du AuthService (Strictement basé sur Supabase)');
+  constructor(private readonly prisma: PrismaService) {
+    this.logger.log('Initialisation du AuthService (Supabase + comptes admin locaux)');
   }
 
   async onModuleInit() {
@@ -34,7 +42,10 @@ export class AuthService {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      this.logger.error("Configuration Supabase manquante (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
+      this.logger.warn(
+        "Configuration Supabase manquante (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) : " +
+          "seuls les comptes de la table admin_users pourront se connecter.",
+      );
       return;
     }
 
@@ -47,11 +58,58 @@ export class AuthService {
     this.logger.log('Connecté à Supabase Auth avec succès. Fin de la dépendance aux mots de passe locaux.');
   }
 
-  async login(identifier: string, password: string): Promise<AuthResult> {
-    if (!this.supabase) {
-      throw new UnauthorizedException('Service d\'authentification momentanément indisponible.');
+  /**
+   * Un compte local est une simple ligne de `admin_users` : sa lecture doit
+   * échouer doucement quand la table n'existe pas encore (base fraîche,
+   * migration non jouée), sans jamais empêcher le chemin Supabase.
+   */
+  private async findLocalAccount(email: string) {
+    try {
+      return await this.prisma.adminUser.findUnique({ where: { email } });
+    } catch (error) {
+      this.logger.debug(`admin_users indisponible : ${(error as Error).message}`);
+      return null;
     }
+  }
 
+  /** Nombre de comptes locaux, ou `null` quand la table est absente. */
+  private async countLocalAccounts(): Promise<number | null> {
+    try {
+      return await this.prisma.adminUser.count();
+    } catch {
+      return null;
+    }
+  }
+
+  private localSessionUser(account: {
+    id: string;
+    email: string;
+    role: string;
+  }): AuthSessionUser {
+    return {
+      id: account.id,
+      email: account.email,
+      role: account.role === 'admin' ? 'admin' : 'user',
+      provider: 'local',
+    };
+  }
+
+  private issueLocalSession(account: {
+    id: string;
+    email: string;
+    role: string;
+  }) {
+    const user = this.localSessionUser(account);
+    const target = { id: user.id, email: user.email ?? '', role: user.role };
+
+    return {
+      access_token: createLocalToken(target, 'access'),
+      refresh_token: createLocalToken(target, 'refresh'),
+      user,
+    };
+  }
+
+  async login(identifier: string, password: string): Promise<AuthResult> {
     const cleanId = (identifier || '').trim().toLowerCase();
     const adminEmail = (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase();
     const userEmail = (process.env.USER_EMAIL || 'user@moncode.com').toLowerCase();
@@ -62,6 +120,48 @@ export class AuthService {
       targetEmail = adminEmail;
     } else if (cleanId === 'user' || cleanId === 'restaurant' || cleanId === 'resto') {
       targetEmail = userEmail;
+    }
+
+    // 1) Un compte présent dans `admin_users` a toujours la main : c'est lui qui
+    //    permet de démarrer l'API sans Supabase. Le faire passer après Supabase
+    //    rendrait `ADMIN_PASSWORD` inopérant dès lors qu'un projet Supabase est
+    //    configuré avec la même adresse.
+    const account = await this.findLocalAccount(targetEmail);
+
+    if (account) {
+      const valid = await verifyPassword(password, account.passwordHash);
+
+      if (!valid) {
+        this.logger.warn(`Mot de passe incorrect pour le compte local ${targetEmail}`);
+        throw new UnauthorizedException('Identifiant ou mot de passe incorrect');
+      }
+
+      const session = this.issueLocalSession(account);
+      const redirect = session.user.role === 'admin' ? '/admin' : '/compte';
+
+      this.logger.log(`Connexion locale : ${targetEmail} (${session.user.role})`);
+
+      return { ...session, redirect };
+    }
+
+    // 2) Aucun compte local pour cette adresse : on retombe sur Supabase.
+    if (!this.supabase) {
+      const localCount = await this.countLocalAccounts();
+
+      if (localCount === null) {
+        throw new UnauthorizedException(
+          "Service d'authentification indisponible : ni Supabase configuré, ni table " +
+            'admin_users en base. Créez la base puis jouez `npm run seed`.',
+        );
+      }
+      if (localCount === 0) {
+        throw new UnauthorizedException(
+          'Aucun compte en base : renseignez ADMIN_EMAIL et ADMIN_PASSWORD dans .env ' +
+            'puis lancez `npm run seed`.',
+        );
+      }
+
+      throw new UnauthorizedException('Identifiant ou mot de passe incorrect');
     }
 
     const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -97,7 +197,7 @@ export class AuthService {
       }
     }
 
-    const redirect = role === 'admin' ? '/admin' : '/intervenant';
+    const redirect = role === 'admin' ? '/admin' : '/compte';
 
     return {
       access_token: data.session.access_token,
@@ -106,6 +206,7 @@ export class AuthService {
         id: data.user.id,
         email: data.user.email,
         role,
+        provider: 'supabase',
       },
       redirect,
     };
@@ -115,9 +216,123 @@ export class AuthService {
     return this.login('admin', password);
   }
 
+  /**
+   * Création d'un compte client. Les comptes vivent dans la même table que les
+   * administrateurs (`admin_users`, champ `role`) afin qu'une personne puisse
+   * être promue administrateur plus tard depuis l'interface.
+   */
+  async register(name: string, email: string, password: string): Promise<AuthResult> {
+    const cleanName = (name || '').trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = password || '';
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      throw new BadRequestException('Adresse e-mail invalide.');
+    }
+    if (cleanPassword.length < 8) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
+    }
+
+    const existing = await this.findLocalAccount(cleanEmail);
+    if (existing) {
+      throw new BadRequestException('Un compte existe déjà avec cette adresse e-mail.');
+    }
+
+    try {
+      const account = await this.prisma.adminUser.create({
+        data: {
+          email: cleanEmail,
+          name: cleanName || null,
+          passwordHash: await hashPassword(cleanPassword),
+          role: 'user',
+        },
+      });
+
+      const session = this.issueLocalSession(account);
+      this.logger.log(`Nouveau compte client : ${cleanEmail}`);
+
+      return { ...session, redirect: '/compte' };
+    } catch (error) {
+      this.logger.error(`Création du compte impossible : ${(error as Error).message}`);
+      throw new BadRequestException(
+        'Impossible de créer le compte pour le moment. Réessayez dans un instant.',
+      );
+    }
+  }
+
+  /** Liste des comptes, réservée au panneau d'administration. */
+  async listAccounts() {
+    const accounts = await this.prisma.adminUser.findMany({
+      orderBy: [{ role: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        _count: { select: { cards: true } },
+      },
+    });
+
+    return accounts.map((account) => ({
+      id: account.id,
+      email: account.email,
+      name: account.name,
+      role: account.role === 'admin' ? 'admin' : 'user',
+      cardsCount: account._count.cards,
+      createdAt: account.createdAt,
+    }));
+  }
+
+  /** Promotion ou retrait du rôle administrateur, avec garde-fou du dernier admin. */
+  async setAccountRole(accountId: string, role: string) {
+    if (role !== 'admin' && role !== 'user') {
+      throw new BadRequestException('Rôle inconnu : utilisez « admin » ou « user ».');
+    }
+
+    const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
+    if (!account) {
+      throw new BadRequestException('Compte introuvable.');
+    }
+
+    if (account.role === 'admin' && role === 'user') {
+      const admins = await this.prisma.adminUser.count({ where: { role: 'admin' } });
+      if (admins <= 1) {
+        throw new BadRequestException(
+          'Impossible de retirer le dernier administrateur. Nommez un autre admin d’abord.',
+        );
+      }
+    }
+
+    const updated = await this.prisma.adminUser.update({
+      where: { id: accountId },
+      data: { role },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
+
+    return {
+      ...updated,
+      role: updated.role === 'admin' ? 'admin' : 'user',
+    };
+  }
+
   async refresh(refreshToken: string): Promise<RefreshResult> {
     if (!refreshToken) {
       throw new BadRequestException('Le jeton de rafraîchissement est obligatoire');
+    }
+
+    // Jeton local : le rôle est relu en base, donc supprimer la ligne révoque
+    // la session au prochain rafraîchissement.
+    const claims = readLocalToken(refreshToken, 'refresh');
+
+    if (claims) {
+      const account = await this.findLocalAccount(claims.email);
+
+      if (!account) {
+        throw new UnauthorizedException("Session révoquée : le compte local n'existe plus");
+      }
+
+      return this.issueLocalSession(account);
     }
 
     if (!this.supabase) {
@@ -148,7 +363,24 @@ export class AuthService {
   }
 
   async validateToken(token: string): Promise<{ valid: boolean; user?: AuthSessionUser }> {
-    if (!token || !this.supabase) return { valid: false };
+    if (!token) return { valid: false };
+
+    // Un jeton local se vérifie sans appel réseau : on le teste en premier.
+    const claims = readLocalToken(token, 'access');
+
+    if (claims) {
+      return {
+        valid: true,
+        user: {
+          id: claims.sub,
+          email: claims.email,
+          role: claims.role,
+          provider: 'local',
+        },
+      };
+    }
+
+    if (!this.supabase) return { valid: false };
 
     try {
       const { data, error } = await this.supabase.auth.getUser(token);
@@ -194,6 +426,30 @@ export class AuthService {
 
     if (!trimmedEmail && !trimmedPassword) {
       throw new BadRequestException('Veuillez fournir un nouvel email ou un nouveau mot de passe');
+    }
+
+    if (user.provider === 'local') {
+      const data: { email?: string; passwordHash?: string } = {};
+
+      if (trimmedEmail) data.email = trimmedEmail.toLowerCase();
+      if (trimmedPassword) data.passwordHash = await hashPassword(trimmedPassword);
+
+      try {
+        await this.prisma.adminUser.update({ where: { id: user.id }, data });
+      } catch (error) {
+        this.logger.error(
+          `Mise à jour du compte local impossible : ${(error as Error).message}`,
+        );
+        throw new BadRequestException(
+          'Impossible de mettre à jour les identifiants (email peut-être déjà utilisé).',
+        );
+      }
+
+      return {
+        success: true,
+        message: 'Identifiants mis à jour dans la base.',
+        user: { ...user, email: data.email ?? user.email },
+      };
     }
 
     if (!this.supabase || !user.id) {

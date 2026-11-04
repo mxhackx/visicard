@@ -1,99 +1,231 @@
-import { CardSummary } from "./AdminCardsList";
-import Link from "next/link";
-import { MoreHorizontal, ExternalLink, Edit, QrCode, Trash2 } from "lucide-react";
-import { useState } from "react";
+"use client";
 
-export function AdminTable({ cards, onEdit, onDelete }: { cards: CardSummary[], onEdit: (card: CardSummary) => void, onDelete: (slug: string) => void }) {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+import { useState } from "react";
+import Link from "next/link";
+import { ExternalLink, Eye, FileText, Images, Loader2, Pencil, PanelsTopLeft, QrCode, Trash2 } from "lucide-react";
+import { CardSummary, cardAmount } from "./AdminCardsList";
+
+const typeMeta: Record<string, { label: string; icon: typeof QrCode; className: string }> = {
+  page: { label: "Page", icon: PanelsTopLeft, className: "bg-leaf text-forest" },
+  media: { label: "Image / vidéo", icon: Images, className: "bg-violet-50 text-violet-700" },
+  document: { label: "PDF", icon: FileText, className: "bg-amber-50 text-amber-700" },
+};
+
+const fcfa = new Intl.NumberFormat("fr-FR");
+
+export function AdminTable({
+  cards,
+  onEdit,
+  onDelete,
+}: {
+  cards: CardSummary[];
+  onEdit: (card: CardSummary) => void;
+  onDelete: (slug: string) => Promise<boolean>;
+}) {
+  const [confirmSlug, setConfirmSlug] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmCard = cards.find((c) => c.slug === confirmSlug);
 
   return (
-    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+    <div className="surface overflow-hidden rounded-2xl">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-500 border-b">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-line bg-cream-deep/70 text-xs uppercase tracking-[0.08em] text-sage">
             <tr>
-              <th className="h-12 px-4 font-medium">Menu (Slug)</th>
-              <th className="h-12 px-4 font-medium">Restaurant</th>
-              <th className="h-12 px-4 font-medium">Client</th>
-              <th className="h-12 px-4 font-medium">Revenu</th>
-              <th className="h-12 px-4 font-medium">Création</th>
-              <th className="h-12 px-4 font-medium text-right">Actions</th>
+              <th className="px-5 py-3.5 font-semibold">Contenu</th>
+              <th className="px-4 py-3.5 font-semibold">Type</th>
+              <th className="px-4 py-3.5 font-semibold">Client</th>
+              <th className="px-4 py-3.5 font-semibold">Montant</th>
+              <th className="px-4 py-3.5 font-semibold">Création</th>
+              <th className="px-5 py-3.5 text-right font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
-            {cards.map((card) => (
-              <tr key={card.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="p-4 align-middle font-medium text-slate-900">
-                  <div className="flex items-center gap-3">
-                    <img src={card.imageUrl} alt="" className="w-8 h-8 rounded-md object-cover border" />
-                    <span>/{card.slug}</span>
-                  </div>
-                </td>
-                <td className="p-4 align-middle">{card.restaurantName || "-"}</td>
-                <td className="p-4 align-middle text-slate-500">{card.clientName || "-"}</td>
-                <td className="p-4 align-middle">
-                  {card.amountReceived ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                      {card.amountReceived}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">-</span>
-                  )}
-                </td>
-                <td className="p-4 align-middle text-slate-500">
-                  {new Date(card.createdAt).toLocaleDateString("fr-FR")}
-                </td>
-                <td className="p-4 align-middle text-right relative">
-                  <button 
-                    onClick={() => setOpenDropdown(openDropdown === card.id ? null : card.id)}
-                    className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  
-                  {openDropdown === card.id && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)}></div>
-                      <div className="absolute right-8 top-10 z-50 min-w-[180px] bg-white rounded-lg shadow-lg border border-slate-100 py-1 text-left animate-in fade-in slide-in-from-top-2">
-                        <Link href={`/c/${card.slug}`} target="_blank" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                          <ExternalLink className="w-4 h-4" /> Voir le menu
+          <tbody className="divide-y divide-line">
+            {cards.map((card) => {
+              const meta = typeMeta[card.serviceType ?? "page"] ?? typeMeta.page;
+              const TypeIcon = meta.icon;
+              const amount = cardAmount(card);
+              const name = card.title || card.restaurantName || "Sans titre";
+
+              return (
+                <tr key={card.id} className="transition-colors hover:bg-cream-deep/60">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      {card.logoUrl || card.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={card.logoUrl || card.imageUrl}
+                          alt=""
+                          className="h-10 w-10 shrink-0 rounded-xl border border-line object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-leaf text-forest">
+                          <QrCode className="h-4 w-4" />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <Link href={`/admin/cartes/${card.slug}`} className="block truncate font-semibold text-ink/90 hover:text-forest">
+                          {name}
                         </Link>
-                        <button onClick={() => { onEdit(card); setOpenDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left">
-                          <Edit className="w-4 h-4" /> Modifier
-                        </button>
-                        <Link href="/qr-studio" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                          <QrCode className="w-4 h-4" /> QR Studio
-                        </Link>
-                        <div className="h-px bg-slate-100 my-1"></div>
-                        <button onClick={() => { setDeletingId(card.slug); setOpenDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 text-left">
-     <Trash2 className="w-4 h-4" /> Supprimer
-   </button>
+                        <p className="truncate text-xs text-sage">
+                          /c/{card.slug}
+                          {card.status === "draft" && (
+                            <span className="ml-2 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                              En attente de paiement
+                            </span>
+                          )}
+                          {card.status === "rejected" && (
+                            <span className="ml-2 rounded-full bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-700">
+                              Refusé
+                            </span>
+                          )}
+                        </p>
                       </div>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}`}
+                    >
+                      <TypeIcon className="h-3.5 w-3.5" />
+                      {meta.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-ink/75">{card.clientName || card.userName || "—"}</td>
+                  <td className="px-4 py-3.5">
+                    {amount > 0 ? (
+                      <span className="font-semibold text-ink/90">{fcfa.format(amount)} FCFA</span>
+                    ) : (
+                      <span className="text-sage">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5 text-ink/75">
+                    {new Date(card.createdAt).toLocaleDateString("fr-FR", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-1">
+                      <IconLink href={`/admin/cartes/${card.slug}`} label="Voir la fiche (contenu, commandes, refus)">
+                        <Eye className="h-4 w-4" />
+                      </IconLink>
+                      <IconLink href={`/c/${card.slug}`} label="Ouvrir la page publique" external>
+                        <ExternalLink className="h-4 w-4" />
+                      </IconLink>
+                      <IconButton label="Modifier" onClick={() => onEdit(card)}>
+                        <Pencil className="h-4 w-4" />
+                      </IconButton>
+                      <IconButton label="Supprimer" danger onClick={() => setConfirmSlug(card.slug)}>
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-    
-      {deletingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6" />
+
+      {confirmCard && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-title"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <Trash2 className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Supprimer la carte ?</h3>
-            <p className="text-sm text-slate-500 mb-6">Êtes-vous sûr de vouloir supprimer définitivement ce restaurant et toutes ses photos ? Cette action est irréversible.</p>
-            <div className="flex items-center gap-3 w-full">
-              <button onClick={() => setDeletingId(null)} className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors">Annuler</button>
-              <button onClick={() => { onDelete(deletingId); setDeletingId(null); }} className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">Supprimer</button>
+            <h3 id="delete-title" className="text-lg font-semibold text-ink/90">
+              Supprimer ce QR code ?
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-sage">
+              « {confirmCard.title || confirmCard.restaurantName || confirmCard.slug} » et ses fichiers seront
+              supprimés définitivement. Le QR code imprimé ne fonctionnera plus.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setConfirmSlug(null)}
+                className="btn btn-outline flex-1"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  const ok = await onDelete(confirmCard.slug);
+                  setDeleting(false);
+                  if (ok) setConfirmSlug(null);
+                }}
+                className="btn flex-1 border-red-600 bg-red-600 text-white hover:bg-red-700"
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+const iconClass =
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg text-sage transition-colors hover:bg-leaf hover:text-forest";
+
+function IconButton({
+  label,
+  onClick,
+  danger,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className={danger ? `${iconClass} hover:!bg-red-50 hover:!text-red-600` : iconClass}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconLink({
+  href,
+  label,
+  external,
+  children,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      title={label}
+      aria-label={label}
+      target={external ? "_blank" : undefined}
+      className={iconClass}
+    >
+      {children}
+    </Link>
   );
 }

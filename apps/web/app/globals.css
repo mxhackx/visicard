@@ -2,7 +2,21 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), "Inter", "Geist", ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: Georgia, "Times New Roman", serif;
+
+  /* Palette Moncode — bleu franc, gris neutres, fonds clairs.
+     (Les noms forest / leaf sont historiques : ce sont l'accent et son fond pâle.) */
+  --color-cream: #ffffff;
+  --color-cream-deep: #f5f7fa;
+  --color-ink: #263238;
+  --color-sage: #717171;
+  --color-line: #e5e9ee;
+  --color-forest: #2563eb;
+  --color-forest-dark: #1d4ed8;
+  --color-forest-night: #263238;
+  --color-leaf: #eaf1ff;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -39,13 +53,13 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 200 19% 18%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -56,7 +70,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
   }
 
@@ -87,8 +101,390 @@
   * {
     @apply border-border;
   }
+  html {
+    /* 17px au lieu de 16px : agrandit tous les textes exprimés en rem */
+    font-size: 106.25%;
+  }
+  :root {
+    --radius-card: 1rem;
+    /* hauteur réelle du header : une seule rangée, partout */
+    --header-h: 4rem;
+  }
+  .header-spacer {
+    /* +1px : le trait de séparation du header est inclus dans sa hauteur */
+    height: calc(var(--header-h) + 1px);
+  }
+  .anchor {
+    /* #tarifs, #avis... ne passent pas sous le header fixe.
+       L'offset est porté par la cible : cumuler avec un scroll-padding-top
+       sur <html> décalerait les sections d'un tour de header. */
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: #f4f6fa;
+  }
+  body::before {
+    width: 38rem;
+    height: 38rem;
+    left: -12rem;
+    top: -10rem;
+    background: rgba(147, 180, 255, 0.55);
+  }
+  body::after {
+    width: 34rem;
+    height: 34rem;
+    right: -10rem;
+    bottom: -12rem;
+    background: rgba(165, 227, 255, 0.5);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Langage visuel du site public
+   Noir et blanc, filets fins et surfaces épurées. Aucun dégradé
+   voyant, aucune ombre lourde : on garde la sobriété de Threads.
+------------------------------------------------------------------ */
+
+@layer components {
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-forest);
+  }
+
+  .rule {
+    display: none;
+    width: 44px;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 1.15rem;
+    background: var(--color-forest);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.15rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn-sm {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-primary {
+    background: var(--color-forest);
+    border-color: var(--color-forest);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-forest-dark);
+    border-color: var(--color-forest-dark);
+  }
+
+  .btn-light {
+    background: #fff;
+    border-color: #fff;
+    color: var(--color-forest);
+  }
+
+  .btn-light:hover {
+    background: var(--color-line);
+    border-color: var(--color-line);
+  }
+
+  .btn-outline {
+    background: #ffffff;
+    border-color: var(--color-line);
+    color: var(--color-ink);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--color-forest);
+    color: var(--color-forest);
+    box-shadow: none;
+  }
+
+  .btn-ghost-light {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.38);
+    color: #fff;
+  }
+
+  .btn-ghost-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: none;
+  }
+
+  /* Carte standard du site : blanc translucide, liseré clair. Rayon unique (--radius-card). */
+  .surface {
+    background: #ffffff;
+    border: 1px solid #e3e8f0;
+    border-radius: var(--radius-card);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 10px 30px rgba(37, 99, 235, 0.08),
+      0 1px 3px rgba(38, 50, 56, 0.05);
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  /* Encart secondaire dans une carte : verre plus discret. */
+  .surface-soft {
+    border: 1px solid #e3e8f0;
+    border-radius: var(--radius-card);
+    background: #f8fafd;
+  }
+
+  .surface-hover:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 20px 44px rgba(37, 99, 235, 0.16);
+  }
+
+  /* Tuile d'icône bleue, reprise des cartes « services » de la maquette */
+  .icon-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.875rem;
+    background: var(--color-leaf);
+    color: var(--color-forest);
+  }
+
+  /* Champs : fond blanc translucide, liseré clair, reflet en haut. */
+  .field {
+    width: 100%;
+    min-height: 2.85rem;
+    border: 1px solid #e3e8f0;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(38, 50, 56, 0.05);
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  .field::placeholder {
+    color: rgba(38, 50, 56, 0.45);
+  }
+
+  .field:hover {
+    background: #ffffff;
+    border-color: rgba(37, 99, 235, 0.25);
+  }
+
+  .field:focus {
+    background: #ffffff;
+    border-color: rgba(37, 99, 235, 0.6);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 4px rgba(37, 99, 235, 0.14);
+  }
+
+  .field[aria-invalid="true"] {
+    border-color: rgba(220, 38, 38, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 4px rgba(220, 38, 38, 0.1);
+  }
+
+  select.field {
+    appearance: none;
+    padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23263238' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+  }
+
+  /* Panneau en verre : pour poser un formulaire ou une box sur un fond coloré. */
+  .glass {
+    position: relative;
+    border: 1px solid #e3e8f0;
+    border-radius: calc(var(--radius-card) + 0.25rem);
+    background: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 24px 60px rgba(37, 99, 235, 0.12),
+      0 2px 6px rgba(38, 50, 56, 0.05);
+  }
+
+  /* Fond de marque partagé par le header et le footer : bleu profond, lueurs claires. */
+  /* Fond de marque (header, footer, barre admin, offre sur devis) : bleu nuit uni,
+     motif discret de modules de QR code en surimpression. Ni dégradé ni flou. */
+  .brand-surface {
+    background-color: #102a6b;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='%23ffffff' fill-opacity='0.045'%3E%3Crect x='4' y='4' width='6' height='6' rx='1.5'/%3E%3Crect x='28' y='12' width='6' height='6' rx='1.5'/%3E%3Crect x='16' y='30' width='6' height='6' rx='1.5'/%3E%3Crect x='38' y='36' width='6' height='6' rx='1.5'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 48px 48px;
+    color: #fff;
+  }
+
+
+
+
+
+
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms);
+  }
+
+  .js [data-reveal].in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .btn,
+  .btn:hover {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Accents futuristes : grille technique, profondeur 3D, flottement.
+   Tout reste monochrome pour ne pas rompre le noir et blanc.
+----------------------------------------------------------------- */
+
+.dot-grid {
+  background-image: none;
+}
+
+.dot-grid-dark {
+  background-image: none;
+}
+
+.scene {
+  perspective: 1400px;
+  perspective-origin: 50% 42%;
+}
+
+.scene-card {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.scene-layer {
+  transform: translateZ(42px);
+  transform-style: preserve-3d;
+}
+
+.scene-layer-sm {
+  transform: translateZ(24px);
+}
+
+.scene-layer-lg {
+  transform: translateZ(70px);
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@keyframes drift-soft {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1deg);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0) rotate(1deg);
+  }
+}
+
+.float-slow {
+  animation: drift 7s ease-in-out infinite;
+}
+
+.float-soft {
+  animation: drift-soft 9s ease-in-out infinite;
+}
+
+.scan-line {
+  position: absolute;
+  inset-inline: 12%;
+  height: 1px;
+  background: var(--color-forest);
+  opacity: 0.6;
+  animation: scan 4.5s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0%,
+  100% {
+    top: 22%;
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 0.8;
+  }
+  50% {
+    top: 78%;
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-slow,
+  .float-soft,
+  .scan-line {
+    animation: none;
   }
 }
 
@@ -169,4 +565,45 @@
   --theme-card-bg: #44475a;
   --theme-accent: #bd93f9;
   --theme-border: rgba(189, 147, 249, 0.3);
+}
+.restaurant-theme-exoticas {
+  --theme-bg: #f7f6f1;
+  --theme-text: #22331b;
+  --theme-card-bg: #ffffff;
+  --theme-accent: #466931;
+  --theme-border: #dde2d6;
+}
+
+/* ------------------------------------------------------------------
+   Composants shadcn alignés sur le verre du site (hors @layer : ils
+   l'emportent sur les utilitaires par défaut des primitives).
+------------------------------------------------------------------ */
+[data-slot="card"] {
+  background: #ffffff;
+  border: 1px solid #e3e8f0;
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 40px rgba(37, 99, 235, 0.1);
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"] {
+  border-color: #dde3ec;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(38, 50, 56, 0.05);
+}
+
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible,
+[data-slot="select-trigger"]:focus-visible {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.6);
+}
+
+[data-slot="button"] {
+  border-radius: 0.75rem;
 }

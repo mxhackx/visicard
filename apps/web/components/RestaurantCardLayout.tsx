@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, MessageCircle, Clock, Image as ImageIcon, Info, ChevronDown, ChevronUp, Share2 } from "lucide-react";
+import { MapPin, MessageCircle, Clock, Info, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ScheduleDay {
   isOpen: boolean;
@@ -27,6 +27,124 @@ interface RestaurantCardLayoutProps {
   layout?: string;
 }
 
+function SocialsBlock({
+  facebookUrl,
+  instagramUrl,
+  xUrl,
+  snapchatUrl,
+  inPreview,
+}: {
+  facebookUrl?: string;
+  instagramUrl?: string;
+  xUrl?: string;
+  snapchatUrl?: string;
+  inPreview?: boolean;
+}) {
+  if (!facebookUrl && !instagramUrl && !xUrl && !snapchatUrl) return null;
+  return (
+    <div className="flex gap-2 flex-wrap justify-center">
+      {facebookUrl && (
+        <a href={inPreview ? "#" : facebookUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>FB</a>
+      )}
+      {instagramUrl && (
+        <a href={inPreview ? "#" : instagramUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>IG</a>
+      )}
+      {xUrl && (
+        <a href={inPreview ? "#" : xUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>X</a>
+      )}
+      {snapchatUrl && (
+        <a href={inPreview ? "#" : snapchatUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>SC</a>
+      )}
+    </div>
+  );
+}
+
+function ScheduleBlock({ schedule }: { schedule?: Record<string, ScheduleDay> }) {
+  if (!schedule) return null;
+  return (
+    <div className="flex flex-col gap-1 opacity-80 text-xs mt-1 w-full">
+      {Object.entries({
+        "Lundi": schedule.monday,
+        "Mardi": schedule.tuesday,
+        "Mercredi": schedule.wednesday,
+        "Jeudi": schedule.thursday,
+        "Vendredi": schedule.friday,
+        "Samedi": schedule.saturday,
+        "Dimanche": schedule.sunday
+      }).map(([day, hrs]) => (
+        <div key={day} className="flex justify-between w-full">
+          <span className="w-20 font-medium">{day}</span>
+          <span>{hrs?.isOpen ? `${hrs.open} - ${hrs.close}` : "Fermé"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MenuCarousel({
+  horizontal = true,
+  masonry = false,
+  menuImages,
+}: {
+  horizontal?: boolean;
+  masonry?: boolean;
+  menuImages: string[];
+}) {
+  return (
+    <div
+      className={`flex ${horizontal ? 'overflow-x-auto gap-3 px-4 pb-4 snap-x snap-mandatory' : masonry ? 'flex-col gap-4 px-4 pb-4' : 'flex-col gap-4 px-4 pb-4'}`}
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+    >
+      {menuImages && menuImages.length > 0 ? (
+        menuImages.map((img, i) => (
+          <div
+            key={i}
+            className={`${horizontal ? 'shrink-0 snap-center w-[65vw] sm:w-[240px] max-w-[240px]' : 'w-full'} ${masonry ? 'rounded-2xl' : 'aspect-[3/4] rounded-2xl'} overflow-hidden border shadow-sm relative`}
+            style={masonry ? {} : { backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}
+          >
+            <img src={img} alt={`Menu ${i + 1}`} className={`${masonry ? 'w-full h-auto object-contain' : 'w-full h-full object-cover'}`} />
+          </div>
+        ))
+      ) : (
+        [1, 2].map((i) => (
+          <div
+            key={i}
+            className={`${horizontal ? 'shrink-0 snap-center w-[65vw] sm:w-[240px] max-w-[240px]' : 'w-full'} aspect-[3/4] rounded-2xl overflow-hidden border flex flex-col items-center justify-center opacity-60`}
+            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}
+          >
+            <span className="text-3xl mb-2">🍽️</span>
+            <span className="text-xs font-semibold">Page ${i}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function PlaceCarousel({
+  fullWidth = false,
+  placeImages,
+}: {
+  fullWidth?: boolean;
+  placeImages: string[];
+}) {
+  if (!placeImages || placeImages.length === 0) return null;
+  return (
+    <div className={`flex overflow-x-auto ${fullWidth ? 'gap-0 snap-x snap-mandatory w-full' : 'gap-2 px-4 pb-4 snap-x snap-mandatory'}`} style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      {placeImages.map((img, i) => (
+        <div key={i} className={`shrink-0 snap-center ${fullWidth ? 'w-full h-48 sm:h-56' : 'w-[50vw] max-w-[200px] aspect-video rounded-xl border'} overflow-hidden relative`} style={!fullWidth ? { borderColor: "var(--theme-border)" } : {}}>
+          <img src={img} alt={`Lieu ${i + 1}`} className="w-full h-full object-cover" />
+          {fullWidth && placeImages.length > 1 && (
+            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
+              {i + 1} / {placeImages.length}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function RestaurantCardLayout({
   restaurantName,
   logoUrl,
@@ -49,97 +167,6 @@ export default function RestaurantCardLayout({
   const displayTitle = restaurantName || "Nom du Restaurant";
   
   const [showMinimalInfo, setShowMinimalInfo] = useState(false);
-
-  // REUSABLE BLOCKS
-  const SocialsBlock = () => {
-    if (!facebookUrl && !instagramUrl && !xUrl && !snapchatUrl) return null;
-    return (
-      <div className="flex gap-2 flex-wrap justify-center">
-        {facebookUrl && (
-          <a href={inPreview ? "#" : facebookUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>FB</a>
-        )}
-        {instagramUrl && (
-          <a href={inPreview ? "#" : instagramUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>IG</a>
-        )}
-        {xUrl && (
-          <a href={inPreview ? "#" : xUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>X</a>
-        )}
-        {snapchatUrl && (
-          <a href={inPreview ? "#" : snapchatUrl} target={inPreview ? undefined : "_blank"} className="w-8 h-8 rounded-full flex items-center justify-center border hover:scale-105 transition-transform font-bold text-[10px]" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-card-bg)" }}>SC</a>
-        )}
-      </div>
-    );
-  };
-
-  const ScheduleBlock = () => {
-    if (!schedule) return null;
-    return (
-      <div className="flex flex-col gap-1 opacity-80 text-xs mt-1 w-full">
-        {Object.entries({
-          "Lundi": schedule.monday,
-          "Mardi": schedule.tuesday,
-          "Mercredi": schedule.wednesday,
-          "Jeudi": schedule.thursday,
-          "Vendredi": schedule.friday,
-          "Samedi": schedule.saturday,
-          "Dimanche": schedule.sunday
-        }).map(([day, hrs]) => (
-          <div key={day} className="flex justify-between w-full">
-            <span className="w-20 font-medium">{day}</span>
-            <span>{hrs?.isOpen ? `${hrs.open} - ${hrs.close}` : "Fermé"}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const MenuCarousel = ({ horizontal = true, masonry = false }: { horizontal?: boolean, masonry?: boolean }) => (
-    <div 
-      className={`flex ${horizontal ? 'overflow-x-auto gap-3 px-4 pb-4 snap-x snap-mandatory' : masonry ? 'flex-col gap-4 px-4 pb-4' : 'flex-col gap-4 px-4 pb-4'}`}
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-    >
-      {menuImages && menuImages.length > 0 ? (
-        menuImages.map((img, i) => (
-          <div 
-            key={i} 
-            className={`${horizontal ? 'shrink-0 snap-center w-[65vw] sm:w-[240px] max-w-[240px]' : 'w-full'} ${masonry ? 'rounded-2xl' : 'aspect-[3/4] rounded-2xl'} overflow-hidden border shadow-sm relative`}
-            style={masonry ? {} : { backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}
-          >
-            <img src={img} alt={`Menu ${i + 1}`} className={`${masonry ? 'w-full h-auto object-contain' : 'w-full h-full object-cover'}`} />
-          </div>
-        ))
-      ) : (
-        [1, 2].map((i) => (
-          <div 
-            key={i} 
-            className={`${horizontal ? 'shrink-0 snap-center w-[65vw] sm:w-[240px] max-w-[240px]' : 'w-full'} aspect-[3/4] rounded-2xl overflow-hidden border flex flex-col items-center justify-center opacity-60`}
-            style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}
-          >
-            <span className="text-3xl mb-2">🍽️</span>
-            <span className="text-xs font-semibold">Page ${i}</span>
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const PlaceCarousel = ({ fullWidth = false }: { fullWidth?: boolean }) => {
-    if (!placeImages || placeImages.length === 0) return null;
-    return (
-      <div className={`flex overflow-x-auto ${fullWidth ? 'gap-0 snap-x snap-mandatory w-full' : 'gap-2 px-4 pb-4 snap-x snap-mandatory'}`} style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-        {placeImages.map((img, i) => (
-          <div key={i} className={`shrink-0 snap-center ${fullWidth ? 'w-full h-48 sm:h-56' : 'w-[50vw] max-w-[200px] aspect-video rounded-xl border'} overflow-hidden relative`} style={!fullWidth ? { borderColor: "var(--theme-border)" } : {}}>
-            <img src={img} alt={`Lieu ${i + 1}`} className="w-full h-full object-cover" />
-            {fullWidth && placeImages.length > 1 && (
-              <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
-                {i + 1} / {placeImages.length}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
 
 
   // ----------------------------------------------------
@@ -170,7 +197,7 @@ export default function RestaurantCardLayout({
         </div>
 
         <div className="px-4 mt-1 flex flex-col gap-3">
-          <div className="flex justify-start"><SocialsBlock /></div>
+          <div className="flex justify-start"><SocialsBlock facebookUrl={facebookUrl} instagramUrl={instagramUrl} xUrl={xUrl} snapchatUrl={snapchatUrl} inPreview={inPreview} /></div>
           {additionalInfo && (
             <div className="text-xs p-3 rounded-xl border" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}>
               <div className="flex items-center gap-1.5 mb-1.5 font-semibold"><Info size={14} /> À savoir</div>
@@ -179,8 +206,8 @@ export default function RestaurantCardLayout({
           )}
           {schedule && (
             <div className="text-xs p-3 rounded-xl border" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-border)" }}>
-              <div className="flex items-center gap-1.5 mb-2 font-semibold"><Clock size={14} /> Horaires d'ouverture</div>
-              <ScheduleBlock />
+              <div className="flex items-center gap-1.5 mb-2 font-semibold"><Clock size={14} /> Horaires d&apos;ouverture</div>
+              <ScheduleBlock schedule={schedule} />
             </div>
           )}
         </div>
@@ -190,14 +217,14 @@ export default function RestaurantCardLayout({
             <h2 className="text-base font-bold opacity-90">Le Menu</h2>
             <div className="h-[2px] flex-1 rounded-full opacity-50" style={{ backgroundColor: "var(--theme-border)" }}></div>
           </div>
-          <MenuCarousel horizontal={true} />
+          <MenuCarousel horizontal={true} menuImages={menuImages} />
           
           {placeImages && placeImages.length > 0 && (
             <div className="mt-2">
               <div className="px-4 flex items-center gap-2 mb-3">
                 <h2 className="text-base font-bold opacity-90">Notre Lieu</h2>
               </div>
-              <PlaceCarousel fullWidth={false} />
+              <PlaceCarousel fullWidth={false} placeImages={placeImages} />
             </div>
           )}
         </div>
@@ -222,7 +249,7 @@ export default function RestaurantCardLayout({
         {/* Cover full width carousel */}
         <div className="w-full relative bg-slate-200">
           {(placeImages && placeImages.length > 0) ? (
-            <PlaceCarousel fullWidth={true} />
+            <PlaceCarousel fullWidth={true} placeImages={placeImages} />
           ) : (menuImages && menuImages.length > 0) ? (
             <div className="w-full h-48 sm:h-56"><img src={menuImages[0]} alt="Cover" className="w-full h-full object-cover" /></div>
           ) : (
@@ -290,7 +317,7 @@ export default function RestaurantCardLayout({
               <Clock size={18} className="opacity-70 shrink-0" />
               <div className="flex-1">
                 <div className="font-medium text-xs mb-1">Horaires</div>
-                <ScheduleBlock />
+                <ScheduleBlock schedule={schedule} />
               </div>
             </div>
           )}
@@ -307,7 +334,7 @@ export default function RestaurantCardLayout({
           <div className="px-4 mb-3">
             <h2 className="text-base font-bold">Le Menu</h2>
           </div>
-          <MenuCarousel horizontal={false} masonry={true} />
+          <MenuCarousel horizontal={false} masonry={true} menuImages={menuImages} />
         </div>
       </div>
     );
@@ -338,7 +365,7 @@ export default function RestaurantCardLayout({
         </div>
 
         <div className="flex-1 py-4">
-          <MenuCarousel horizontal={false} masonry={true} />
+          <MenuCarousel horizontal={false} masonry={true} menuImages={menuImages} />
         </div>
 
         {/* Minimal Info Toggle */}
@@ -356,13 +383,13 @@ export default function RestaurantCardLayout({
               {address && <div className="opacity-80 text-center">{address}</div>}
               {schedule && (
                 <div className="bg-black/5 p-3 rounded-xl" style={{ backgroundColor: "var(--theme-card-bg)" }}>
-                  <ScheduleBlock />
+                  <ScheduleBlock schedule={schedule} />
                 </div>
               )}
               {additionalInfo && <div className="opacity-80 text-center whitespace-pre-wrap">{additionalInfo}</div>}
-              <div className="flex justify-center mt-2"><SocialsBlock /></div>
+              <div className="flex justify-center mt-2"><SocialsBlock facebookUrl={facebookUrl} instagramUrl={instagramUrl} xUrl={xUrl} snapchatUrl={snapchatUrl} inPreview={inPreview} /></div>
               {placeImages && placeImages.length > 0 && (
-                <div className="mt-2"><PlaceCarousel fullWidth={true} /></div>
+                <div className="mt-2"><PlaceCarousel fullWidth={true} placeImages={placeImages} /></div>
               )}
             </div>
           )}
@@ -477,6 +504,111 @@ export default function RestaurantCardLayout({
               )}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // LAYOUT: EXOTICAS (Éditorial, vert forêt & crème)
+  // ----------------------------------------------------
+  if (layout === "exoticas") {
+    return (
+      <div
+        className="w-full min-h-full flex flex-col font-sans transition-colors duration-300"
+        style={{ backgroundColor: "var(--theme-bg)", color: "var(--theme-text)" }}
+      >
+        {/* En-tête éditorial */}
+        <div className="px-5 pt-8 text-center">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="mx-auto mb-4 h-12 w-12 rounded-full object-cover border"
+              style={{ borderColor: "var(--theme-border)" }}
+            />
+          )}
+          <p className="text-[9px] font-semibold uppercase tracking-[0.32em] opacity-60">
+            Carte digitale
+          </p>
+          <h1 className="mt-3 font-serif text-3xl leading-tight tracking-tight break-words">
+            {displayTitle}
+          </h1>
+          <div
+            className="mx-auto mt-4 h-px w-14"
+            style={{ backgroundColor: "var(--theme-accent)" }}
+          />
+          {address && (
+            <p className="mt-3 text-[11px] leading-relaxed opacity-70">{address}</p>
+          )}
+          <div className="mt-5 flex justify-center">
+            <SocialsBlock facebookUrl={facebookUrl} instagramUrl={instagramUrl} xUrl={xUrl} snapchatUrl={snapchatUrl} inPreview={inPreview} />
+          </div>
+        </div>
+
+        {/* Menu */}
+        <div className="mt-8 flex-1">
+          <div className="flex items-center gap-3 px-5">
+            <h2 className="font-serif text-lg">Le Menu</h2>
+            <div className="h-px flex-1" style={{ backgroundColor: "var(--theme-border)" }} />
+          </div>
+          <div className="mt-4">
+            <MenuCarousel horizontal={false} masonry={true} menuImages={menuImages} />
+          </div>
+        </div>
+
+        {/* Lieu */}
+        {placeImages && placeImages.length > 0 && (
+          <div className="mt-2">
+            <div className="flex items-center gap-3 px-5 pb-3">
+              <h2 className="font-serif text-lg">Notre Lieu</h2>
+              <div className="h-px flex-1" style={{ backgroundColor: "var(--theme-border)" }} />
+            </div>
+            <PlaceCarousel fullWidth={true} placeImages={placeImages} />
+          </div>
+        )}
+
+        {/* Informations pratiques */}
+        {(schedule || additionalInfo) && (
+          <div className="mt-6 border-t px-5 pb-4 pt-6" style={{ borderColor: "var(--theme-border)" }}>
+            <h2 className="text-center font-serif text-lg">Informations</h2>
+            <div className="mt-4 flex flex-col gap-4 text-xs">
+              {additionalInfo && (
+                <div className="text-center leading-relaxed opacity-80 whitespace-pre-wrap">
+                  {additionalInfo}
+                </div>
+              )}
+              {schedule && (
+                <div
+                  className="rounded-xl border p-4"
+                  style={{
+                    backgroundColor: "var(--theme-card-bg)",
+                    borderColor: "var(--theme-border)",
+                  }}
+                >
+                  <div className="mb-2 flex items-center justify-center gap-1.5 font-semibold">
+                    <Clock size={14} /> Horaires d&apos;ouverture
+                  </div>
+                  <ScheduleBlock schedule={schedule} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action */}
+        <div className="mt-auto p-5 pb-8">
+          <a
+            href={inPreview ? "#" : whatsappUrl}
+            target={inPreview ? undefined : "_blank"}
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-full text-white shadow-sm transition-transform hover:scale-[1.02]"
+            style={{ backgroundColor: "var(--theme-accent)", minHeight: "48px", textDecoration: "none" }}
+            onClick={(e) => inPreview && e.preventDefault()}
+          >
+            <MessageCircle size={18} />
+            <span className="text-sm font-semibold">Contactez-nous</span>
+          </a>
         </div>
       </div>
     );
