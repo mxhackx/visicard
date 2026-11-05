@@ -1,21 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { Order, Payment, Prisma } from '@prisma/client';
+import { Order, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
-import { FedapayService } from './payments/fedapay.service';
-import { MomoService } from './payments/momo.service';
 import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
-
-export type PaymentProvider = 'fedapay' | 'momo' | 'simulation';
 
 export interface CustomerInput {
   customerName?: string;
@@ -36,25 +25,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cards: CardsService,
-    private readonly fedapay: FedapayService,
-    private readonly momo: MomoService,
   ) {}
-
-  /* ------------------------------------------------------------------ */
-  /* Configuration exposée au front                                      */
-  /* ------------------------------------------------------------------ */
-
-  get simulationEnabled(): boolean {
-    return process.env.PAYMENT_SIMULATION === 'true' && process.env.NODE_ENV !== 'production';
-  }
-
-  paymentConfig() {
-    return {
-      fedapay: this.fedapay.configured,
-      momo: this.momo.configured,
-      simulation: this.simulationEnabled,
-    };
-  }
 
   /* ------------------------------------------------------------------ */
   /* Création : contenu en aperçu + devis                               */
@@ -187,146 +158,19 @@ export class OrdersService {
         : null,
       modifications: children,
       pendingChanges: order.kind === 'modification' ? order.pendingChanges : null,
-      payment: this.paymentConfig(),
     };
   }
 
   /* ------------------------------------------------------------------ */
-  /* Paiement                                                            */
+  /* Paiement : réglé sur WhatsApp, confirmé par un administrateur       */
   /* ------------------------------------------------------------------ */
-
-  async startPayment(reference: string, token: string, provider: PaymentProvider, phone?: string) {
-    const order = await this.authorize(reference, token);
-    if (order.status === 'paid') throw new ConflictException('Cette commande est déjà payée.');
-    if (order.status === 'cancelled') throw new ConflictException('Cette commande a été annulée.');
-    const card = await this.prisma.card.findUnique({ where: { id: order.cardId } });
-    if (card?.status === 'rejected') {
-      throw new ConflictException('Ce contenu a été refusé : contactez-nous avant de payer.');
-    }
-
-    const note = `Moncode ${order.reference}`;
-
-    if (provider === 'simulation') {
-      if (!this.simulationEnabled) throw new ForbiddenException('Paiement simulé désactivé.');
-      const payment = await this.prisma.payment.create({
-        data: {
-          orderId: order.id,
-          provider: 'simulation',
-          providerRef: `sim-${randomBytes(6).toString('hex')}`,
-          amount: order.amount,
-          currency: order.currency,
-          status: 'succeeded',
-        },
-      });
-      await this.markPaid(order.id, payment.id);
-      return { provider, status: 'succeeded' as const };
-    }
-
-    if (provider === 'fedapay') {
-      const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
-      const checkout = await this.fedapay.createCheckout({
-        amount: order.amount,
-        description: `${note} · ${order.quoteNumber}`,
-        // Le lien secret n'est pas transmis à FedaPay : le navigateur le garde de son côté.
-        callbackUrl: `${appUrl}/commande/${order.reference}?paiement=fedapay`,
-        customer: { name: order.customerName, phone: order.customerPhone, email: order.customerEmail },
-      });
-      await this.recordPending(order, 'fedapay', checkout.transactionId, order.customerPhone);
-      return { provider, status: 'pending' as const, paymentUrl: checkout.paymentUrl };
-    }
-
-    if (provider === 'momo') {
-      const msisdn = phone?.trim() || order.customerPhone;
-      const referenceId = await this.momo.requestToPay({
-        amount: order.amount,
-        phone: msisdn,
-        externalId: order.reference,
-        note,
-      });
-      await this.recordPending(order, 'momo', referenceId, msisdn);
-      return { provider, status: 'pending' as const };
-    }
-
-    throw new BadRequestException('Moyen de paiement inconnu.');
-  }
-
-  private async recordPending(order: Order, provider: string, providerRef: string, phone: string) {
-    await this.prisma.$transaction([
-      this.prisma.payment.create({
-        data: { orderId: order.id, provider, providerRef, amount: order.amount, currency: order.currency, phone },
-      }),
-      this.prisma.order.update({ where: { id: order.id }, data: { status: 'pending' } }),
-    ]);
-  }
-
-  /** Interroge le fournisseur pour le dernier paiement en attente, puis renvoie la commande. */
-  async refreshPayment(reference: string, token: string) {
-    const order = await this.authorize(reference, token);
-    if (order.status !== 'paid') {
-      const pending = await this.prisma.payment.findFirst({
-        where: { orderId: order.id, status: 'pending' },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (pending) await this.verifyWithProvider(pending);
-    }
-    const fresh = await this.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
-    return this.present(fresh);
-  }
-
-  /** Le statut ne vient jamais du navigateur : il est relu chez le fournisseur. */
-  private async verifyWithProvider(payment: Payment) {
-    try {
-      if (payment.provider === 'fedapay') {
-        const { status, amount, raw } = await this.fedapay.getStatus(payment.providerRef);
-        if (status === 'approved' || status === 'transferred') {
-          if (amount !== undefined && amount !== payment.amount) {
-            this.logger.error(`Montant FedaPay inattendu pour ${payment.id} : ${amount} ≠ ${payment.amount}`);
-            return;
-          }
-          await this.settle(payment, 'succeeded', raw);
-        } else if (['declined', 'canceled', 'refunded'].includes(status)) {
-          await this.settle(payment, 'failed', raw);
-        }
-      } else if (payment.provider === 'momo') {
-        const { status, raw } = await this.momo.getStatus(payment.providerRef);
-        if (status === 'SUCCESSFUL') await this.settle(payment, 'succeeded', raw);
-        else if (status === 'FAILED') await this.settle(payment, 'failed', raw);
-      }
-    } catch (error) {
-      this.logger.warn(`Vérification ${payment.provider} ${payment.providerRef} impossible : ${error}`);
-    }
-  }
-
-  private async settle(payment: Payment, status: 'succeeded' | 'failed', raw: unknown) {
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status, raw: (raw ?? Prisma.JsonNull) as Prisma.InputJsonValue },
-    });
-    if (status === 'succeeded') {
-      await this.markPaid(payment.orderId, payment.id);
-    } else {
-      await this.prisma.order.updateMany({
-        where: { id: payment.orderId, status: 'pending' },
-        data: { status: 'quote' },
-      });
-    }
-  }
-
-  /** Webhook FedaPay : on ne se fie pas au corps reçu, on relit la transaction. */
-  async handleFedapayEvent(transactionId: string | number | undefined) {
-    if (!transactionId) return;
-    const payment = await this.prisma.payment.findUnique({
-      where: { provider_providerRef: { provider: 'fedapay', providerRef: String(transactionId) } },
-    });
-    if (payment && payment.status === 'pending') await this.verifyWithProvider(payment);
-  }
 
   /**
    * Passe la commande en payée (idempotent) : numéro de facture, puis activation
    * de la carte (création) ou application des changements (modification).
    */
   private async markPaid(orderId: string, paymentId?: string) {
-    // Verrou : un seul appel (webhook ou vérification) fait passer la commande à `paid`.
+    // Verrou : un seul appel fait passer la commande à `paid` (double clic, deux admins).
     const claimed = await this.prisma.order.updateMany({
       where: { id: orderId, status: { notIn: ['paid', 'cancelled'] } },
       data: { status: 'paid', paidAt: new Date() },
@@ -375,11 +219,12 @@ export class OrdersService {
     }));
   }
 
-  /** Encaissement hors ligne (espèces, virement) constaté par un administrateur. */
+  /** Paiement reçu (réglé avec l'équipe sur WhatsApp), constaté par un administrateur. */
   async markPaidManually(orderId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable.');
     if (order.status === 'cancelled') throw new ConflictException('Commande annulée.');
+    if (order.status === 'paid') return order;
     const payment = await this.prisma.payment.create({
       data: {
         orderId,

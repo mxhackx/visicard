@@ -1,12 +1,12 @@
 /**
- * Commandes client (sans compte) : devis → paiement → facture.
+ * Commandes client (sans compte) : devis → paiement sur WhatsApp (confirmé par
+ * l'admin) → facture.
  * Le jeton du lien privé est gardé dans le navigateur et envoyé dans l'en-tête
  * `X-Order-Key` ; il n'apparaît jamais dans les URL envoyées à l'API.
  */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
 
 export type OrderStatus = "quote" | "pending" | "paid" | "cancelled";
-export type PaymentProvider = "fedapay" | "momo" | "simulation";
 
 export interface OrderItem {
   label: string;
@@ -56,7 +56,6 @@ export interface OrderView {
   lastPayment: { provider: string; status: "pending" | "succeeded" | "failed"; createdAt: string } | null;
   modifications: { reference: string; status: OrderStatus; amount: number; quoteNumber: string; createdAt: string }[];
   pendingChanges: Record<string, unknown> | null;
-  payment: { fedapay: boolean; momo: boolean; simulation: boolean };
 }
 
 export interface CreatedOrder {
@@ -84,7 +83,7 @@ export function recallOrderKey(reference: string): string | null {
   }
 }
 
-/** Lien privé à conserver : il donne accès au devis, au paiement et au QR code. */
+/** Lien privé à conserver : il donne accès au devis, à la facture et au QR code. */
 export function privateOrderUrl(reference: string, key: string): string {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return `${origin}/commande/${reference}?cle=${encodeURIComponent(key)}`;
@@ -135,27 +134,6 @@ export async function adminOrderAction(orderId: string, action: "mark-paid" | "c
       method: "POST",
       headers: { Authorization: `Bearer ${adminToken}` },
       credentials: "include",
-    }),
-  );
-}
-
-export async function refreshOrder(reference: string, key: string): Promise<OrderView> {
-  return parse(
-    await send(`${API_URL}/orders/${reference}/payments/refresh`, { method: "POST", headers: { "X-Order-Key": key } }),
-  );
-}
-
-export async function startPayment(
-  reference: string,
-  key: string,
-  provider: PaymentProvider,
-  phone?: string,
-): Promise<{ provider: PaymentProvider; status: "pending" | "succeeded"; paymentUrl?: string }> {
-  return parse(
-    await send(`${API_URL}/orders/${reference}/payments`, {
-      method: "POST",
-      headers: { "X-Order-Key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, phone }),
     }),
   );
 }

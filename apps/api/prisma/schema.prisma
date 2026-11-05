@@ -99,11 +99,12 @@ model Order {
   @@map("orders")
 }
 
-/// Tentative de paiement auprès d'un fournisseur (`fedapay` ou `momo`).
+/// Paiement enregistré sur une commande. Aujourd'hui `manuel` (réglé sur WhatsApp,
+/// confirmé par un administrateur) ; `fedapay`, `momo` et `simulation` restent dans l'historique.
 model Payment {
   id          String   @id @default(uuid())
   provider    String
-  /// Identifiant chez le fournisseur : id de transaction FedaPay, X-Reference-Id MoMo.
+  /// Identifiant unique du paiement (`man-…` pour un encaissement manuel).
   providerRef String   @map("provider_ref")
   /// `pending`, `succeeded`, `failed`.
   status      String   @default("pending")

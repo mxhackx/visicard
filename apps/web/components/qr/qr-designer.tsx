@@ -27,6 +27,7 @@ export default function QrDesigner({
   data = "https://moncode.bj/c/apercu",
   logoUrl,
   brandColor,
+  downloadName,
 }: {
   value: string | null | undefined;
   onChange: (qrStyle: string) => void;
@@ -35,6 +36,8 @@ export default function QrDesigner({
   logoUrl?: string | null;
   /** Couleur principale de la page, proposée en raccourci. */
   brandColor?: string | null;
+  /** Affiche les boutons PNG / SVG sous l'aperçu. */
+  downloadName?: string;
 }) {
   const style = parseQrStyle(value);
   const set = (next: Partial<QrStyle>) => onChange(serializeQrStyle({ ...style, ...next }));
@@ -45,7 +48,7 @@ export default function QrDesigner({
     <div className="grid gap-6 md:grid-cols-[minmax(0,260px)_1fr]">
       <div className="flex flex-col items-center">
         <div className="surface-soft w-full p-5">
-          <StyledQr data={data} style={style} logoUrl={logoUrl} size={210} />
+          <StyledQr data={data} style={style} logoUrl={logoUrl} size={210} downloadName={downloadName} />
         </div>
         <p
           className={`mt-3 flex items-start gap-1.5 text-center text-xs ${
@@ -131,7 +134,7 @@ export default function QrDesigner({
           <span className="text-sm text-ink/85">
             Logo au centre
             <span className="block text-xs text-sage">
-              {logoUrl ? "Le QR code reste lisible : sa correction d’erreur est renforcée." : "Disponible pour une page digitale avec un logo."}
+              {logoUrl ? "Le QR code reste lisible : sa correction d’erreur est renforcée." : "Disponible lorsqu’un logo est fourni."}
             </span>
           </span>
         </label>

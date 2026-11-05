@@ -8,8 +8,7 @@ import { join } from 'node:path';
 import { UploadErrorsFilter } from './common/upload-errors.filter';
 
 async function bootstrap() {
-  // rawBody : nécessaire pour vérifier la signature des webhooks de paiement.
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const allowedOrigins = [
   process.env.APP_URL,

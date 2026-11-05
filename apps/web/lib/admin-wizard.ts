@@ -203,7 +203,7 @@ export function isStep(value: unknown): value is WizardStepId {
   return value === 1 || value === 2 || value === 3 || value === 4;
 }
 
-/** Indicatifs utiles pour Mobile Money et les liens WhatsApp. */
+/** Indicatifs utiles pour les liens WhatsApp. */
 export const COUNTRY_CODES = [
   { code: "+229", label: "🇧🇯 +229" },
   { code: "+33", label: "🇫🇷 +33" },
@@ -280,7 +280,7 @@ export function appendFiles(body: FormData, files: WizardFiles, service: Service
   files.gallery.forEach((f) => body.append("menu", f));
 }
 
-/** Devis à régler par le client (Fedapay / MoMo), sans compte. */
+/** Devis à régler par le client sur WhatsApp, sans compte. */
 export function quoteFormData(draft: WizardDraft, files: WizardFiles): FormData {
   const body = new FormData();
   for (const [k, v] of Object.entries(contentFields(draft))) body.append(k, v);
@@ -403,7 +403,7 @@ export function shareMessages(draft: WizardDraft, res: PublishResult, privateLin
   const corps =
     res.mode === "card"
       ? `Bonjour ${nom},\n\nVotre ${serviceLabel.toLowerCase()} « ${etablissement} » est créé et actif.\nLien : ${res.cardUrl ?? "—"}\nVous pouvez déjà l'imprimer ou le partager.\n\n— Moncode`
-      : `Bonjour ${nom},\n\nVoici votre devis ${res.quoteNumber ?? ""} pour « ${etablissement} » (${serviceLabel}) : ${prix(draft.service)} FCFA.\nRéglez en une fois par Mobile Money ou carte ici : ${privateLink ?? "—"}\nLe QR code s'active dès le paiement confirmé.\n\n— Moncode`;
+      : `Bonjour ${nom},\n\nVoici votre devis ${res.quoteNumber ?? ""} pour « ${etablissement} » (${serviceLabel}) : ${prix(draft.service)} FCFA.\nVotre devis et l'aperçu : ${privateLink ?? "—"}\nRéglez directement en répondant à ce message.\nLe QR code s'active dès le paiement confirmé.\n\n— Moncode`;
 
   const waNumero = draft.client.phone.replace(/\D/g, "");
   const objet = encodeURIComponent(sujetTitre);

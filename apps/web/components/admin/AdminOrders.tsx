@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, Ban, CheckCircle2, Loader2, RefreshCw, Receipt, Search } from "lucide-react";
+import { providerLabel } from "@/lib/contact";
 import { useAdminFetch } from "./use-admin-fetch";
 
 interface AdminOrder {
@@ -31,7 +32,6 @@ const STATUS: Record<AdminOrder["status"], { label: string; className: string }>
 };
 
 const SERVICE: Record<AdminOrder["serviceType"], string> = { page: "Page", media: "Image / vidéo", document: "PDF" };
-const PROVIDER: Record<string, string> = { momo: "MTN MoMo", fedapay: "FedaPay", manuel: "Manuel", simulation: "Test" };
 
 type Filter = "all" | AdminOrder["status"];
 const fcfa = new Intl.NumberFormat("fr-FR");
@@ -198,7 +198,7 @@ export default function AdminOrders({ adminToken }: { adminToken: string }) {
                         {STATUS[o.status].label}
                       </span>
                       {o.lastPayment && (
-                        <p className="mt-1 text-xs text-sage">{PROVIDER[o.lastPayment.provider] ?? o.lastPayment.provider}</p>
+                        <p className="mt-1 text-xs text-sage">{providerLabel(o.lastPayment.provider)}</p>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-xs text-ink/70">
@@ -214,7 +214,7 @@ export default function AdminOrders({ adminToken }: { adminToken: string }) {
                             disabled={busyId === o.id}
                             onClick={() => act(o, "mark-paid")}
                             className="btn btn-primary btn-sm"
-                            title="Paiement reçu hors ligne (espèces, virement)"
+                            title="Paiement reçu sur WhatsApp"
                           >
                             {busyId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                             Encaisser

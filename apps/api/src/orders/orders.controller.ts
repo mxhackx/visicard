@@ -10,15 +10,12 @@ import {
   UnauthorizedException,
   UploadedFiles,
   UseInterceptors,
-  BadRequestException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import 'multer';
-import { OrdersService, PaymentProvider } from './orders.service';
-import { FedapayService } from './payments/fedapay.service';
+import { OrdersService } from './orders.service';
 import { AuthService } from '../auth/auth.service';
 import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from '../cards/card-files';
 import type { CardMetadata, UploadedCardFiles } from '../cards/cards.service';
@@ -62,12 +59,6 @@ export class OrdersController {
 
   /* ---------------------------- Client (sans compte) ---------------------------- */
 
-  @Get('config')
-  @SkipThrottle()
-  config() {
-    return this.orders.paymentConfig();
-  }
-
   @Post()
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
   @UseInterceptors(FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, fileFilter: cardFileFilter }))
@@ -84,25 +75,6 @@ export class OrdersController {
   @SkipThrottle({ short: true })
   get(@Param('reference') reference: string, @Headers('x-order-key') key?: string) {
     return this.orders.getForCustomer(reference, orderKey(key));
-  }
-
-  @Post(':reference/payments')
-  @HttpCode(200)
-  @Throttle({ short: { limit: 5, ttl: 60_000 } })
-  pay(
-    @Param('reference') reference: string,
-    @Headers('x-order-key') key: string | undefined,
-    @Body() body: { provider?: PaymentProvider; phone?: string },
-  ) {
-    if (!body?.provider) throw new BadRequestException('Choisissez un moyen de paiement.');
-    return this.orders.startPayment(reference, orderKey(key), body.provider, body.phone);
-  }
-
-  @Post(':reference/payments/refresh')
-  @HttpCode(200)
-  @SkipThrottle({ short: true })
-  refresh(@Param('reference') reference: string, @Headers('x-order-key') key?: string) {
-    return this.orders.refreshPayment(reference, orderKey(key));
   }
 
   @Post(':reference/modifications')
@@ -133,6 +105,7 @@ export class OrdersController {
     return this.orders.getForAdmin(reference);
   }
 
+  /** Les paiements se règlent sur WhatsApp : l'admin confirme ici l'encaissement. */
   @Post('admin/:id/mark-paid')
   @HttpCode(200)
   async markPaid(@Req() req: Request, @Param('id') id: string, @Headers('authorization') authHeader?: string) {
@@ -153,30 +126,5 @@ export class OrdersController {
     if (!token || !(await this.auth.validateAdminToken(token))) {
       throw new UnauthorizedException('Accès réservé aux administrateurs.');
     }
-  }
-}
-
-/** Notifications serveur à serveur des fournisseurs de paiement. */
-@Controller('payments')
-@SkipThrottle()
-export class PaymentsWebhookController {
-  constructor(
-    private readonly orders: OrdersService,
-    private readonly fedapay: FedapayService,
-  ) {}
-
-  @Post('fedapay/webhook')
-  @HttpCode(200)
-  async fedapayWebhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-fedapay-signature') signature: string | undefined,
-    @Body() body: { name?: string; entity?: { id?: number | string } },
-  ) {
-    if (!this.fedapay.verifyWebhookSignature(req.rawBody, signature)) {
-      throw new UnauthorizedException('Signature FedaPay invalide.');
-    }
-    // Le statut est relu chez FedaPay : le contenu du webhook ne suffit pas à valider un paiement.
-    await this.orders.handleFedapayEvent(body?.entity?.id);
-    return { received: true };
   }
 }

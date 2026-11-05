@@ -37,7 +37,7 @@ export default function CustomerFields({
         {errors.name && <span className="mt-1 block text-xs font-medium text-red-600">{errors.name}</span>}
       </label>
       <label className="block">
-        <span className="text-xs font-semibold text-ink/70">Téléphone (MoMo / WhatsApp)</span>
+        <span className="text-xs font-semibold text-ink/70">Téléphone (WhatsApp)</span>
         <input
           className="field mt-1.5"
           type="tel"

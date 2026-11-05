@@ -8,6 +8,7 @@ import Logo from "@/components/logo";
 const navLinks = [
   { href: "/#services", label: "Services" },
   { href: "/#tarifs", label: "Tarifs" },
+  { href: "/qr-gratuit", label: "QR gratuit" },
   { href: "/#avis", label: "Avis" },
   { href: "/contact", label: "Contact" },
 ];

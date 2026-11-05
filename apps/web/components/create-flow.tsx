@@ -30,7 +30,7 @@ const icons = {
 const pagePath = [
   "Vous remplissez la présentation, les photos, les horaires et les contacts.",
   "Vous choisissez un thème : l’aperçu se met à jour en direct.",
-  "Vous recevez un devis et payez par Mobile Money ou carte : le QR code s’active aussitôt.",
+  "Vous recevez un devis et réglez avec notre équipe sur WhatsApp : le QR code s’active dès le paiement reçu.",
 ];
 
 export default function CreateFlow({ initialService }: { initialService: ServiceType | null }) {
@@ -220,6 +220,17 @@ export default function CreateFlow({ initialService }: { initialService: Service
             );
           })}
         </div>
+
+        <Link
+          href="/qr-gratuit"
+          className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-dashed border-ambre/50 bg-white px-5 py-4 text-sm transition-colors hover:border-forest"
+        >
+          <span>
+            <span className="font-semibold text-ink/90">Juste un lien, un Wi-Fi, une carte de visite ou un numéro ?</span>{" "}
+            <span className="text-sage">Créez un QR code simple, gratuitement et tout de suite.</span>
+          </span>
+          <span className="shrink-0 font-semibold text-forest">QR gratuit →</span>
+        </Link>
 
         {!service && (
           <div className="mt-8 rounded-[var(--radius-card)] border border-dashed border-ambre/50 bg-white p-8 text-center">

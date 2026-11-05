@@ -13,7 +13,7 @@ export default async function CommandePage({
   searchParams,
 }: {
   params: Promise<{ reference: string }>;
-  searchParams: Promise<{ cle?: string | string[]; paiement?: string | string[] }>;
+  searchParams: Promise<{ cle?: string | string[] }>;
 }) {
   const { reference } = await params;
   const query = await searchParams;
@@ -23,7 +23,7 @@ export default async function CommandePage({
     <main className="min-h-screen">
       <Header />
       <div className="header-spacer"></div>
-      <OrderView reference={reference.toUpperCase()} keyFromUrl={one(query.cle)} returningFrom={one(query.paiement)} />
+      <OrderView reference={reference.toUpperCase()} keyFromUrl={one(query.cle)} />
       <Footer />
     </main>
   );

@@ -148,7 +148,7 @@ export default function PricingSection() {
         </article>
 
         <p className="mt-10 border-l-2 border-ambre/60 pl-4 text-[15px] leading-7 text-sage">
-          Paiement par Mobile Money ou virement. Facture établie à votre nom. Un QR code déjà
+          Paiement avec notre équipe sur WhatsApp. Facture établie à votre nom. Un QR code déjà
           imprimé continue de fonctionner même si vous faites évoluer la page.
         </p>
       </div>

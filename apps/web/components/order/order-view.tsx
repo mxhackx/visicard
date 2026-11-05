@@ -1,23 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  AlertCircle,
   Check,
   Copy,
-  CreditCard,
   ExternalLink,
   FileText,
   Loader2,
   Lock,
+  MessageCircle,
   PencilLine,
+  RefreshCw,
   Ban,
   CheckCircle2,
   Receipt,
   ShieldAlert,
-  Smartphone,
-  Wallet,
 } from "lucide-react";
 import StyledQr from "@/components/qr/styled-qr";
 import { useOrderKey } from "@/lib/use-order-key";
@@ -31,31 +29,23 @@ import {
   fetchOrderAsAdmin,
   formatDate,
   privateOrderUrl,
-  refreshOrder,
   rememberOrderKey,
-  startPayment,
   type OrderView as Order,
-  type PaymentProvider,
 } from "@/lib/orders";
-import { whatsappUrl } from "@/lib/contact";
-
-const POLL_MS = 4000;
-const POLL_MAX_MS = 3 * 60 * 1000;
+import { providerLabel, whatsappUrl } from "@/lib/contact";
 
 export default function OrderView({
   reference,
   keyFromUrl,
-  returningFrom,
   adminToken,
 }: {
   reference: string;
   keyFromUrl?: string;
-  returningFrom?: string;
   /** Mode admin : lecture via l'API admin, actions d'encaissement au lieu du paiement. */
   adminToken?: string;
 }) {
   const storedKey = useOrderKey(reference);
-  // Le jeton vient du lien (première visite) ou du navigateur (retour, retour de FedaPay).
+  // Le jeton vient du lien (première visite) ou du navigateur (visites suivantes).
   const key = adminToken ? "admin" : (keyFromUrl || storedKey) ?? null;
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchError, setError] = useState<string | null>(null);
@@ -63,8 +53,6 @@ export default function OrderView({
     !adminToken && !keyFromUrl && storedKey === null
       ? "Lien de commande incomplet. Ouvrez le lien privé reçu à la création de votre devis."
       : fetchError;
-  const [polling, setPolling] = useState(false);
-  const pollStarted = useRef<number>(0);
 
   // Le lien secret est mémorisé, puis retiré de la barre d'adresse.
   useEffect(() => {
@@ -74,14 +62,10 @@ export default function OrderView({
   }, [keyFromUrl, reference, adminToken]);
 
   const load = useCallback(
-    async (withRefresh = false) => {
+    async () => {
       if (!key) return;
       try {
-        const next = adminToken
-          ? await fetchOrderAsAdmin(reference, adminToken)
-          : withRefresh
-            ? await refreshOrder(reference, key)
-            : await fetchOrder(reference, key);
+        const next = adminToken ? await fetchOrderAsAdmin(reference, adminToken) : await fetchOrder(reference, key);
         setOrder(next);
         setError(null);
         return next;
@@ -94,28 +78,17 @@ export default function OrderView({
 
   useEffect(() => {
     if (!key) return;
-    const id = window.setTimeout(() => {
-      load(Boolean(returningFrom)).then((o) => {
-        if (o?.status === "pending" || returningFrom) {
-          pollStarted.current = Date.now();
-          setPolling(true);
-        }
-      });
-    }, 0);
+    const id = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(id);
-  }, [key, load, returningFrom]);
+  }, [key, load]);
 
-  // Vérification périodique tant qu'un paiement est en attente.
+  // Le paiement est confirmé par l'équipe : la page se relit quand le client y revient.
   useEffect(() => {
-    if (!polling) return;
-    const id = window.setInterval(async () => {
-      const o = await load(true);
-      if (!o || o.status === "paid" || o.status === "quote" || Date.now() - pollStarted.current > POLL_MAX_MS) {
-        setPolling(false);
-      }
-    }, POLL_MS);
-    return () => window.clearInterval(id);
-  }, [polling, load]);
+    if (adminToken) return;
+    const onFocus = () => document.visibilityState === "visible" && void load();
+    document.addEventListener("visibilitychange", onFocus);
+    return () => document.removeEventListener("visibilitychange", onFocus);
+  }, [load, adminToken]);
 
   if (error && !order) {
     return (
@@ -190,17 +163,7 @@ export default function OrderView({
           ) : order.status !== "cancelled" && order.card.status !== "rejected" ? (
             <>
               <QuotePanel order={order} />
-              <PaymentPanel
-                order={order}
-                orderKey={key}
-                polling={polling}
-                onStarted={() => {
-                  pollStarted.current = Date.now();
-                  setPolling(true);
-                  load();
-                }}
-                onPaid={() => load()}
-              />
+              <PaymentPanel order={order} onRefresh={load} />
             </>
           ) : null}
           {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
@@ -351,158 +314,42 @@ function QuotePanel({ order, admin }: { order: Order; admin?: boolean }) {
 
 /* ----------------------------------- Paiement ----------------------------------- */
 
-function PaymentPanel({
-  order,
-  orderKey,
-  polling,
-  onStarted,
-  onPaid,
-}: {
-  order: Order;
-  orderKey: string;
-  polling: boolean;
-  onStarted: () => void;
-  onPaid: () => void;
-}) {
-  const methods = order.payment;
-  // MoMo et FedaPay sont toujours proposés ; s'ils ne sont pas encore configurés côté
-  // serveur, le client est orienté vers un règlement assisté. Dès que les clés sont
-  // ajoutées dans l'API, les boutons fonctionnent sans autre changement.
-  const available: PaymentProvider[] = ["momo", "fedapay", ...(methods.simulation ? (["simulation"] as const) : [])];
-  const isReady = (id: PaymentProvider) => (id === "simulation" ? methods.simulation : methods[id]);
-  const [provider, setProvider] = useState<PaymentProvider>(
-    methods.momo ? "momo" : methods.fedapay ? "fedapay" : methods.simulation ? "simulation" : "momo",
-  );
-  const [phone, setPhone] = useState(order.customer.phone);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const waiting = order.status === "pending" || polling;
-  const lastFailed = order.lastPayment?.status === "failed" && order.status === "quote";
-  const ready = isReady(provider);
-
-  const pay = async () => {
-    if (!ready) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startPayment(order.reference, orderKey, provider, provider === "momo" ? phone : undefined);
-      if (result.paymentUrl) {
-        window.location.href = result.paymentUrl;
-        return;
-      }
-      if (result.status === "succeeded") onPaid();
-      else onStarted();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Le paiement n’a pas pu démarrer.");
-    } finally {
-      setBusy(false);
-    }
-  };
+function PaymentPanel({ order, onRefresh }: { order: Order; onRefresh: () => Promise<unknown> }) {
+  const [checking, setChecking] = useState(false);
+  const message =
+    `Bonjour Moncode, je souhaite régler ma commande ${order.reference} ` +
+    `(devis ${order.quoteNumber}, ${order.serviceLabel}) : ${fcfa(order.amount)}.`;
 
   return (
     <div className="surface p-6">
-      <h2 className="text-base font-semibold text-ink/90">Choisissez votre moyen de paiement</h2>
-
-      <div className="mt-4 grid gap-2" role="radiogroup" aria-label="Moyen de paiement">
-        {available.map((id) => {
-          const meta = PROVIDERS[id];
-          const active = provider === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              disabled={waiting}
-              onClick={() => setProvider(id)}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-60 ${
-                active ? "border-forest bg-leaf/60" : "border-line bg-white hover:border-ambre/60"
-              }`}
-            >
-              <span className={`icon-tile h-10 w-10 ${active ? "bg-forest text-white" : ""}`}>
-                <meta.icon className="h-[18px] w-[18px]" />
-              </span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-sm font-semibold text-ink/90">
-                  {meta.label}
-                  {!isReady(id) && (
-                    <span className="rounded-full bg-cream-deep px-2 py-0.5 text-[11px] font-medium text-sage">
-                      Bientôt
-                    </span>
-                  )}
-                </span>
-                <span className="block text-xs text-sage">{meta.hint}</span>
-              </span>
-              <span
-                className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                  active ? "border-forest bg-forest text-white" : "border-line"
-                }`}
-              >
-                {active && <Check className="h-3 w-3" strokeWidth={3} />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {provider === "momo" && !waiting && ready && (
-        <label className="mt-4 block">
-          <span className="text-xs font-semibold text-ink/70">Numéro MTN MoMo à débiter</span>
-          <input className="field mt-1.5" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </label>
-      )}
-
-      {waiting ? (
-        <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
-          <span>
-            {order.lastPayment?.provider === "momo"
-              ? "Validez la demande de paiement sur votre téléphone avec votre code MoMo. Cette page se met à jour toute seule."
-              : "Paiement en cours de confirmation. Cette page se met à jour toute seule."}
-          </span>
-        </div>
-      ) : ready ? (
-        <button type="button" onClick={pay} disabled={busy} className="btn btn-primary mt-5 w-full">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          Payer {fcfa(order.amount)}
-        </button>
-      ) : (
-        <div className="mt-5">
-          <p className="rounded-xl border border-line bg-cream-deep px-4 py-3 text-sm leading-6 text-ink/75">
-            Le paiement {PROVIDERS[provider].label} en ligne ouvre très bientôt. En attendant, réglez avec notre
-            équipe : votre QR code est activé dès réception.
-          </p>
-          <a
-            href={whatsappUrl(
-              `Bonjour Moncode, je souhaite régler la commande ${order.reference} (${fcfa(order.amount)}) par ${PROVIDERS[provider].label}.`,
-            )}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-primary mt-3 w-full"
-          >
-            <Smartphone className="h-4 w-4" />
-            Payer {fcfa(order.amount)} avec l’équipe
-          </a>
-        </div>
-      )}
-
-      {(error || lastFailed) && (
-        <p role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error ?? "Le dernier paiement n’a pas abouti. Vous pouvez réessayer."}
-        </p>
-      )}
-      <p className="mt-3 text-center text-xs text-sage">Paiement sécurisé. Votre facture est émise automatiquement.</p>
+      <h2 className="text-base font-semibold text-ink/90">Paiement sur WhatsApp</h2>
+      <p className="mt-2 text-sm leading-6 text-sage">
+        Écrivez-nous sur WhatsApp : notre équipe vous indique comment régler {fcfa(order.amount)}. Dès réception,
+        votre QR code est activé et votre facture émise.
+      </p>
+      <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="btn btn-primary mt-5 w-full">
+        <MessageCircle className="h-4 w-4" />
+        Payer {fcfa(order.amount)} sur WhatsApp
+      </a>
+      <button
+        type="button"
+        disabled={checking}
+        onClick={async () => {
+          setChecking(true);
+          await onRefresh();
+          setChecking(false);
+        }}
+        className="btn btn-outline btn-sm mt-3 w-full"
+      >
+        {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        J’ai payé : actualiser
+      </button>
+      <p className="mt-3 text-center text-xs text-sage">
+        Référence à rappeler : <span className="font-semibold text-ink/80">{order.reference}</span>
+      </p>
     </div>
   );
 }
-
-const PROVIDERS: Record<PaymentProvider, { label: string; hint: string; icon: typeof Wallet }> = {
-  momo: { label: "MTN Mobile Money", hint: "Demande de paiement envoyée sur votre téléphone", icon: Smartphone },
-  fedapay: { label: "FedaPay", hint: "MoMo, Moov Money ou carte bancaire", icon: CreditCard },
-  simulation: { label: "Paiement simulé", hint: "Environnement de test uniquement", icon: Wallet },
-};
 
 /* --------------------------------- QR code actif --------------------------------- */
 
@@ -570,7 +417,7 @@ function PrivateLink({ reference, orderKey }: { reference: string; orderKey: str
         Gardez votre lien privé
       </p>
       <p className="mt-1 text-xs leading-5 text-sage">
-        Il donne accès à ce devis, au paiement, à la facture et au QR code. Ne le partagez pas.
+        Il donne accès à ce devis, à la facture et au QR code. Ne le partagez pas.
       </p>
       <button
         type="button"
@@ -616,7 +463,7 @@ function AdminOrderPanel({ order, adminToken, onDone }: { order: Order; adminTok
   const act = async (action: "mark-paid" | "cancel") => {
     const question =
       action === "mark-paid"
-        ? `Confirmer l’encaissement de ${fcfa(order.amount)} ? La facture est émise et le QR code activé.`
+        ? `Confirmer avoir reçu ${fcfa(order.amount)} (réglé sur WhatsApp) ? La facture est émise et le QR code activé.`
         : "Annuler cette commande ?";
     if (!window.confirm(question)) return;
     setBusy(action);
@@ -638,15 +485,22 @@ function AdminOrderPanel({ order, adminToken, onDone }: { order: Order; adminTok
         <div>
           <dt className="text-sage">Client</dt>
           <dd className="font-medium text-ink/90">{order.customer.name}</dd>
-          <dd className="text-ink/70">{order.customer.phone}</dd>
+          <dd>
+            <a
+              href={`https://wa.me/${order.customer.phone.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-ink/70 underline-offset-4 hover:text-forest hover:underline"
+            >
+              {order.customer.phone}
+            </a>
+          </dd>
           {order.customer.email && <dd className="text-ink/70">{order.customer.email}</dd>}
         </div>
         <div>
-          <dt className="text-sage">Dernier paiement</dt>
+          <dt className="text-sage">Paiement</dt>
           <dd className="font-medium text-ink/90">
-            {order.lastPayment
-              ? `${PROVIDERS[order.lastPayment.provider as PaymentProvider]?.label ?? order.lastPayment.provider} · ${order.lastPayment.status}`
-              : "Aucun"}
+            {order.lastPayment ? `${providerLabel(order.lastPayment.provider)} · ${order.lastPayment.status}` : "À régler sur WhatsApp"}
           </dd>
         </div>
       </dl>
@@ -654,7 +508,7 @@ function AdminOrderPanel({ order, adminToken, onDone }: { order: Order; adminTok
         <div className="mt-5 flex flex-wrap gap-2">
           <button type="button" disabled={busy !== null} onClick={() => act("mark-paid")} className="btn btn-primary btn-sm">
             {busy === "mark-paid" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Encaisser (hors ligne)
+            Paiement reçu : encaisser
           </button>
           <button type="button" disabled={busy !== null} onClick={() => act("cancel")} className="btn btn-outline btn-sm">
             {busy === "cancel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}

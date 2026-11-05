@@ -4,17 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
-  CircleDashed,
   ExternalLink,
   FileText,
   Images,
   PanelsTopLeft,
+  QrCode,
   Receipt,
-  ShieldCheck,
 } from "lucide-react";
 import AdminShell from "./AdminShell";
-import { API_URL } from "./use-admin-fetch";
 import { useAdminFetch } from "./use-admin-fetch";
 import { SERVICES, type ServiceType } from "@/lib/services";
 import { fcfa, STATUS_LABELS, type OrderStatus } from "@/lib/orders";
@@ -47,20 +44,20 @@ const JOURNEYS: Record<ServiceType, Step[]> = {
     { label: "Informations et photos", route: "/creer/page/informations", href: "/creer/page/informations", who: "Client" },
     { label: "Apparence (thème)", route: "/creer/page/apparence", href: "/creer/page/apparence", who: "Client" },
     { label: "Coordonnées et devis", route: "/creer/page/validation", href: "/creer/page/validation", who: "Client" },
-    { label: "Aperçu et paiement MoMo / FedaPay", route: "/commande/[réf]", who: "Client" },
-    { label: "QR code actif, facture", route: "/commande/[réf]/facture", who: "Automatique" },
+    { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
+    { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
   ],
   media: [
     { label: "Fichier et coordonnées", route: "/creer?service=media", href: "/creer?service=media", who: "Client" },
-    { label: "Aperçu et paiement MoMo / FedaPay", route: "/commande/[réf]", who: "Client" },
-    { label: "QR code actif, facture", route: "/commande/[réf]/facture", who: "Automatique" },
+    { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
+    { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
   ],
   document: [
     { label: "PDF et coordonnées", route: "/creer?service=document", href: "/creer?service=document", who: "Client" },
-    { label: "Aperçu et paiement MoMo / FedaPay", route: "/commande/[réf]", who: "Client" },
-    { label: "QR code actif, facture", route: "/commande/[réf]/facture", who: "Automatique" },
+    { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
+    { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
   ],
 };
@@ -116,6 +113,26 @@ function HubBody({ adminToken }: { adminToken: string }) {
             );
           })}
         </div>
+
+        <Link
+          href="/admin/nouveau/direct"
+          className="surface mt-4 flex flex-col gap-4 p-5 transition-colors hover:bg-cream-deep/40 sm:flex-row sm:items-center"
+        >
+          <span className="icon-tile">
+            <QrCode className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-lg font-semibold text-ink/90">QR code simple · gratuit</span>
+            <span className="mt-1 block text-sm leading-6 text-sage">
+              Lien web, texte, carte de visite (vCard), appel, SMS, e-mail, Wi-Fi, événement ou coordonnées GPS,
+              écrits dans le QR lui-même. Gratuit, aussi ouvert aux clients sur /qr-gratuit.
+            </span>
+          </span>
+          <span className="btn btn-primary btn-sm shrink-0 justify-between gap-2">
+            Générer
+            <ArrowRight className="h-4 w-4" />
+          </span>
+        </Link>
       </section>
 
       {/* 2. Le parcours client complet */}
@@ -169,76 +186,8 @@ function HubBody({ adminToken }: { adminToken: string }) {
         </ol>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PaymentStatus />
-        <RecentOrders adminToken={adminToken} />
-      </div>
+      <RecentOrders adminToken={adminToken} />
     </div>
-  );
-}
-
-/* --------------------------- Paiements : clés présentes ? --------------------------- */
-
-function PaymentStatus() {
-  const [config, setConfig] = useState<{ fedapay: boolean; momo: boolean; simulation: boolean } | null>(null);
-
-  useEffect(() => {
-    fetch(`${API_URL}/orders/config`)
-      .then((r) => r.json())
-      .then(setConfig)
-      .catch(() => setConfig(null));
-  }, []);
-
-  const rows = [
-    {
-      name: "FedaPay (MoMo, Moov, carte)",
-      ready: config?.fedapay,
-      env: "FEDAPAY_SECRET_KEY, FEDAPAY_WEBHOOK_SECRET, FEDAPAY_ENV",
-    },
-    {
-      name: "MTN MoMo direct",
-      ready: config?.momo,
-      env: "MOMO_SUBSCRIPTION_KEY, MOMO_API_USER, MOMO_API_KEY",
-    },
-    { name: "Paiement simulé (local)", ready: config?.simulation, env: "PAYMENT_SIMULATION=true" },
-  ];
-
-  return (
-    <section className="surface p-5">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-ink/90">
-        <ShieldCheck className="h-5 w-5 text-forest" /> Paiements
-      </h2>
-      <ul className="mt-4 space-y-3">
-        {rows.map((row) => (
-          <li key={row.name} className="flex items-start gap-3">
-            {row.ready ? (
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-            ) : (
-              <CircleDashed className="mt-0.5 h-5 w-5 shrink-0 text-sage" />
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-ink/90">
-                {row.name} <span className="font-normal text-sage">· {row.ready ? "actif" : "en attente de clé"}</span>
-              </p>
-              <code className="block break-words text-xs text-sage">{row.env}</code>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-5 space-y-2 rounded-xl bg-cream-deep p-4 text-xs leading-5 text-ink/75">
-        <p>
-          Les boutons MoMo et FedaPay sont déjà visibles côté client. Dès que les clés sont ajoutées dans{" "}
-          <code>apps/api/.env</code> et l’API redémarrée, ils encaissent réellement : aucun autre changement.
-        </p>
-        <p>
-          Webhook FedaPay à déclarer : <code>{API_URL}/payments/fedapay/webhook</code>
-        </p>
-        <p>
-          Sans clé : passez une commande comme un client, puis « Encaisser » dans Commandes pour voir la suite du
-          parcours (facture, QR actif).
-        </p>
-      </div>
-    </section>
   );
 }
 

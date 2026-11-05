@@ -37,6 +37,11 @@ export function directionsUrl(): string {
 export const WHATSAPP_MESSAGE =
   "Bonjour Moncode, je souhaite des informations sur votre solution de QR codes.";
 
+/** Nom lisible du moyen de paiement enregistré (les anciens prestataires restent dans l'historique). */
+export function providerLabel(provider: string): string {
+  return provider === "manuel" ? "WhatsApp" : provider;
+}
+
 export function whatsappUrl(message: string = WHATSAPP_MESSAGE): string {
   return `https://wa.me/${CONTACT.whatsappNumber}?text=${encodeURIComponent(message)}`;
 }

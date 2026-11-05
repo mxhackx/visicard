@@ -90,8 +90,8 @@ export default function PageCheckout() {
         Votre page est prête. Voici votre devis.
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-7 text-sage">
-        Indiquez à qui adresser le devis. Vous verrez ensuite l’aperçu de votre page et pourrez payer par
-        Mobile Money ou carte. Le QR code s’active dès le paiement confirmé.
+        Indiquez à qui adresser le devis. Vous verrez ensuite l’aperçu de votre page, puis vous réglerez
+        avec notre équipe sur WhatsApp. Le QR code s’active dès le paiement reçu.
       </p>
 
       <form onSubmit={submit} className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">

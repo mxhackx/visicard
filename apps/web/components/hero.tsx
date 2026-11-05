@@ -27,8 +27,8 @@ export default function Hero() {
               Choisir mon service
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/#tarifs" className="btn btn-outline px-7">
-              Voir les tarifs
+            <Link href="/qr-gratuit" className="btn btn-outline px-7">
+              Créer un QR code gratuit
             </Link>
           </div>
 

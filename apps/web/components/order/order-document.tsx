@@ -69,9 +69,9 @@ export default function OrderDocument({
   if (isInvoice && order.status !== "paid") {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <p className="text-sm text-sage">La facture est émise automatiquement dès le paiement confirmé.</p>
+        <p className="text-sm text-sage">La facture est émise dès que notre équipe a confirmé votre paiement sur WhatsApp.</p>
         <Link href={back} className="btn btn-primary mt-6">
-          Aller au paiement
+          Retour à la commande
         </Link>
       </div>
     );
@@ -166,13 +166,13 @@ export default function OrderDocument({
           {isInvoice ? (
             <p>
               Facture acquittée le {formatDate(order.paidAt)}
-              {order.lastPayment ? ` par ${PROVIDER_NAMES[order.lastPayment.provider] ?? order.lastPayment.provider}` : ""}.
+              {order.lastPayment?.provider === "manuel" ? " (règlement enregistré par Moncode)" : ""}.
               Merci pour votre confiance.
             </p>
           ) : (
             <p>
-              Devis valable 30 jours. Le QR code est activé dès réception du paiement ; la facture est alors
-              émise automatiquement.
+              Devis valable 30 jours. Paiement à régler avec notre équipe sur WhatsApp : le QR code est activé
+              dès réception, et la facture émise.
             </p>
           )}
         </footer>
@@ -180,10 +180,3 @@ export default function OrderDocument({
     </div>
   );
 }
-
-const PROVIDER_NAMES: Record<string, string> = {
-  momo: "MTN Mobile Money",
-  fedapay: "FedaPay",
-  manuel: "règlement enregistré par Moncode",
-  simulation: "paiement de test",
-};
