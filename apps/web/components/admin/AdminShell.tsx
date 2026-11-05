@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+const noopSubscribe = () => () => {};
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, LayoutDashboard, Loader2, LogOut, Plus, Receipt, Settings, Users } from "lucide-react";
+import { ExternalLink, LayoutDashboard, Loader2, LogOut, Plus, QrCode, Receipt, Settings, Users } from "lucide-react";
 import Logo from "@/components/logo";
 import { useFile } from "@/app/context/FileContext";
 
-export type AdminSection = "cards" | "orders" | "new" | "accounts" | "settings";
+export type AdminSection = "overview" | "cards" | "orders" | "new" | "accounts" | "settings";
 
 const NAV: { id: AdminSection; label: string; href: string; icon: typeof Users }[] = [
-  { id: "cards", label: "QR codes", href: "/admin?tab=cards", icon: LayoutDashboard },
+  { id: "overview", label: "Tableau de bord", href: "/admin", icon: LayoutDashboard },
+  { id: "cards", label: "QR codes", href: "/admin?tab=cards", icon: QrCode },
   { id: "orders", label: "Commandes", href: "/admin?tab=orders", icon: Receipt },
   { id: "new", label: "Nouveau QR code", href: "/admin/nouveau", icon: Plus },
   { id: "accounts", label: "Utilisateurs", href: "/admin?tab=accounts", icon: Users },
@@ -36,10 +39,14 @@ export default function AdminShell({
 }) {
   const router = useRouter();
   const { authToken, authRole, isAuthLoading, logoutSession } = useFile();
-  const [mounted, setMounted] = useState(false);
+  // Faux au rendu serveur, vrai dès l'hydratation (évite un écart d'affichage).
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const allowed = Boolean(authToken) && authRole === "admin";
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!isAuthLoading && !allowed) router.replace("/admin/connexion");
   }, [allowed, isAuthLoading, router]);
@@ -134,7 +141,7 @@ export default function AdminShell({
           </nav>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">{children(authToken)}</main>
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 sm:px-6 lg:px-8">{children(authToken)}</main>
       </div>
     </div>
   );

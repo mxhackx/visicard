@@ -6,17 +6,22 @@
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-serif: Georgia, "Times New Roman", serif;
 
-  /* Palette Moncode — bleu franc, gris neutres, fonds clairs.
-     (Les noms forest / leaf sont historiques : ce sont l'accent et son fond pâle.) */
-  --color-cream: #ffffff;
-  --color-cream-deep: #f5f7fa;
-  --color-ink: #263238;
-  --color-sage: #717171;
-  --color-line: #e5e9ee;
-  --color-forest: #2563eb;
-  --color-forest-dark: #1d4ed8;
-  --color-forest-night: #263238;
-  --color-leaf: #eaf1ff;
+  /* Palette Moncode — fond blanc, texte noir, accent rouge relevé sur l'emblème
+     (#fb0520, légèrement approfondi pour rester lisible sur blanc). Header et
+     footer restent noirs. Les noms forest / leaf sont historiques : ce sont
+     l'accent rouge et son fond très pâle. */
+  --color-cream: #f7f7f8;
+  --color-cream-deep: #f1f1f3;
+  --color-ink: #17171a;
+  --color-sage: #6b6b74;
+  --color-line: #e4e4e8;
+  --color-forest: #e3051d;
+  --color-forest-dark: #b80316;
+  --color-forest-night: #17171a;
+  /* Orange ambré : fonds clairs, halos et liserés légers (là où il y avait du rouge pâle). */
+  --color-leaf: #fff4e3;
+  --color-ambre: #f2920d;
+  --color-ambre-deep: #a8560a;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -53,47 +58,47 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 200 19% 18%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 353 96% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 44%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 353 96% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 353 96% 45%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 240 5% 4%;
+    --foreground: 240 5% 96%;
+    --card: 240 7% 9%;
+    --card-foreground: 240 5% 96%;
+    --popover: 240 7% 9%;
+    --popover-foreground: 240 5% 96%;
+    --primary: 353 97% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 6% 15%;
+    --secondary-foreground: 240 5% 96%;
+    --muted: 240 6% 15%;
+    --muted-foreground: 240 4% 62%;
+    --accent: 240 6% 15%;
+    --accent-foreground: 240 5% 96%;
+    --destructive: 353 97% 50%;
+    --destructive-foreground: 240 5% 96%;
+    --border: 240 5% 17%;
+    --input: 240 5% 17%;
+    --ring: 353 97% 50%;
   }
 }
 
@@ -122,21 +127,8 @@
   }
   body {
     @apply text-foreground;
-    background: #f4f6fa;
-  }
-  body::before {
-    width: 38rem;
-    height: 38rem;
-    left: -12rem;
-    top: -10rem;
-    background: rgba(147, 180, 255, 0.55);
-  }
-  body::after {
-    width: 34rem;
-    height: 34rem;
-    right: -10rem;
-    bottom: -12rem;
-    background: rgba(165, 227, 255, 0.5);
+    /* Fond blanc uni : aucune lueur, aucune nappe. */
+    background: #ffffff;
   }
 }
 
@@ -188,7 +180,7 @@
 
   .btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 10px 24px rgba(23, 23, 26, 0.12);
   }
 
   .btn:active {
@@ -212,14 +204,15 @@
   }
 
   .btn-light {
-    background: #fff;
-    border-color: #fff;
+    background: #ffffff;
+    border-color: #ffffff;
     color: var(--color-forest);
   }
 
   .btn-light:hover {
-    background: var(--color-line);
-    border-color: var(--color-line);
+    background: #f1f1f3;
+    border-color: #f1f1f3;
+    color: var(--color-forest-dark);
   }
 
   .btn-outline {
@@ -246,15 +239,14 @@
     box-shadow: none;
   }
 
-  /* Carte standard du site : blanc translucide, liseré clair. Rayon unique (--radius-card). */
+  /* Carte standard du site : blanc sur blanc, liseré fin, ombre légère. Rayon unique (--radius-card). */
   .surface {
     background: #ffffff;
-    border: 1px solid #e3e8f0;
+    border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 10px 30px rgba(37, 99, 235, 0.08),
-      0 1px 3px rgba(38, 50, 56, 0.05);
+      0 1px 2px rgba(23, 23, 26, 0.04),
+      0 8px 24px rgba(23, 23, 26, 0.05);
     transition:
       box-shadow 0.3s ease,
       transform 0.3s ease;
@@ -262,15 +254,15 @@
 
   /* Encart secondaire dans une carte : verre plus discret. */
   .surface-soft {
-    border: 1px solid #e3e8f0;
+    border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
-    background: #f8fafd;
+    background: var(--color-cream);
   }
 
   .surface-hover:hover {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 20px 44px rgba(37, 99, 235, 0.16);
+      0 1px 2px rgba(23, 23, 26, 0.05),
+      0 18px 40px rgba(23, 23, 26, 0.09);
   }
 
   /* Tuile d'icône bleue, reprise des cartes « services » de la maquette */
@@ -283,17 +275,17 @@
     height: 2.75rem;
     border-radius: 0.875rem;
     background: var(--color-leaf);
-    color: var(--color-forest);
+    color: var(--color-ambre-deep);
   }
 
   /* Champs : fond blanc translucide, liseré clair, reflet en haut. */
   .field {
     width: 100%;
     min-height: 2.85rem;
-    border: 1px solid #e3e8f0;
+    border: 1px solid var(--color-line);
     border-radius: 0.75rem;
     background: #ffffff;
-    box-shadow: 0 1px 2px rgba(38, 50, 56, 0.05);
+    box-shadow: 0 1px 2px rgba(23, 23, 26, 0.04);
     padding: 0.7rem 0.9rem;
     font-size: 0.9rem;
     line-height: 1.5;
@@ -306,33 +298,28 @@
   }
 
   .field::placeholder {
-    color: rgba(38, 50, 56, 0.45);
+    color: rgba(23, 23, 26, 0.4);
   }
 
   .field:hover {
-    background: #ffffff;
-    border-color: rgba(37, 99, 235, 0.25);
+    border-color: rgba(242, 146, 13, 0.55);
   }
 
   .field:focus {
     background: #ffffff;
-    border-color: rgba(37, 99, 235, 0.6);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 0 0 4px rgba(37, 99, 235, 0.14);
+    border-color: rgba(242, 146, 13, 0.9);
+    box-shadow: 0 0 0 4px rgba(242, 146, 13, 0.16);
   }
 
   .field[aria-invalid="true"] {
-    border-color: rgba(220, 38, 38, 0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 0 0 4px rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.75);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
   }
 
   select.field {
     appearance: none;
     padding-right: 2.4rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23263238' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2317171a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.85rem center;
   }
@@ -340,23 +327,25 @@
   /* Panneau en verre : pour poser un formulaire ou une box sur un fond coloré. */
   .glass {
     position: relative;
-    border: 1px solid #e3e8f0;
+    border: 1px solid var(--color-line);
     border-radius: calc(var(--radius-card) + 0.25rem);
     background: #ffffff;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 24px 60px rgba(37, 99, 235, 0.12),
-      0 2px 6px rgba(38, 50, 56, 0.05);
+      0 24px 60px rgba(23, 23, 26, 0.12),
+      0 2px 6px rgba(23, 23, 26, 0.06);
   }
 
-  /* Fond de marque partagé par le header et le footer : bleu profond, lueurs claires. */
-  /* Fond de marque (header, footer, barre admin, offre sur devis) : bleu nuit uni,
-     motif discret de modules de QR code en surimpression. Ni dégradé ni flou. */
+  /* Fond de marque (header, footer, barre admin, offre sur devis) : noir gris uni.
+     Aucune surimpression, aucun dégradé, aucun flou. */
   .brand-surface {
-    background-color: #102a6b;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='%23ffffff' fill-opacity='0.045'%3E%3Crect x='4' y='4' width='6' height='6' rx='1.5'/%3E%3Crect x='28' y='12' width='6' height='6' rx='1.5'/%3E%3Crect x='16' y='30' width='6' height='6' rx='1.5'/%3E%3Crect x='38' y='36' width='6' height='6' rx='1.5'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 48px 48px;
+    background-color: #17171a;
     color: #fff;
+  }
+
+  /* Header et footer : blanc légèrement grisé, texte foncé, liseré fin. */
+  .chrome-surface {
+    background-color: #f4f4f6;
+    color: var(--color-ink);
   }
 
 
@@ -580,28 +569,28 @@
 ------------------------------------------------------------------ */
 [data-slot="card"] {
   background: #ffffff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 14px 40px rgba(37, 99, 235, 0.1);
+    0 1px 2px rgba(23, 23, 26, 0.04),
+    0 8px 24px rgba(23, 23, 26, 0.05);
   --tw-ring-shadow: 0 0 #0000;
 }
 
 [data-slot="input"],
 [data-slot="textarea"],
 [data-slot="select-trigger"] {
-  border-color: #dde3ec;
+  border-color: var(--color-line);
   border-radius: 0.75rem;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(38, 50, 56, 0.05);
+  box-shadow: 0 1px 2px rgba(23, 23, 26, 0.04);
 }
 
 [data-slot="input"]:focus-visible,
 [data-slot="textarea"]:focus-visible,
 [data-slot="select-trigger"]:focus-visible {
   background: #ffffff;
-  border-color: rgba(37, 99, 235, 0.6);
+  border-color: rgba(242, 146, 13, 0.9);
 }
 
 [data-slot="button"] {

@@ -17,14 +17,14 @@ type Tag = "Page" | "Image / vidéo" | "PDF";
 
 // Photos : Unsplash (licence libre), stockées dans public/images.
 const audiences: { icon: typeof ShoppingBag; label: string; use: string; tags: Tag[]; photo: string }[] = [
-  { icon: UtensilsCrossed, label: "Restaurants", use: "Menu du jour, carte des vins, horaires", tags: ["Page", "PDF"], photo: "/images/secteur-restaurant.jpg" },
-  { icon: BedDouble, label: "Hôtels", use: "Livret d’accueil, services en chambre", tags: ["Page", "PDF"], photo: "/images/secteur-hotel.jpg" },
-  { icon: ShoppingBag, label: "Boutiques", use: "Catalogue, nouveautés, vidéo produit", tags: ["Page", "Image / vidéo"], photo: "/images/secteur-boutique.jpg" },
-  { icon: Scissors, label: "Salons", use: "Prestations, tarifs, prise de rendez-vous", tags: ["Page"], photo: "/images/secteur-salon.jpg" },
-  { icon: Stethoscope, label: "Cabinets", use: "Fiche d’information, consignes patients", tags: ["PDF"], photo: "/images/secteur-cabinet.jpg" },
-  { icon: CalendarDays, label: "Événements", use: "Programme, plan du site, teaser vidéo", tags: ["PDF", "Image / vidéo"], photo: "/images/secteur-evenement.jpg" },
-  { icon: GraduationCap, label: "Écoles", use: "Brochure, emploi du temps, inscriptions", tags: ["PDF", "Page"], photo: "/images/secteur-ecole.jpg" },
-  { icon: HeartHandshake, label: "Associations", use: "Présentation, campagne, appel aux dons", tags: ["Page", "Image / vidéo"], photo: "/images/secteur-association.jpg" },
+  { icon: UtensilsCrossed, label: "Restaurants", use: "Menu du jour, carte des vins, horaires", tags: ["Page", "PDF"], photo: "/illustrations/secteur-restaurant.svg" },
+  { icon: BedDouble, label: "Hôtels", use: "Livret d’accueil, services en chambre", tags: ["Page", "PDF"], photo: "/illustrations/secteur-hotel.svg" },
+  { icon: ShoppingBag, label: "Boutiques", use: "Catalogue, nouveautés, vidéo produit", tags: ["Page", "Image / vidéo"], photo: "/illustrations/secteur-boutique.svg" },
+  { icon: Scissors, label: "Salons", use: "Prestations, tarifs, prise de rendez-vous", tags: ["Page"], photo: "/illustrations/secteur-salon.svg" },
+  { icon: Stethoscope, label: "Cabinets", use: "Fiche d’information, consignes patients", tags: ["PDF"], photo: "/illustrations/secteur-cabinet.svg" },
+  { icon: CalendarDays, label: "Événements", use: "Programme, plan du site, teaser vidéo", tags: ["PDF", "Image / vidéo"], photo: "/illustrations/secteur-evenement.svg" },
+  { icon: GraduationCap, label: "Écoles", use: "Brochure, emploi du temps, inscriptions", tags: ["PDF", "Page"], photo: "/illustrations/secteur-ecole.svg" },
+  { icon: HeartHandshake, label: "Associations", use: "Présentation, campagne, appel aux dons", tags: ["Page", "Image / vidéo"], photo: "/illustrations/secteur-association.svg" },
 ];
 
 const stats = [
@@ -68,13 +68,14 @@ export default function AudienceStrip() {
               data-reveal
               style={{ "--d": `${(idx % 4) * 60}ms` } as React.CSSProperties}
             >
-              <div className="relative aspect-[3/2] overflow-hidden bg-cream-deep">
+              <div className="relative aspect-[3/2] overflow-hidden bg-cream">
                 <Image
                   src={photo}
                   alt=""
                   fill
+                  unoptimized
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="object-contain p-5 pb-8 transition-transform duration-500 group-hover:scale-105"
                 />
                 <span className="icon-tile absolute bottom-3 left-3 h-10 w-10 bg-white shadow-sm transition-colors duration-300 group-hover:bg-forest group-hover:text-white">
                   <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />

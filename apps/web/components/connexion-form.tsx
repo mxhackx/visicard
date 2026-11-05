@@ -209,7 +209,7 @@ export default function ConnexionForm({ next }: { next: string }) {
               {error && (
                 <p
                   role="alert"
-                  className="rounded-md border border-[#e7c8c2] bg-[#fbf1ef] px-3 py-2.5 text-sm leading-5 text-[#8b3a2d]"
+                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700"
                 >
                   {error}
                 </p>

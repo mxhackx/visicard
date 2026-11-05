@@ -53,7 +53,7 @@ export default function Testimonials() {
               <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
                 <span
                   aria-hidden="true"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-leaf text-xs font-semibold tracking-wide text-forest"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-leaf text-xs font-semibold tracking-wide text-ambre-deep"
                 >
                   {review.initials}
                 </span>

@@ -60,7 +60,9 @@ export default function AdminOrders({ adminToken }: { adminToken: string }) {
   }, [adminFetch]);
 
   useEffect(() => {
-    load();
+    // Chargement différé d'un tour : l'état n'est jamais modifié pendant l'effet lui-même.
+    const id = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(id);
   }, [load]);
 
   const act = async (order: AdminOrder, action: "mark-paid" | "cancel") => {

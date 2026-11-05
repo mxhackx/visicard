@@ -1,308 +1,188 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, LayoutDashboard, CheckCircle2, Download, Copy, Share2 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { QrCode } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import Link from "next/link";
-import Logo from "@/components/logo";
+import { ArrowLeft, Check, CheckCircle2, Copy, ExternalLink, Loader2, QrCode, Smartphone } from "lucide-react";
+import AdminShell from "@/components/admin/AdminShell";
+import { useAdminFetch } from "@/components/admin/use-admin-fetch";
+import Stepper from "@/components/order/stepper";
+import QrDesigner from "@/components/qr/qr-designer";
+import StyledQr from "@/components/qr/styled-qr";
 import { useFile } from "@/app/context/FileContext";
-import QRCodeStudio from "@/components/QRCodeStudio";
+import { paletteFor } from "@/lib/palette";
 
-interface QrResult {
+const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
+
+interface Created {
   slug: string;
   cardUrl: string;
-  qrCode: string; // The base64 or URL of the standard QR returned by backend
-  imageUrl: string;
+  qrStyle: string;
+  logoUrl?: string | null;
 }
 
+/** Dernière étape admin d'une page digitale : style du QR code, puis création (QR actif tout de suite). */
 export default function AdminQrStep() {
-  const router = useRouter();
-  const {
-    userInfo,
-    restaurantInfo,
-    customization,
-    setQrStyle,
-    authToken,
-    authRole,
-    isAuthLoading,
-    resetAll,
-    refreshAccessToken,
-  } = useFile();
+  return (
+    <AdminShell active="new" title="Nouvelle page digitale" hint="Étape 3 sur 3 · QR code">
+      {(token) => <QrBody adminToken={token} />}
+    </AdminShell>
+  );
+}
 
-  useEffect(() => {
-    if (!isAuthLoading && (!authToken || authRole !== "admin")) {
-      router.push("/admin/connexion");
-    }
-  }, [authToken, authRole, isAuthLoading, router]);
-
-  const [isGenerating, setIsGenerating] = useState(false);
+function QrBody({ adminToken }: { adminToken: string }) {
+  const adminFetch = useAdminFetch(adminToken);
+  const { userInfo, restaurantInfo, customization, setQrStyle, resetAll } = useFile();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [qrResult, setQrResult] = useState<QrResult | null>(null);
+  const [created, setCreated] = useState<Created | null>(null);
   const [copied, setCopied] = useState(false);
-  const [qrName, setQrName] = useState("");
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
+  if (created) return <Success created={created} onCopy={() => setCopied(true)} copied={copied} onDone={resetAll} />;
+
+  if (!restaurantInfo.restaurantName.trim()) {
+    return (
+      <div className="surface mx-auto mt-6 max-w-lg p-8 text-center">
+        <span className="icon-tile mx-auto h-12 w-12">
+          <QrCode className="h-5 w-5" />
+        </span>
+        <h1 className="mt-4 text-xl font-semibold text-ink/90">Commencez par les informations</h1>
+        <p className="mt-2 text-sm text-sage">Les informations saisies ne sont pas conservées après un rechargement de la page.</p>
+        <Link href="/admin/nouveau/informations" className="btn btn-primary mt-6">
+          <ArrowLeft className="h-4 w-4" /> Aller aux informations
+        </Link>
+      </div>
+    );
+  }
+
+  const brand = paletteFor(customization.themeId, customization.cardLayout).brand;
+
+  const create = async () => {
+    setBusy(true);
     setError(null);
+    const body = new FormData();
+    body.append("serviceType", "page");
+    body.append("clientName", userInfo.clientName.trim() || restaurantInfo.restaurantName);
+    if (userInfo.userName.trim()) body.append("userName", userInfo.userName.trim());
+    body.append("restaurantName", restaurantInfo.restaurantName);
+    body.append("address", restaurantInfo.address || "");
+    body.append("locationUrl", restaurantInfo.locationUrl);
+    body.append("phoneNumber", restaurantInfo.phoneNumber);
+    for (const key of ["facebookUrl", "instagramUrl", "xUrl", "snapchatUrl", "additionalInfo"] as const) {
+      if (restaurantInfo[key]) body.append(key, restaurantInfo[key]);
+    }
+    body.append("schedule", JSON.stringify(restaurantInfo.schedule));
+    body.append("themeId", customization.themeId);
+    if (customization.cardLayout) body.append("cardLayout", customization.cardLayout);
+    if (customization.qrStyle) body.append("qrStyle", customization.qrStyle);
+    if (restaurantInfo.logoFile) body.append("logo", restaurantInfo.logoFile);
+    restaurantInfo.menuFiles.forEach((f) => body.append("menu", f));
+    restaurantInfo.placeFiles.forEach((f) => body.append("place", f));
 
     try {
-      const formData = new FormData();
-
-      // Utilisateur (qui paie)
-      formData.append("clientName", userInfo.clientName);
-      formData.append("userName", userInfo.userName);
-      if (userInfo.workDone) formData.append("workDone", userInfo.workDone);
-      if (userInfo.amountReceived) formData.append("amountReceived", userInfo.amountReceived);
-
-      // Informations du restaurant
-            formData.append("restaurantName", restaurantInfo.restaurantName);
-      formData.append("address", restaurantInfo.address || "");
-      formData.append("locationUrl", restaurantInfo.locationUrl);
-      formData.append("phoneNumber", restaurantInfo.phoneNumber);
-      if (restaurantInfo.facebookUrl) formData.append("facebookUrl", restaurantInfo.facebookUrl);
-      if (restaurantInfo.instagramUrl) formData.append("instagramUrl", restaurantInfo.instagramUrl);
-      if (restaurantInfo.xUrl) formData.append("xUrl", restaurantInfo.xUrl);
-      if (restaurantInfo.snapchatUrl) formData.append("snapchatUrl", restaurantInfo.snapchatUrl);
-      if (restaurantInfo.additionalInfo) formData.append("additionalInfo", restaurantInfo.additionalInfo);
-      formData.append("schedule", JSON.stringify(restaurantInfo.schedule));
-      formData.append("themeId", customization.themeId);
-      if (customization.cardLayout) formData.append("cardLayout", customization.cardLayout);
-      if (customization.qrStyle) formData.append("qrStyle", customization.qrStyle);
-
-      // Logo
-      if (restaurantInfo.logoFile) {
-        formData.append("logo", restaurantInfo.logoFile);
-      }
-
-      
-      // Photos du menu
-      for (const menuFile of restaurantInfo.menuFiles) {
-        formData.append("menu", menuFile);
-      }
-      
-      // Photos du lieu
-      for (const placeFile of restaurantInfo.placeFiles) {
-        formData.append("place", placeFile);
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
-
-      let currentToken = authToken;
-      let response = await fetch(`${apiUrl}/cards`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${currentToken}`,
-        },
-        body: formData,
-      });
-
-      if (response.status === 401) {
-        // Tentative de rafraîchissement
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          currentToken = newToken;
-          response = await fetch(`${apiUrl}/cards`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              Authorization: `Bearer ${currentToken}`,
-            },
-            body: formData,
-          });
-        }
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Erreur lors de la création de la carte (Session peut-être expirée).");
-      }
-
-      const data = await response.json();
-      setQrResult(data);
-    } catch (err: any) {
-      console.error("Generate error:", err);
-      setError(err.message || "Une erreur est survenue lors de la création.");
+      const res = await adminFetch("/cards", { method: "POST", body });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof data?.message === "string" ? data.message : "La création a échoué.");
+      setCreated({ slug: data.slug, cardUrl: data.cardUrl, qrStyle: data.qrStyle, logoUrl: data.logoUrl });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "La création a échoué.");
     } finally {
-      setIsGenerating(false);
+      setBusy(false);
     }
   };
-
-  
-  const [finalQrCode, setFinalQrCode] = useState<any>(null);
-
-  useEffect(() => {
-    if (qrResult && customization.qrStyle) {
-      const config = JSON.parse(customization.qrStyle);
-      import("qr-code-styling").then((module) => {
-        const QRCodeStylingClass = module.default;
-        const qr = new QRCodeStylingClass({
-        width: 300,
-        height: 300,
-        data: qrResult.cardUrl,
-        image: "",
-        dotsOptions: { color: config.color, type: config.dotsType },
-        cornersSquareOptions: { color: config.color, type: config.cornersType },
-        imageOptions: { crossOrigin: "anonymous", margin: 10 },
-      });
-      setFinalQrCode(qr);
-
-      const container = document.getElementById("qr-result-container");
-      if (container) {
-        container.innerHTML = "";
-        qr.append(container);
-      }
-      });
-    }
-  }, [qrResult, customization.qrStyle]);
-
-  const handleDownloadQr = () => {
-    if (finalQrCode) {
-      finalQrCode.download({ name: qrName.trim() || `menu-${qrResult?.slug || 'qr'}`, extension: "png" });
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (qrResult) {
-      navigator.clipboard.writeText(qrResult.cardUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  if (isAuthLoading) return null;
 
   return (
-    <main className="min-h-screen flex flex-col font-sans">
-      
+    <div className="space-y-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link href="/admin/nouveau/apparence" className="inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
+            <ArrowLeft className="h-4 w-4" /> Apparence
+          </Link>
+          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">Le QR code</h1>
+          <p className="mt-1 text-sm text-sage">Le motif imprimé sur les tables. Il reste modifiable depuis la fiche de la page.</p>
+        </div>
+        <div className="w-full max-w-xl">
+          <Stepper current={2} steps={ADMIN_STEPS} />
+        </div>
+      </div>
 
-            <header className="brand-surface w-full h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-30 shadow-[0_8px_30px_rgba(15,42,107,0.25)]">
-        <Link href="/" aria-label="Moncode — accueil">
-          <Logo variant="light" />
-        </Link>
-      </header>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <section className="surface p-6 sm:p-7">
+          <QrDesigner value={customization.qrStyle} onChange={setQrStyle} logoUrl={restaurantInfo.logoPreview} brandColor={brand} />
+        </section>
 
-            <section className="relative z-10 w-full px-4 py-8">
-        {qrResult ? (
-
-            <div className="flex flex-col items-center max-w-2xl mx-auto mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h1 className="text-3xl font-bold text-ink/90 mb-2">
-                Menu Numérique Créé !
-              </h1>
-              <p className="text-sage text-center mb-8 max-w-md">
-                Votre carte interactive est prête. Téléchargez le QR Code généré ci-dessous pour l'imprimer ou le partager.
-              </p>
-              
-              <Card className="w-full max-w-md overflow-hidden border-line shadow-[0_20px_50px_rgba(37,99,235,0.14)]">
-                <CardContent className="p-8 flex flex-col items-center">
-                  <div className="bg-white p-6 rounded-2xl border border-line mb-8 w-full flex justify-center" id="qr-result-container">
-                    {/* The QR code will be injected here via useEffect */}
-                  </div>
-                  
-                  <div className="w-full flex flex-col gap-3">
-                    <Button 
-                      onClick={handleDownloadQr} 
-                      className="w-full h-12 bg-forest hover:bg-forest-dark text-white font-medium text-base shadow-lg shadow-forest/30"
-                    >
-                      <Download className="mr-2 h-5 w-5" />
-                      Télécharger le QR Code (PNG)
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleCopyLink}
-                      className={`w-full h-12 font-medium text-base transition-colors ${copied ? 'border-green-500 text-green-600 bg-green-50 hover:bg-green-50' : 'border-line text-ink/80 hover:bg-white'}`}
-                    >
-                      {copied ? <CheckCircle2 className="mr-2 h-5 w-5" /> : <Copy className="mr-2 h-5 w-5" />}
-                      {copied ? "Lien copié !" : "Copier le lien du menu"}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => { 
-                        resetAll(); 
-                        router.push('/admin');
-                      }}
-                      className="w-full h-12 font-medium text-base text-ink/70 hover:text-ink/90 hover:bg-white mt-2"
-                    >
-                      <LayoutDashboard className="mr-2 h-5 w-5" />
-                      Retour au tableau de bord
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="surface overflow-hidden">
+            <div className="brand-surface px-6 py-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Récapitulatif</p>
+              <p className="mt-2 truncate text-xl font-semibold">{restaurantInfo.restaurantName}</p>
+              <p className="mt-1 text-sm text-white/75">Création admin : active tout de suite, sans devis.</p>
             </div>
-
-        ) : (
-
-            <div className="max-w-5xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-ink/90 mb-2">Studio QR Code</h1>
-                <p className="text-sage">Personnalisez l'apparence du QR code que vos clients scanneront.</p>
-              </div>
-
-              <div className="surface overflow-hidden mb-8">
-                <QRCodeStudio 
-                  dataUrl="https://moncode.bj/c/"
-                  
-                  onChange={(configStr: string) => setQrStyle(configStr)}
-                />
-              </div>
-
+            <ul className="space-y-2.5 px-6 py-5 text-sm text-ink/80">
+              <Item>Informations et {restaurantInfo.menuFiles.length + restaurantInfo.placeFiles.length} photo(s)</Item>
+              <Item>Disposition et couleurs choisies</Item>
+              <Item>QR code personnalisé, PNG et SVG</Item>
+            </ul>
+            <div className="border-t border-line px-6 py-5">
               {error && (
-                <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl text-sm font-medium mb-8">
-                  <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                   {error}
-                </div>
+                </p>
               )}
-
-              
-              <div className="surface p-6 md:p-8 mb-8">
-                <div className="max-w-md space-y-3">
-                  <Label className="text-sm font-semibold text-ink/90 flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-blue-500" />
-                    Nom du fichier à télécharger (Optionnel)
-                  </Label>
-                  <p className="text-xs text-sage">Donnez un nom personnalisé au fichier QR code pour le retrouver plus facilement.</p>
-                  <Input 
-                    placeholder="Ex: qr-code-terrasse" 
-                    value={qrName}
-                    onChange={(e) => setQrName(e.target.value)}
-                    className="h-11 max-w-sm bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleGenerate} 
-                  disabled={isGenerating} 
-                  className="h-14 px-8 bg-forest hover:bg-forest-dark text-white text-base font-semibold shadow-[0_14px_30px_rgba(37,99,235,0.3)] rounded-xl transition-all"
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin mr-3" />
-                      Génération en cours...
-                    </>
-                  ) : (
-                    <>
-                      Générer la carte finale
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </Button>
-              </div>
+              <button type="button" onClick={create} disabled={busy} className="btn btn-primary w-full">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                {busy ? "Création…" : "Créer la page et le QR code"}
+              </button>
             </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
 
-        )}
-      </section>
-    </main>
+function Item({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-2.5">
+      <Check className="h-4 w-4 shrink-0 text-forest" />
+      {children}
+    </li>
+  );
+}
+
+function Success({ created, copied, onCopy, onDone }: { created: Created; copied: boolean; onCopy: () => void; onDone: () => void }) {
+  const copy = async () => {
+    await navigator.clipboard.writeText(created.cardUrl).catch(() => {});
+    onCopy();
+  };
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="surface grid gap-8 p-6 sm:p-8 md:grid-cols-[260px_1fr] md:items-center">
+        <StyledQr data={created.cardUrl} style={created.qrStyle} logoUrl={created.logoUrl} size={240} downloadName={`moncode-${created.slug}`} />
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <CheckCircle2 className="h-4 w-4" /> Page publiée
+          </span>
+          <h1 className="mt-4 text-2xl font-semibold tracking-[-0.02em] text-ink/90">Le QR code est actif</h1>
+          <p className="mt-2 text-sm leading-6 text-sage">Téléchargez-le pour l’impression (PNG haute définition ou SVG vectoriel). Scannez-le une fois pour vérifier avant d’imprimer.</p>
+          <div className="mt-5 flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm">
+            <span className="min-w-0 flex-1 truncate text-ink/80">{created.cardUrl}</span>
+            <button type="button" onClick={copy} className="inline-flex items-center gap-1 font-medium text-forest">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copié" : "Copier"}
+            </button>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href={`/admin/cartes/${created.slug}`} onClick={onDone} className="btn btn-primary btn-sm">
+              Fiche de la page
+            </Link>
+            <a href={created.cardUrl} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
+              <Smartphone className="h-4 w-4" /> Ouvrir la page <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <Link href="/admin/nouveau" onClick={onDone} className="btn btn-outline btn-sm">
+              Nouveau QR code
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

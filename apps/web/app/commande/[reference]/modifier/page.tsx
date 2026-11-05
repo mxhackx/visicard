@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import ModificationForm from "@/components/order/modification-form";
 
 export const metadata: Metadata = {
-  title: "Modifier mon QR code — Moncode",
+  title: "Modifier mon QR code",
   robots: { index: false, follow: false },
 };
 

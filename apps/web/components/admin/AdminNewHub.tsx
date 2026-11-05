@@ -22,7 +22,7 @@ import { fcfa, STATUS_LABELS, type OrderStatus } from "@/lib/orders";
 const ICONS: Record<ServiceType, typeof PanelsTopLeft> = { page: PanelsTopLeft, media: Images, document: FileText };
 
 const ADMIN_ROUTE: Record<ServiceType, string> = {
-  page: "/admin/nouveau/page",
+  page: "/admin/nouveau/informations",
   media: "/admin/nouveau/media",
   document: "/admin/nouveau/document",
 };
@@ -143,7 +143,7 @@ function HubBody({ adminToken }: { adminToken: string }) {
         <ol className="divide-y divide-line">
           {JOURNEYS[journey].map((step, index) => (
             <li key={step.route + step.label} className="flex items-center gap-4 px-5 py-3.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-leaf text-sm font-semibold text-forest">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-leaf text-sm font-semibold text-ambre-deep">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">

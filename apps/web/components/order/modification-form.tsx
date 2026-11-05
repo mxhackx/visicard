@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrderKey } from "@/lib/use-order-key";
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +8,6 @@ import { ArrowLeft, ArrowRight, ImagePlus, Loader2, UploadCloud } from "lucide-r
 import {
   fcfa,
   fetchOrder,
-  recallOrderKey,
   rememberOrderKey,
   requestModification,
   type OrderView,
@@ -30,8 +30,9 @@ const PAGE_FIELDS: { name: PageFields; label: string; multiline?: boolean }[] = 
 export default function ModificationForm({ reference }: { reference: string }) {
   const router = useRouter();
   const [order, setOrder] = useState<OrderView | null>(null);
-  const [key, setKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const key = useOrderKey(reference);
+  const [fetchError, setError] = useState<string | null>(null);
+  const error = key === null ? "Ouvrez d’abord votre lien privé de commande sur cet appareil." : fetchError;
   const [values, setValues] = useState<Record<string, string>>({});
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -41,13 +42,8 @@ export default function ModificationForm({ reference }: { reference: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const k = recallOrderKey(reference);
-    if (!k) {
-      setError("Ouvrez d’abord votre lien privé de commande sur cet appareil.");
-      return;
-    }
-    setKey(k);
-    fetchOrder(reference, k)
+    if (!key) return;
+    fetchOrder(reference, key)
       .then((o) => {
         setOrder(o);
         const p = o.card.preview;
@@ -55,7 +51,7 @@ export default function ModificationForm({ reference }: { reference: string }) {
         setValues(Object.fromEntries(PAGE_FIELDS.map((f) => [f.name, String(p[f.name] ?? "")])));
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Commande introuvable."));
-  }, [reference]);
+  }, [reference, key]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -201,7 +197,7 @@ function FilePick({
   icon?: typeof ImagePlus;
 }) {
   return (
-    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-forest/40 bg-leaf/40 px-4 py-6 text-center transition-colors hover:bg-leaf">
+    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-ambre/60 bg-leaf/40 px-4 py-6 text-center transition-colors hover:bg-leaf">
       <Icon className="h-5 w-5 text-forest" />
       <span className="text-sm font-semibold text-ink/85">{label}</span>
       <span className="text-xs text-sage">

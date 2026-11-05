@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createOrder, rememberOrderKey, validateCustomer } from "@/lib/orders";
 import Stepper from "@/components/order/stepper";
+import QrDesigner from "@/components/qr/qr-designer";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
 import { SERVICES, type ServiceType } from "@/lib/services";
 
@@ -44,21 +45,23 @@ export default function CreateFlow({ initialService }: { initialService: Service
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
+  const [qrStyle, setQrStyle] = useState("");
   const [customerErrors, setCustomerErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
 
-  useEffect(() => {
-    if (!file || !file.type.startsWith("image/")) {
-      setPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return null;
-      });
-      return;
-    }
-
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  // Aperçu d'image : créé au choix du fichier, libéré au remplacement et au démontage.
+  const previewRef = useRef<string | null>(null);
+  const selectFile = (next: File | null) => {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = next && next.type.startsWith("image/") ? URL.createObjectURL(next) : null;
+    setPreviewUrl(previewRef.current);
+    setFile(next);
+  };
+  useEffect(
+    () => () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    },
+    [],
+  );
 
   const selectedOffer = useMemo(
     () => SERVICES.find((offer) => offer.id === service) ?? null,
@@ -71,7 +74,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
   const pickService = (nextService: ServiceType) => {
     setService(nextService);
     setError(null);
-    setFile(null);
+    selectFile(null);
     setTitle("");
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -82,7 +85,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
 
   const handleFile = (nextFile: File | null) => {
     if (!nextFile) {
-      setFile(null);
+      selectFile(null);
       return;
     }
 
@@ -107,7 +110,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
       return;
     }
 
-    setFile(nextFile);
+    selectFile(nextFile);
     if (!title.trim()) {
       setTitle(nextFile.name.replace(/\.[^.]+$/, "").slice(0, 80));
     }
@@ -136,6 +139,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
     body.append("customerName", customer.name.trim());
     body.append("customerPhone", customer.phone.trim());
     if (customer.email.trim()) body.append("customerEmail", customer.email.trim());
+    if (qrStyle) body.append("qrStyle", qrStyle);
 
     try {
       const order = await createOrder(body);
@@ -186,14 +190,14 @@ export default function CreateFlow({ initialService }: { initialService: Service
                 aria-pressed={active}
                 className={`group flex flex-col gap-3 rounded-lg border p-5 text-left transition-all duration-300 ${
                   active
-                    ? "border-forest bg-forest text-white shadow-[0_18px_40px_rgba(37,99,235,0.3)]"
-                    : "surface text-ink hover:-translate-y-0.5 hover:border-forest/40"
+                    ? "border-forest bg-forest text-white shadow-[0_18px_40px_rgba(23,23,26,0.3)]"
+                    : "surface text-ink hover:-translate-y-0.5 hover:border-ambre/60"
                 }`}
               >
                 <span className="flex items-center justify-between gap-3">
                   <span
                     className={`inline-flex h-9 w-9 items-center justify-center rounded-md border ${
-                      active ? "border-white/20 bg-white/10" : "border-white/70 bg-leaf text-forest"
+                      active ? "border-white/20 bg-white/10" : "border-white/70 bg-leaf text-ambre-deep"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -218,7 +222,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
         </div>
 
         {!service && (
-          <div className="mt-8 rounded-[var(--radius-card)] border border-dashed border-forest/30 bg-white p-8 text-center">
+          <div className="mt-8 rounded-[var(--radius-card)] border border-dashed border-ambre/50 bg-white p-8 text-center">
             <p className="text-sm text-sage">
               Sélectionnez l’un des trois services ci-dessus pour continuer.
             </p>
@@ -323,7 +327,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
                   <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
-                    className="flex w-full flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-forest/30 bg-white px-6 py-10 text-center transition-colors hover:border-forest/50 hover:bg-white/70"
+                    className="flex w-full flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-ambre/50 bg-white px-6 py-10 text-center transition-colors hover:border-ambre/70 hover:bg-white/70"
                   >
                     <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-forest text-white">
                       <UploadCloud className="h-5 w-5" />
@@ -364,7 +368,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
                         </p>
                         <button
                           type="button"
-                          onClick={() => setFile(null)}
+                          onClick={() => selectFile(null)}
                           className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-ink underline-offset-4 hover:underline"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -374,6 +378,12 @@ export default function CreateFlow({ initialService }: { initialService: Service
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-8 border-t border-line pt-6">
+                <h3 className="text-sm font-semibold text-ink/90">Votre QR code</h3>
+                <p className="mt-1 mb-4 text-xs text-sage">Le motif à imprimer ou partager. Il sera actif dès le paiement confirmé.</p>
+                <QrDesigner value={qrStyle} onChange={setQrStyle} />
               </div>
 
               <div className="mt-8 border-t border-line pt-6">
@@ -387,7 +397,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
               {error && (
                 <p
                   role="alert"
-                  className="mt-5 rounded-md border border-[#e7c8c2] bg-[#fbf1ef] px-3 py-2.5 text-sm leading-5 text-[#8b3a2d]"
+                  className="mt-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700"
                 >
                   {error}
                 </p>

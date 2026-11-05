@@ -1,11 +1,12 @@
 "use client";
 
+import { useOrderKey } from "@/lib/use-order-key";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Printer } from "lucide-react";
 import Logo from "@/components/logo";
 import { CONTACT, LEGAL } from "@/lib/contact";
-import { fcfa, fetchOrder, fetchOrderAsAdmin, formatDate, recallOrderKey, type OrderView } from "@/lib/orders";
+import { fcfa, fetchOrder, fetchOrderAsAdmin, formatDate, type OrderView } from "@/lib/orders";
 import { useFile } from "@/app/context/FileContext";
 
 /** Devis ou facture, mis en page pour l'impression (Imprimer → Enregistrer en PDF). */
@@ -22,29 +23,29 @@ export default function OrderDocument({
   const { authToken, isAuthLoading } = useFile();
   const back = admin ? `/admin/commandes/${reference}` : `/commande/${reference}`;
   const [order, setOrder] = useState<OrderView | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setError] = useState<string | null>(null);
+  const key = useOrderKey(reference);
+  const error = admin
+    ? !isAuthLoading && !authToken
+      ? "Connectez-vous en administrateur pour consulter ce document."
+      : fetchError
+    : key === null
+      ? "Ouvrez d’abord votre lien privé de commande sur cet appareil."
+      : fetchError;
 
   useEffect(() => {
     if (admin) {
-      if (isAuthLoading) return;
-      if (!authToken) {
-        setError("Connectez-vous en administrateur pour consulter ce document.");
-        return;
-      }
+      if (isAuthLoading || !authToken) return;
       fetchOrderAsAdmin(reference, authToken)
         .then(setOrder)
         .catch((err) => setError(err instanceof Error ? err.message : "Commande introuvable."));
       return;
     }
-    const key = recallOrderKey(reference);
-    if (!key) {
-      setError("Ouvrez d’abord votre lien privé de commande sur cet appareil.");
-      return;
-    }
+    if (!key) return;
     fetchOrder(reference, key)
       .then(setOrder)
       .catch((err) => setError(err instanceof Error ? err.message : "Commande introuvable."));
-  }, [reference, admin, authToken, isAuthLoading]);
+  }, [reference, admin, authToken, isAuthLoading, key]);
 
   if (error) {
     return (

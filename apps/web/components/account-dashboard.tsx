@@ -99,20 +99,21 @@ export default function AccountDashboard() {
     if (!isAuthed) return;
 
     let active = true;
-    setIsLoading(true);
-
-    loadCards()
-      .catch((err: unknown) => {
-        if (active) {
-          setError(err instanceof Error ? err.message : "Une erreur est survenue.");
-        }
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
+    const id = window.setTimeout(() => {
+      loadCards()
+        .catch((err: unknown) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+          }
+        })
+        .finally(() => {
+          if (active) setIsLoading(false);
+        });
+    }, 0);
 
     return () => {
       active = false;
+      window.clearTimeout(id);
     };
   }, [isAuthed, loadCards]);
 
@@ -276,7 +277,7 @@ export default function AccountDashboard() {
             <p className="text-sm text-sage">Chargement de vos QR codes…</p>
           </div>
         ) : cards.length === 0 ? (
-          <div className="rounded-[var(--radius-card)] border border-dashed border-forest/30 bg-white px-6 py-16 text-center">
+          <div className="rounded-[var(--radius-card)] border border-dashed border-ambre/50 bg-white px-6 py-16 text-center">
             <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-xl bg-forest text-white">
               <QrCode className="h-6 w-6" />
             </span>

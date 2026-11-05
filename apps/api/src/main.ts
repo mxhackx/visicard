@@ -5,6 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { join } from 'node:path';
+import { UploadErrorsFilter } from './common/upload-errors.filter';
 
 async function bootstrap() {
   // rawBody : nécessaire pour vérifier la signature des webhooks de paiement.
@@ -39,6 +40,8 @@ app.enableCors({
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   credentials: true,  
 });
+  app.useGlobalFilters(new UploadErrorsFilter());
+
   app.use(
     cookieParser(),
     helmet({

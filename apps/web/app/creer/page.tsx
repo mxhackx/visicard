@@ -5,9 +5,11 @@ import CreateFlow from "@/components/create-flow";
 import { isServiceType } from "@/lib/services";
 
 export const metadata: Metadata = {
-  title: "Créer un QR code — Moncode",
+  title: "Créer un QR code : menu digital, page, image, vidéo ou PDF",
   description:
-    "Créez un QR code pour une page digitale, une image/vidéo ou un document PDF avec Moncode.",
+    "Choisissez votre service, préparez le contenu et recevez votre devis en ligne, sans compte. Page digitale 20 000 FCFA, image, vidéo ou PDF 5 000 FCFA, paiement Mobile Money.",
+  alternates: { canonical: "/creer" },
+  openGraph: { url: "/creer", title: "Créer un QR code avec Moncode" },
 };
 
 export default async function CreerPage({

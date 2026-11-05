@@ -1,227 +1,290 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Logo from "@/components/logo";
+import { ArrowLeft, ArrowRight, Check, Palette as PaletteIcon, PanelsTopLeft, Smartphone } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import RestaurantCardLayout from "@/components/RestaurantCardLayout";
-import { ArrowLeft, ArrowRight, Palette, Smartphone, Check, LayoutTemplate, Map, Minimize, Diamond, Leaf } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import AdminShell from "@/components/admin/AdminShell";
+import Header from "@/components/header";
+import Stepper from "@/components/order/stepper";
+import PaletteEditor from "@/components/page-builder/palette-editor";
+import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { BUILDER_FLOWS, type BuilderMode } from "@/lib/builder-flows";
+import { paletteFor, isCustomThemeId, LAYOUT_DEFAULTS, samePalette, type LayoutId, type Palette } from "@/lib/palette";
 
-
-const LAYOUT_OPTIONS = [
-  { id: "classic", name: "Classique", icon: <LayoutTemplate size={20} />, desc: "La structure standard" },
-  { id: "maps", name: "Style Maps", icon: <Map size={20} />, desc: "Focus visuel et actions" },
-  { id: "minimal", name: "Minimaliste", icon: <Minimize size={20} />, desc: "Le menu avant tout" },
-  { id: "premium", name: "Avant-Garde", icon: <Diamond size={20} />, desc: "Design sophistiqué" },
-  { id: "exoticas", name: "Exoticas", icon: <Leaf size={20} />, desc: "Éditorial, vert et crème" }
+const LAYOUT_OPTIONS: { id: LayoutId; name: string; desc: string }[] = [
+  { id: "classic", name: "Classique", desc: "En-tête coloré, actions rapides, menu en grille" },
+  { id: "saas", name: "SaaS", desc: "Page produit : accroche, vitrine, appel à l’action" },
+  { id: "maps", name: "Couverture", desc: "Grande photo, logo rond, onglets" },
+  { id: "minimal", name: "Minimaliste", desc: "Typographique, centré, le menu avant tout" },
+  { id: "premium", name: "Avant-garde", desc: "Éditorial, grandes capitales, sections numérotées" },
+  { id: "exoticas", name: "Exoticas", desc: "Hero plein, galerie en verre, contact et carte" },
 ];
 
-const THEMES = [
-  { id: "theme-1", name: "Gastronomique", subtitle: "Dark Luxury", desc: "Noir profond et touches or champagne.", bgPreview: "#0d0b09", accentColor: "#d4af37", textColor: "#fdf8e2" },
-  { id: "theme-2", name: "Bistrot", subtitle: "Terracotta & Bois", desc: "Ambiance chaleureuse et conviviale.", bgPreview: "#fcf8f2", accentColor: "#c85a32", textColor: "#321d14" },
-  { id: "theme-3", name: "Moderne", subtitle: "Minimaliste", desc: "Design épuré, blanc et teintes sable.", bgPreview: "#ffffff", accentColor: "#827a72", textColor: "#2d2a28" },
-  { id: "theme-4", name: "Végétal", subtitle: "Botanique", desc: "Vert émeraude profond et tons nature.", bgPreview: "#f2f7f4", accentColor: "#2c5f43", textColor: "#193626" },
-  { id: "theme-5", name: "Vibrant", subtitle: "Street Food", desc: "Foncé avec des touches oranges fluo.", bgPreview: "#13100e", accentColor: "#ef6a22", textColor: "#fff5ec" },
-  { id: "theme-6", name: "Cyber", subtitle: "Néon & Futur", desc: "Noir total avec des accents cyan brillants.", bgPreview: "#000000", accentColor: "#00ffcc", textColor: "#ffffff" },
-  { id: "theme-7", name: "Océan", subtitle: "Fraîcheur Marine", desc: "Bleus apaisants et fond azur clair.", bgPreview: "#f0f8ff", accentColor: "#0066cc", textColor: "#003366" },
-  { id: "theme-8", name: "Élégance", subtitle: "Rose Poudré", desc: "Tons doux, rose pâle et accents cuivrés.", bgPreview: "#fff5f5", accentColor: "#d4a373", textColor: "#4a3030" },
-  { id: "theme-9", name: "Torréfié", subtitle: "Chaud & Corsé", desc: "Nuances de café intense et jaune ambré.", bgPreview: "#3e2723", accentColor: "#ffb300", textColor: "#efebe9" },
-  { id: "theme-10", name: "Crépuscule", subtitle: "Mystique", desc: "Fond violet sombre et accents lilas.", bgPreview: "#282a36", accentColor: "#bd93f9", textColor: "#f8f8f2" },
-  { id: "theme-exoticas", name: "Exoticas", subtitle: "Vert forêt & Crème", desc: "Éditorial et chaleureux, inspiré d'Exoticas.", bgPreview: "#f7f6f1", accentColor: "#466931", textColor: "#22331b" },
-];
+const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
+const CLIENT_STEPS = ["Informations", "Apparence", "Devis", "Paiement"] as const;
 
 export default function ApparenceStep({ mode }: { mode: BuilderMode }) {
+  if (mode === "admin") {
+    return (
+      <AdminShell active="new" title="Nouvelle page digitale" hint="Étape 2 sur 3 · Apparence">
+        {() => <ApparenceBody mode="admin" />}
+      </AdminShell>
+    );
+  }
+  return (
+    <main className="min-h-screen">
+      <Header />
+      <div className="header-spacer"></div>
+      <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-8">
+        <ApparenceBody mode="client" />
+      </div>
+    </main>
+  );
+}
+
+function ApparenceBody({ mode }: { mode: BuilderMode }) {
   const router = useRouter();
   const flow = BUILDER_FLOWS[mode];
-  const { restaurantInfo, customization, setThemeId, setCardLayout, authToken, authRole, isAuthLoading } = useFile();
-  const allowed = !flow.requiresAdmin || (Boolean(authToken) && authRole === "admin");
+  const { restaurantInfo, customization, setThemeId, setCardLayout } = useFile();
+  const [device, setDevice] = useState<Device>("phone");
 
-  useEffect(() => {
-    if (!isAuthLoading && !allowed) router.push(flow.loginHref);
-  }, [allowed, isAuthLoading, router, flow.loginHref]);
+  const layout = (LAYOUT_OPTIONS.some((l) => l.id === customization.cardLayout) ? customization.cardLayout : "classic") as LayoutId;
+  const layoutMeta = LAYOUT_OPTIONS.find((l) => l.id === layout)!;
+  const palette = paletteFor(customization.themeId, layout);
+  const paletteLabel = isCustomThemeId(customization.themeId) && !samePalette(palette, LAYOUT_DEFAULTS[layout]) ? "Couleurs personnalisées" : "Couleurs d’origine";
 
-  // Accès direct sans étape 1 : on renvoie remplir les informations.
-  useEffect(() => {
-    if (!restaurantInfo.restaurantName.trim()) router.replace(flow.apparence.back);
-  }, [restaurantInfo.restaurantName, router, flow.apparence.back]);
-
-  if (flow.requiresAdmin && (isAuthLoading || !allowed)) {
+  // Les informations ne vivent qu'en mémoire : après un rechargement, on l'explique.
+  if (!restaurantInfo.restaurantName.trim()) {
     return (
-      <main className="min-h-screen flex items-center justify-center text-sage text-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 rounded-full border-2 border-line border-t-blue-600 animate-spin" />
-          <span>Chargement...</span>
-        </div>
-      </main>
+      <div className="surface mx-auto mt-6 max-w-lg p-8 text-center">
+        <span className="icon-tile mx-auto h-12 w-12">
+          <Smartphone className="h-5 w-5" />
+        </span>
+        <h1 className="mt-4 text-xl font-semibold text-ink/90">Commencez par les informations</h1>
+        <p className="mt-2 text-sm text-sage">
+          L’apparence s’applique au contenu de l’établissement. Les informations saisies ne sont pas conservées
+          après un rechargement de la page : il faut les renseigner à nouveau.
+        </p>
+        <Link href={flow.apparence.back} className="btn btn-primary mt-6">
+          <ArrowLeft className="h-4 w-4" /> Aller aux informations
+        </Link>
+      </div>
     );
   }
 
-  const previewLogo = restaurantInfo.logoFile ? URL.createObjectURL(restaurantInfo.logoFile) : undefined;
-  const previewPlaces = restaurantInfo.placeFiles.length > 0 ? restaurantInfo.placeFiles.map(f => URL.createObjectURL(f)) : [];
-  const previewMenus = restaurantInfo.menuFiles.length > 0 
-    ? restaurantInfo.menuFiles.map(f => URL.createObjectURL(f))
-    : [];
-
-  const themeClass = `restaurant-${customization.themeId}`;
+  const chooseLayout = (id: LayoutId) => {
+    // Une palette laissée « d'origine » suit la disposition ; une palette personnalisée est conservée.
+    setCardLayout(id);
+  };
 
   return (
-    <main className="min-h-screen flex flex-col font-sans">
-      {/* HEADER */}
-      <header className="brand-surface w-full h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-30 shadow-[0_8px_30px_rgba(15,42,107,0.25)]">
-        <Link href="/" aria-label="Moncode — accueil">
-          <Logo variant="light" />
-        </Link>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => router.push(flow.apparence.back)} className="h-9 gap-2 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-            <ArrowLeft className="h-4 w-4" />
-            Retour
-          </Button>
-          <Button size="sm" onClick={() => router.push(flow.apparence.next)} className="h-9 gap-2 bg-white text-forest hover:bg-white/90 shadow-none">
-            {flow.apparence.nextLabel}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">Apparence de la page</h1>
+          <p className="mt-1 text-sm text-sage">Choisissez une disposition, puis ses couleurs. L’aperçu se met à jour en direct.</p>
         </div>
-      </header>
-
-      {/* CONTENT */}
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1600px] mx-auto lg:overflow-hidden">
-        
-        {/* LEFT COLUMN: Controls */}
-        <div className="w-full lg:w-[55%] xl:w-[60%] flex flex-col p-5 lg:p-8 lg:overflow-y-auto lg:max-h-[calc(100vh-64px)]">
-          <div className="mb-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-blue-600 text-xs font-bold uppercase tracking-wider mb-4">
-              <span className="w-6 h-px bg-blue-600" />
-              {flow.apparence.step}
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-[-0.02em] text-ink/90 mb-4 flex items-center gap-3">
-              <Palette className="h-8 w-8 text-blue-600" />
-              Personnalisation
-            </h1>
-            <p className="text-sage text-base leading-relaxed">
-              Choisissez le thème visuel qui correspond le mieux à l&apos;identité de votre établissement. Le rendu final s&apos;affiche en temps réel sur l&apos;écran à droite.
-            </p>
-          </div>
-
-          
-          {/* LAYOUT SECTION */}
-          <div className="mb-8 max-w-3xl">
-            <h2 className="text-xl font-bold text-ink/90 mb-4 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">1</span>
-              Disposition de la carte
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {LAYOUT_OPTIONS.map((layout) => (
-                <button
-                  key={layout.id}
-                  onClick={() => setCardLayout && setCardLayout(layout.id)}
-                  className={`flex flex-col items-center justify-center gap-2 p-3 aspect-square rounded-xl border-2 transition-all text-center ${
-                    customization.cardLayout === layout.id 
-                      ? 'border-blue-600 bg-blue-50/50 shadow-md shadow-blue-100 scale-[1.02]' 
-                      : 'surface hover:border-forest/40'
-                  }`}
-                >
-                  <div className={`p-2.5 rounded-full ${customization.cardLayout === layout.id ? "bg-blue-600 text-white shadow-sm" : "bg-white/50 text-sage"}`}>
-                    {layout.icon}
-                  </div>
-                  <div className={`font-bold text-xs leading-tight ${customization.cardLayout === layout.id ? 'text-blue-700' : 'text-ink/80'}`}>
-                    {layout.name}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <h2 className="text-xl font-bold text-ink/90 mb-4 flex items-center gap-2 mt-8">
-            <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">2</span>
-            Thème Visuel (Couleurs)
-          </h2>
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 max-w-3xl pb-10">
-            {THEMES.map((theme) => {
-              const isSelected = customization.themeId === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  onClick={() => setThemeId(theme.id)}
-                  className={`group cursor-pointer rounded-xl border-2 transition-all duration-200 overflow-hidden flex flex-col items-center justify-center aspect-square relative ${
-                    isSelected 
-                      ? 'border-blue-600 shadow-md shadow-blue-100/50 scale-[1.05] z-10' 
-                      : 'border-line hover:border-forest/40 hover:shadow-sm hover:scale-[1.02]'
-                  }`}
-                  style={{ backgroundColor: theme.bgPreview }}
-                >
-                  {isSelected && (
-                    <div className="absolute top-1.5 right-1.5 bg-blue-600 rounded-full p-0.5 shadow-sm">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                  
-                  {/* Color preview circle */}
-                  <div 
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shadow-sm mb-2 border border-black/5" 
-                    style={{ backgroundColor: theme.accentColor }} 
-                  />
-                  
-                  {/* Theme Name */}
-                  <span 
-                    className="text-[10px] sm:text-xs font-bold text-center px-1 truncate w-full"
-                    style={{ color: theme.textColor }}
-                  >
-                    {theme.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="w-full max-w-xl">
+          <Stepper current={1} steps={mode === "admin" ? ADMIN_STEPS : CLIENT_STEPS} />
         </div>
-
-        {/* RIGHT COLUMN: Mobile Preview */}
-        <div className="w-full lg:w-[45%] xl:w-[40%] bg-white/50 lg:border-l border-line flex flex-col items-center justify-center p-8 lg:p-12 min-h-[600px] lg:min-h-0 relative">
-          
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-line text-sm font-semibold text-ink/80 shadow-sm mb-8 z-10">
-            <Smartphone className="h-4 w-4 text-blue-600" />
-            Aperçu en direct
-          </div>
-
-          {/* iPhone Mockup */}
-          <div className="relative mx-auto w-[280px] h-[580px] sm:w-[320px] sm:h-[650px] bg-[#1a1a1a] rounded-[2.5rem] shadow-2xl border-[8px] border-[#1a1a1a] ring-1 ring-ink/10 overflow-hidden transform transition-transform hover:scale-[1.02] duration-500">
-            
-            {/* iPhone Notch */}
-            <div className="absolute top-0 inset-x-0 w-32 h-6 bg-[#1a1a1a] rounded-b-3xl mx-auto z-30 flex items-center justify-center gap-2">
-              {/* Speaker / Camera details inside notch */}
-              <div className="w-10 h-1.5 bg-[#0a0a0a] rounded-full"></div>
-              <div className="w-1.5 h-1.5 bg-[#080808] rounded-full ring-1 ring-white/10"></div>
-            </div>
-
-            {/* Screen Content */}
-            <div className={`w-full h-full rounded-[2rem] overflow-y-auto overflow-x-hidden relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${themeClass}`} style={{ backgroundColor: "var(--theme-bg)" }}>
-              <RestaurantCardLayout 
-                restaurantName={restaurantInfo.restaurantName || "Mon Restaurant"}
-                address={restaurantInfo.address}
-                logoUrl={previewLogo}
-                locationUrl={restaurantInfo.locationUrl}
-                phoneNumber={restaurantInfo.phoneNumber}
-                facebookUrl={restaurantInfo.facebookUrl}
-                instagramUrl={restaurantInfo.instagramUrl}
-                xUrl={restaurantInfo.xUrl}
-                snapchatUrl={restaurantInfo.snapchatUrl}
-                additionalInfo={restaurantInfo.additionalInfo}
-                schedule={restaurantInfo.schedule}
-                menuImages={previewMenus}
-                placeImages={previewPlaces}
-                inPreview={true}
-                layout={customization.cardLayout}
-              />
-            </div>
-            
-            {/* Screen Glare Effect */}
-          </div>
-        </div>
-
       </div>
-    </main>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,460px)_1fr]">
+        {/* Réglages */}
+        <div className="min-w-0 space-y-6">
+          <section className="surface p-6">
+            <SectionTitle icon={PanelsTopLeft} title="Disposition" subtitle="La structure de la page après le scan." />
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Disposition">
+              {LAYOUT_OPTIONS.map((option) => {
+                const on = layout === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => chooseLayout(option.id)}
+                    className={`group relative flex flex-col rounded-2xl border p-2 text-left transition-all ${
+                      on ? "border-forest bg-leaf/50 ring-2 ring-ambre/30" : "border-line bg-white hover:border-ambre/60"
+                    }`}
+                  >
+                    <LayoutThumb id={option.id} palette={on ? palette : LAYOUT_DEFAULTS[option.id]} />
+                    <span className="mt-2 px-0.5 text-sm font-semibold text-ink/90">{option.name}</span>
+                    <span className="px-0.5 text-xs leading-4 text-sage">{option.desc}</span>
+                    {on && (
+                      <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-forest text-white shadow">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="surface p-6">
+            <SectionTitle icon={PaletteIcon} title="Couleurs" subtitle="Partez d’une palette, puis ajustez chaque couleur." />
+            <PaletteEditor themeId={customization.themeId} layout={layout} logoUrl={restaurantInfo.logoPreview ?? undefined} onChange={setThemeId} />
+          </section>
+        </div>
+
+        {/* Aperçu */}
+        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+          <div className="surface p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-ink/80">
+                Aperçu · <span className="font-normal text-sage">{layoutMeta.name} · {paletteLabel}</span>
+              </p>
+              <DeviceSwitch value={device} onChange={setDevice} />
+            </div>
+            <div className="mt-5">
+              <DevicePreview device={device}>
+                <RestaurantCardLayout
+                  restaurantName={restaurantInfo.restaurantName}
+                  address={restaurantInfo.address}
+                  logoUrl={restaurantInfo.logoPreview ?? undefined}
+                  locationUrl={restaurantInfo.locationUrl}
+                  phoneNumber={restaurantInfo.phoneNumber}
+                  facebookUrl={restaurantInfo.facebookUrl}
+                  instagramUrl={restaurantInfo.instagramUrl}
+                  xUrl={restaurantInfo.xUrl}
+                  snapchatUrl={restaurantInfo.snapchatUrl}
+                  additionalInfo={restaurantInfo.additionalInfo}
+                  schedule={restaurantInfo.schedule}
+                  menuImages={restaurantInfo.menuPreviews}
+                  placeImages={restaurantInfo.placePreviews}
+                  inPreview
+                  layout={layout}
+                  themeId={customization.themeId}
+                />
+              </DevicePreview>
+            </div>
+            <p className="mt-4 text-center text-xs text-sage">Les liens sont désactivés dans l’aperçu. La page publiée s’adapte à chaque écran.</p>
+          </div>
+        </aside>
+      </div>
+
+      {/* Barre d'actions */}
+      <div className="sticky bottom-3 z-30">
+        <div className="surface flex items-center justify-between gap-4 px-4 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+          <Link href={flow.apparence.back} className="btn btn-outline btn-sm">
+            <ArrowLeft className="h-4 w-4" /> Informations
+          </Link>
+          <p className="hidden truncate text-sm text-sage md:block">
+            {restaurantInfo.restaurantName} · {layoutMeta.name} · {paletteLabel}
+          </p>
+          <button type="button" onClick={() => router.push(flow.apparence.next)} className="btn btn-primary btn-sm">
+            {flow.apparence.nextLabel} <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ icon: Icon, title, subtitle }: { icon: typeof Check; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="icon-tile h-10 w-10">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <div>
+        <h2 className="text-base font-semibold text-ink/90">{title}</h2>
+        <p className="text-sm text-sage">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Vignette schématique de chaque disposition, dans ses couleurs. */
+function LayoutThumb({ id, palette: p }: { id: LayoutId; palette: Palette }) {
+  const line = `color-mix(in srgb, ${p.text} 14%, ${p.surface})`;
+  const soft = `color-mix(in srgb, ${p.text} 7%, ${p.surface})`;
+  return (
+    <svg viewBox="0 0 80 100" className="h-auto w-full rounded-xl ring-1 ring-black/5" aria-hidden="true">
+      <rect width="80" height="100" fill={p.surface} />
+      {id === "classic" && (
+        <>
+          <rect width="80" height="30" fill={p.brand} />
+          <rect x="7" y="8" width="12" height="12" rx="3" fill="#fff" />
+          <rect x="23" y="10" width="30" height="4" rx="2" fill="#fff" opacity=".9" />
+          <rect x="23" y="17" width="20" height="3" rx="1.5" fill="#fff" opacity=".6" />
+          <rect x="7" y="25" width="66" height="12" rx="3" fill="#fff" stroke={line} />
+          <rect x="10" y="28" width="18" height="6" rx="2" fill={p.brand} />
+          {[0, 1, 2, 3].map((i) => (
+            <rect key={i} x={7 + (i % 2) * 34} y={44 + Math.floor(i / 2) * 27} width="32" height="24" rx="3" fill={soft} stroke={line} />
+          ))}
+        </>
+      )}
+      {id === "saas" && (
+        <>
+          <rect width="80" height="9" fill={p.surface} />
+          <rect x="6" y="3" width="14" height="3" rx="1.5" fill={p.text} />
+          <rect x="58" y="2" width="16" height="5" rx="1.5" fill={p.brand} />
+          <rect x="0" y="9" width="80" height=".6" fill={line} />
+          <rect x="16" y="16" width="48" height="5" rx="2" fill={p.text} />
+          <rect x="22" y="24" width="36" height="3" rx="1.5" fill={line} />
+          <rect x="22" y="31" width="17" height="5" rx="1.5" fill={p.brand} />
+          <rect x="41" y="31" width="17" height="5" rx="1.5" fill="none" stroke={line} />
+          <rect x="12" y="42" width="56" height="30" rx="3" fill={soft} stroke={line} />
+          {[0, 1, 2].map((i) => (
+            <rect key={i} x={7 + i * 23} y="78" width="20" height="16" rx="3" fill="#fff" stroke={line} />
+          ))}
+        </>
+      )}
+      {id === "maps" && (
+        <>
+          <rect width="80" height="34" fill={p.brand} opacity=".85" />
+          <circle cx="40" cy="34" r="9" fill="#fff" stroke={p.surface} strokeWidth="2" />
+          <rect x="24" y="47" width="32" height="4" rx="2" fill={p.text} />
+          <rect x="18" y="55" width="30" height="6" rx="3" fill={p.brand} />
+          <circle cx="54" cy="58" r="3" fill={line} />
+          <circle cx="62" cy="58" r="3" fill={line} />
+          <rect x="0" y="67" width="80" height=".6" fill={line} />
+          <rect x="24" y="70" width="10" height="1.5" fill={p.brand} />
+          <rect x="7" y="76" width="32" height="20" rx="3" fill={soft} />
+          <rect x="41" y="76" width="32" height="20" rx="3" fill={soft} />
+        </>
+      )}
+      {id === "minimal" && (
+        <>
+          <circle cx="40" cy="15" r="5" fill={line} />
+          <rect x="18" y="26" width="44" height="6" rx="1" fill={p.text} />
+          <rect x="28" y="36" width="24" height="2" rx="1" fill={line} />
+          <rect x="36" y="43" width="8" height=".8" fill={p.accent} />
+          <rect x="14" y="50" width="52" height="44" fill={soft} />
+        </>
+      )}
+      {id === "premium" && (
+        <>
+          <rect width="80" height="56" fill={soft} />
+          <rect x="7" y="20" width="10" height=".8" fill={p.accent} />
+          <rect x="7" y="25" width="60" height="9" fill={p.text} />
+          <rect x="7" y="36" width="44" height="9" fill={p.text} />
+          <rect x="7" y="48" width="18" height="5" fill={p.brand} />
+          <rect x="7" y="64" width="6" height="2" fill={p.accent} />
+          <rect x="16" y="63" width="30" height="4" fill={p.text} />
+          <rect x="7" y="72" width="32" height="24" fill={line} />
+          <rect x="41" y="72" width="32" height="24" fill={line} />
+        </>
+      )}
+      {id === "exoticas" && (
+        <>
+          <rect width="80" height="52" fill={p.brand} />
+          <rect x="10" y="20" width="40" height="6" rx="1" fill="#fff" />
+          <rect x="10" y="29" width="30" height="3" rx="1" fill="#fff" opacity=".7" />
+          <rect x="10" y="37" width="16" height="5" rx="1.5" fill="#fff" />
+          <rect x="52" y="14" width="20" height="30" rx="3" fill="#fff" opacity=".25" />
+          <rect x="7" y="58" width="10" height=".8" fill={p.accent} />
+          {[0, 1, 2].map((i) => (
+            <rect key={i} x={7 + i * 23} y="63" width="20" height="24" rx="3" fill="#fff" stroke={line} />
+          ))}
+          <rect y="92" width="80" height="8" fill={p.brand} />
+        </>
+      )}
+    </svg>
   );
 }

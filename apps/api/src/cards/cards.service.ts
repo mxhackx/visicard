@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import * as QRCode from 'qrcode';
+import { normalizeQrStyle, parseQrStyle, printableColors } from './qr-style';
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -104,42 +105,12 @@ export class CardsService {
     }
   }
   /**
-   * Génère un QR Code avec le style graphique sélectionné
+   * QR code PNG (data URL) aux couleurs du style enregistré. Les formes (points
+   * arrondis, logo) sont dessinées par le navigateur ; ce PNG sert de repli.
    */
-  private async generateStyledQrCode(cardUrl: string, qrStyle: string = 'style-1'): Promise<string> {
-    let darkColor = '#181411';
-    let lightColor = '#ffffff';
-    switch (qrStyle) {
-      case 'style-2': // Signature Orange MonCode
-        darkColor = '#ef6a22';
-        lightColor = '#ffffff';
-        break;
-      case 'style-3': // Sombre & Or
-        darkColor = '#d4af37';
-        lightColor = '#0f0d0c';
-        break;
-      case 'style-4': // Moderne Ardoise
-        darkColor = '#2d3748';
-        lightColor = '#f8fafc';
-        break;
-      case 'style-5': // Émeraude & Nature
-        darkColor = '#065f46';
-        lightColor = '#f0fdf4';
-        break;
-      case 'style-1': // Classique Pur
-      default:
-        darkColor = '#181411';
-        lightColor = '#ffffff';
-        break;
-    }
-    return QRCode.toDataURL(cardUrl, {
-      width: 500,
-      margin: 2,
-      color: {
-        dark: darkColor,
-        light: lightColor,
-      },
-    });
+  private async generateStyledQrCode(cardUrl: string, qrStyle?: string | null): Promise<string> {
+    const { dark, light } = printableColors(parseQrStyle(qrStyle));
+    return QRCode.toDataURL(cardUrl, { width: 600, margin: 2, errorCorrectionLevel: 'M', color: { dark, light } });
   }
   /**
    * Stocke un fichier brut (image / vidéo / PDF) en local ou sur Supabase.
@@ -274,7 +245,7 @@ export class CardsService {
     }
 
     // 3. Génération du QR code selon le style choisi
-    const qrCode = await this.generateStyledQrCode(cardUrl, metadata?.qrStyle);
+    const qrCode = await this.generateStyledQrCode(cardUrl, normalizeQrStyle(metadata?.qrStyle));
     // Validation de sécurité de l'URL de localisation (protection anti-XSS)
     let safeLocationUrl: string | null = null;
     if (metadata?.locationUrl) {
@@ -303,9 +274,10 @@ export class CardsService {
       phoneNumber: cleanStr(metadata?.phoneNumber),
       menuImages: serviceType === 'page' && menuImagesUrls.length > 0 ? JSON.stringify(menuImagesUrls) : null,
       placeImages: serviceType === 'page' && placeImagesUrls.length > 0 ? JSON.stringify(placeImagesUrls) : null,
-      themeId: cleanStr(metadata?.themeId) ?? 'theme-1',
+      // Vide = palette par défaut de la disposition (voir apps/web/lib/palette.ts).
+      themeId: cleanStr(metadata?.themeId) ?? '',
       cardLayout: cleanStr(metadata?.cardLayout) ?? 'classic',
-      qrStyle: cleanStr(metadata?.qrStyle) ?? 'style-1',
+      qrStyle: normalizeQrStyle(cleanStr(metadata?.qrStyle)),
       userName: cleanStr(metadata?.userName),
       clientName: cleanStr(metadata?.clientName),
       workDone: cleanStr(metadata?.workDone),
@@ -330,7 +302,7 @@ export class CardsService {
       locationUrl: card.locationUrl ?? null,
       phoneNumber: card.phoneNumber ?? null,
       menuImages: menuImagesUrls,
-      themeId: card.themeId ?? 'theme-1',
+      themeId: card.themeId ?? '',
       qrStyle: card.qrStyle ?? 'style-1',
       cardUrl,
       qrCode,
@@ -344,13 +316,29 @@ export class CardsService {
     };
   }
 
+  /** Enregistre un scan d'une carte publiée (les brouillons et cartes refusées ne comptent pas). */
+  async recordScan(slug: string, userAgent?: string): Promise<void> {
+    const card = await this.prisma.card.findUnique({ where: { slug }, select: { id: true, status: true } });
+    if (!card || card.status !== 'active') return;
+    const ua = (userAgent ?? '').toLowerCase();
+    if (/bot|crawler|spider|preview|facebookexternalhit|whatsapp/.test(ua)) return;
+    const device = /iphone|ipad|ipod/.test(ua)
+      ? 'ios'
+      : /android/.test(ua)
+        ? 'android'
+        : /windows|macintosh|linux|cros/.test(ua)
+          ? 'desktop'
+          : 'other';
+    await this.prisma.cardScan.create({ data: { cardId: card.id, device } });
+  }
+
   /** QR code (data URL PNG) d'une carte, dans le style enregistré. */
   async getQrCode(slug: string): Promise<{ qrCode: string; cardUrl: string }> {
     const card = await this.prisma.card.findUnique({ where: { slug } });
     if (!card) throw new NotFoundException(`Carte introuvable pour le slug "${slug}"`);
     const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
     const cardUrl = `${appUrl}/c/${slug}`;
-    return { qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle ?? undefined), cardUrl };
+    return { qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle), cardUrl };
   }
 
   /**
@@ -378,10 +366,13 @@ export class CardsService {
       const value = text(key);
       if (value !== undefined) changes[key] = safeHttpUrl(value);
     }
-    for (const key of ['themeId', 'cardLayout', 'qrStyle'] as const) {
-      const value = text(key);
-      if (value) changes[key] = value;
-    }
+    // Palette : une valeur vide est permise (retour à la palette de la disposition).
+    const themeId = text('themeId');
+    if (themeId !== undefined) changes.themeId = themeId.slice(0, 80);
+    const cardLayout = text('cardLayout');
+    if (cardLayout) changes.cardLayout = cardLayout;
+    const qrStyle = text('qrStyle');
+    if (qrStyle) changes.qrStyle = normalizeQrStyle(qrStyle);
     if (metadata.schedule !== undefined) {
       changes.schedule = parseSchedule(metadata.schedule) ?? Prisma.JsonNull;
     }
@@ -435,8 +426,26 @@ export class CardsService {
       include: { payments: { orderBy: { createdAt: 'desc' } } },
     });
     const qr = card.status === 'active' ? await this.getQrCode(slug) : null;
+    const since = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000);
+    since.setHours(0, 0, 0, 0);
+    const [scanTotal, recentScans] = await Promise.all([
+      this.prisma.cardScan.count({ where: { cardId: card.id } }),
+      this.prisma.cardScan.findMany({ where: { cardId: card.id, createdAt: { gte: since } }, select: { createdAt: true, device: true } }),
+    ]);
+    const scanDays = Array.from({ length: 30 }, (_, i) => ({
+      date: new Date(since.getTime() + i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      count: 0,
+    }));
+    const byDevice: Record<string, number> = {};
+    for (const scan of recentScans) {
+      const key = new Date(scan.createdAt.getTime() - scan.createdAt.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+      const day = scanDays.find((d) => d.date === key);
+      if (day) day.count += 1;
+      byDevice[scan.device] = (byDevice[scan.device] ?? 0) + 1;
+    }
     return {
       ...content,
+      scans: { total: scanTotal, last30: recentScans.length, days: scanDays, byDevice },
       id: card.id.toString(),
       status: card.status,
       moderationNote: card.moderationNote,
@@ -549,7 +558,7 @@ export class CardsService {
       schedule,
       menuImages,
       placeImages,
-      themeId: card.themeId ?? 'theme-1',
+      themeId: card.themeId ?? '',
       cardLayout: card.cardLayout ?? 'classic',
       qrStyle: card.qrStyle ?? 'style-1',
       cardUrl: `${appUrl}/c/${card.slug}`,
@@ -558,8 +567,9 @@ export class CardsService {
     };
   }
   async getAllCards() {
-    const cards: Card[] = await this.prisma.card.findMany({
+    const cards = await this.prisma.card.findMany({
       orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { scans: true } } },
     });
     const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
     return cards.map((card) => {
@@ -580,7 +590,7 @@ export class CardsService {
         locationUrl: card.locationUrl ?? null,
         phoneNumber: card.phoneNumber ?? null,
         menuImages,
-        themeId: card.themeId ?? 'theme-1',
+        themeId: card.themeId ?? '',
         qrStyle: card.qrStyle ?? 'style-1',
         userName: card.userName ?? null,
         clientName: card.clientName ?? null,
@@ -596,6 +606,7 @@ export class CardsService {
         fileName: card.fileName ?? null,
         ownerId: card.ownerId ?? null,
         status: card.status,
+        scans: card._count.scans,
       };
     });
   }
@@ -622,7 +633,7 @@ export class CardsService {
           fileName: card.fileName ?? null,
           restaurantName: card.restaurantName ?? null,
           cardUrl,
-          qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle ?? 'style-1'),
+          qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle),
           createdAt: card.createdAt,
         };
       }),
@@ -701,19 +712,23 @@ export class CardsService {
     }
     throw new NotFoundException(`Le fichier image pour la carte "${slug}" est introuvable`);
   }
-  async updateCardBySlug(slug: string, rawData: any, files?: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; media?: Express.Multer.File[]; document?: Express.Multer.File[]; }) {
+  async updateCardBySlug(slug: string, rawData: object, files?: { file?: Express.Multer.File[]; logo?: Express.Multer.File[]; menu?: Express.Multer.File[]; place?: Express.Multer.File[]; media?: Express.Multer.File[]; document?: Express.Multer.File[]; }) {
     const existing = await this.prisma.card.findUnique({ where: { slug } });
     if (!existing) {
       throw new NotFoundException(`La carte "${slug}" n'existe pas`);
     }
     // Seuls ces champs sont modifiables (le statut passe par rejet / réactivation).
+    // Champs dynamiques, filtrés par UPDATABLE_FIELDS puis validés un à un ci-dessous.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
+    const input = rawData as Record<string, unknown>;
     for (const key of UPDATABLE_FIELDS) {
-      if (rawData?.[key] !== undefined) updateData[key] = rawData[key];
+      if (input?.[key] !== undefined) updateData[key] = input[key];
     }
     for (const key of ['facebookUrl', 'instagramUrl', 'xUrl', 'snapchatUrl', 'locationUrl']) {
       if (typeof updateData[key] === 'string') updateData[key] = safeHttpUrl(updateData[key]);
     }
+    if (typeof updateData.qrStyle === 'string') updateData.qrStyle = normalizeQrStyle(updateData.qrStyle);
     for (const key of ['title', 'restaurantName', 'address', 'phoneNumber', 'additionalInfo', 'clientName', 'userName', 'workDone']) {
       if (typeof updateData[key] === 'string') updateData[key] = updateData[key].trim() || null;
     }
@@ -736,7 +751,6 @@ export class CardsService {
     }
     // Images : Supabase si configuré, sinon dossier local uploads/ (géré par processAndUploadImage).
     {
-      const getSafeExt = (mimetype: string) => mimetype.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
       const deleteOldFile = async (oldUrl: string | null) => {
         if (this.supabase && oldUrl && oldUrl.includes('supabase.co')) {
           const path = oldUrl.split('/images/')[1];
@@ -763,7 +777,7 @@ export class CardsService {
           keptUrls = typeof updateData.existingMenuUrls === 'string' 
             ? JSON.parse(updateData.existingMenuUrls) 
             : updateData.existingMenuUrls;
-        } catch (e) {
+        } catch {
           keptUrls = [];
         }
       } else {
@@ -793,7 +807,7 @@ export class CardsService {
           keptPlaceUrls = typeof updateData.existingPlaceUrls === 'string' 
             ? JSON.parse(updateData.existingPlaceUrls) 
             : updateData.existingPlaceUrls;
-        } catch (e) {
+        } catch {
           keptPlaceUrls = [];
         }
       } else {
@@ -865,8 +879,6 @@ export class CardsService {
         await this.supabase.storage.from('visicard').remove(pathsToDelete);
       }
     } else {
-      const fs = require('fs');
-      const path = require('path');
       const uploadsDir = path.join(process.cwd(), 'uploads');
       
       const deleteLocal = (url: string | null) => {
@@ -881,10 +893,10 @@ export class CardsService {
       deleteLocal(existing.logoUrl);
       deleteLocal(existing.contentUrl);
       if (existing.menuImages) {
-        try { JSON.parse(existing.menuImages).forEach(deleteLocal); } catch {}
+        try { JSON.parse(existing.menuImages).forEach(deleteLocal); } catch { /* liste illisible : rien à supprimer */ }
       }
       if (existing.placeImages) {
-        try { JSON.parse(existing.placeImages).forEach(deleteLocal); } catch {}
+        try { JSON.parse(existing.placeImages).forEach(deleteLocal); } catch { /* liste illisible : rien à supprimer */ }
       }
     }
 

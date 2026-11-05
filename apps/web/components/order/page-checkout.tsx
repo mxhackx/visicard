@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ImageIcon, Loader2, MapPin, Palette, Phone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImageIcon, Loader2, MapPin, Palette, Phone, QrCode, ShieldCheck } from "lucide-react";
+import QrDesigner from "@/components/qr/qr-designer";
+import { paletteFor } from "@/lib/palette";
 import { useFile } from "@/app/context/FileContext";
 import { SERVICES } from "@/lib/services";
 import { createOrder, rememberOrderKey, validateCustomer } from "@/lib/orders";
@@ -15,7 +17,7 @@ const offer = SERVICES.find((s) => s.id === "page")!;
 /** Dernière étape client de la page digitale : récapitulatif, coordonnées, puis devis. */
 export default function PageCheckout() {
   const router = useRouter();
-  const { restaurantInfo, customization, resetAll } = useFile();
+  const { restaurantInfo, customization, setQrStyle, resetAll } = useFile();
   const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -26,13 +28,7 @@ export default function PageCheckout() {
     if (!restaurantInfo.restaurantName.trim()) router.replace("/creer/page/informations");
   }, [restaurantInfo.restaurantName, router]);
 
-  const logoPreview = useMemo(
-    () => (restaurantInfo.logoFile ? URL.createObjectURL(restaurantInfo.logoFile) : null),
-    [restaurantInfo.logoFile],
-  );
-  useEffect(() => () => {
-    if (logoPreview) URL.revokeObjectURL(logoPreview);
-  }, [logoPreview]);
+  const logoPreview = restaurantInfo.logoPreview;
 
   const photos = restaurantInfo.menuFiles.length + restaurantInfo.placeFiles.length;
 
@@ -87,7 +83,7 @@ export default function PageCheckout() {
       </Link>
 
       <div className="mt-6 max-w-3xl">
-        <Stepper current={1} />
+        <Stepper current={2} steps={["Informations", "Apparence", "Devis", "Paiement"]} />
       </div>
 
       <h1 className="mt-10 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
@@ -119,7 +115,7 @@ export default function PageCheckout() {
             <dl className="mt-6 grid gap-3 sm:grid-cols-3">
               <Fact icon={Phone} label="Contact" value={restaurantInfo.phoneNumber || "—"} />
               <Fact icon={ImageIcon} label="Photos" value={`${photos} photo${photos > 1 ? "s" : ""}`} />
-              <Fact icon={Palette} label="Thème" value={customization.themeId.replace("theme-", "Thème ")} />
+              <Fact icon={Palette} label="Thème" value={customization.themeId.startsWith("custom#") ? "Couleurs personnalisées" : "Couleurs d’origine"} />
             </dl>
             <Link
               href="/creer/page/informations"
@@ -128,6 +124,21 @@ export default function PageCheckout() {
               <MapPin className="h-4 w-4" />
               Modifier le contenu
             </Link>
+          </div>
+
+          <div className="surface p-6 sm:p-8">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink/90">
+              <QrCode className="h-5 w-5 text-forest" /> Votre QR code
+            </h2>
+            <p className="mt-1 text-sm text-sage">Le motif à imprimer. Il sera actif dès le paiement confirmé.</p>
+            <div className="mt-5">
+              <QrDesigner
+                value={customization.qrStyle}
+                onChange={setQrStyle}
+                logoUrl={restaurantInfo.logoPreview}
+                brandColor={paletteFor(customization.themeId, customization.cardLayout).brand}
+              />
+            </div>
           </div>
 
           <div className="surface p-6 sm:p-8">

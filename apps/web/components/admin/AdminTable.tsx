@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Eye, FileText, Images, Loader2, Pencil, PanelsTopLeft, QrCode, Trash2 } from "lucide-react";
-import { CardSummary, cardAmount } from "./AdminCardsList";
+import type { CardSummary } from "./AdminCardsList";
+import StyledQr from "@/components/qr/styled-qr";
 
 const typeMeta: Record<string, { label: string; icon: typeof QrCode; className: string }> = {
   page: { label: "Page", icon: PanelsTopLeft, className: "bg-leaf text-forest" },
@@ -11,7 +12,6 @@ const typeMeta: Record<string, { label: string; icon: typeof QrCode; className: 
   document: { label: "PDF", icon: FileText, className: "bg-amber-50 text-amber-700" },
 };
 
-const fcfa = new Intl.NumberFormat("fr-FR");
 
 export function AdminTable({
   cards,
@@ -36,7 +36,7 @@ export function AdminTable({
               <th className="px-5 py-3.5 font-semibold">Contenu</th>
               <th className="px-4 py-3.5 font-semibold">Type</th>
               <th className="px-4 py-3.5 font-semibold">Client</th>
-              <th className="px-4 py-3.5 font-semibold">Montant</th>
+              <th className="px-4 py-3.5 text-right font-semibold">Scans</th>
               <th className="px-4 py-3.5 font-semibold">Création</th>
               <th className="px-5 py-3.5 text-right font-semibold">Actions</th>
             </tr>
@@ -45,25 +45,15 @@ export function AdminTable({
             {cards.map((card) => {
               const meta = typeMeta[card.serviceType ?? "page"] ?? typeMeta.page;
               const TypeIcon = meta.icon;
-              const amount = cardAmount(card);
               const name = card.title || card.restaurantName || "Sans titre";
 
               return (
                 <tr key={card.id} className="transition-colors hover:bg-cream-deep/60">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      {card.logoUrl || card.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={card.logoUrl || card.imageUrl}
-                          alt=""
-                          className="h-10 w-10 shrink-0 rounded-xl border border-line object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-leaf text-forest">
-                          <QrCode className="h-4 w-4" />
-                        </span>
-                      )}
+                      <Link href={`/admin/cartes/${card.slug}`} className="shrink-0 rounded-lg ring-1 ring-line" aria-label="Voir le QR code">
+                        <StyledQr data={card.cardUrl} style={card.qrStyle} size={44} />
+                      </Link>
                       <div className="min-w-0">
                         <Link href={`/admin/cartes/${card.slug}`} className="block truncate font-semibold text-ink/90 hover:text-forest">
                           {name}
@@ -93,12 +83,8 @@ export function AdminTable({
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-ink/75">{card.clientName || card.userName || "—"}</td>
-                  <td className="px-4 py-3.5">
-                    {amount > 0 ? (
-                      <span className="font-semibold text-ink/90">{fcfa.format(amount)} FCFA</span>
-                    ) : (
-                      <span className="text-sage">—</span>
-                    )}
+                  <td className="px-4 py-3.5 text-right tabular-nums">
+                    <span className={card.scans ? "font-semibold text-ink/90" : "text-sage"}>{card.scans ?? 0}</span>
                   </td>
                   <td className="px-4 py-3.5 text-ink/75">
                     {new Date(card.createdAt).toLocaleDateString("fr-FR", {

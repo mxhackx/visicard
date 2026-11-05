@@ -12,6 +12,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
 import { FedapayService } from './payments/fedapay.service';
 import { MomoService } from './payments/momo.service';
+import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
 
 export type PaymentProvider = 'fedapay' | 'momo' | 'simulation';
@@ -62,19 +63,25 @@ export class OrdersService {
   async createOrder(serviceType: unknown, customer: CustomerInput, files: UploadedCardFiles, metadata: CardMetadata) {
     if (!isServiceType(serviceType)) throw new BadRequestException('Service inconnu.');
     const buyer = this.validateCustomer(customer);
+    assertOrderContent(serviceType, metadata, files);
 
     const created = await this.cards.createCard(files, { ...metadata, serviceType, clientName: buyer.name }, null, {
       status: 'draft',
     });
-    const card = await this.prisma.card.findUniqueOrThrow({ where: { slug: created.slug } });
-
-    return this.insertOrder({
-      kind: 'creation',
-      serviceType,
-      cardId: card.id,
-      buyer,
-      items: itemsFor('creation', serviceType),
-    });
+    try {
+      const card = await this.prisma.card.findUniqueOrThrow({ where: { slug: created.slug } });
+      return await this.insertOrder({
+        kind: 'creation',
+        serviceType,
+        cardId: card.id,
+        buyer,
+        items: itemsFor('creation', serviceType),
+      });
+    } catch (err) {
+      // Pas de carte brouillon orpheline (ni ses fichiers) si le devis n'a pas pu être créé.
+      await this.cards.deleteCardBySlug(created.slug, { id: 'system', role: 'admin' }).catch(() => undefined);
+      throw err;
+    }
   }
 
   /** Une modification = un nouveau devis ; elle n'est appliquée qu'une fois payée. */
@@ -413,7 +420,8 @@ export class OrdersService {
     const phone = input.customerPhone?.trim() ?? '';
     const email = input.customerEmail?.trim() || null;
     if (name.length < 2) throw new BadRequestException('Indiquez votre nom.');
-    if (phone.replace(/\D/g, '').length < 8) throw new BadRequestException('Numéro de téléphone invalide.');
+    const digits = phone.replace(/\D/g, '').length;
+    if (digits < 8 || digits > 15) throw new BadRequestException('Numéro de téléphone invalide.');
     if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new BadRequestException('Adresse e-mail invalide.');
     return { name: name.slice(0, 120), phone: phone.slice(0, 30), email };
   }

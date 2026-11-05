@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, Plus, QrCode, Search } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, LayoutGrid, List, Plus, QrCode, ScanLine, Search } from "lucide-react";
+import StyledQr from "@/components/qr/styled-qr";
 import AdminEditCardModal from "./AdminEditCardModal";
-import { AdminOverview, type OverviewStats } from "./AdminOverview";
 import { AdminTable } from "./AdminTable";
 import { useAdminFetch } from "./use-admin-fetch";
 
@@ -29,6 +30,8 @@ export interface CardSummary {
   address?: string | null;
   additionalInfo?: string | null;
   createdAt: string;
+  /** Nombre total de scans de la page publique. */
+  scans?: number;
 }
 
 /** Montant encaissé en nombre, quel que soit le format stocké. */
@@ -41,6 +44,14 @@ export function cardAmount(card: CardSummary): number {
 }
 
 type Filter = "all" | "page" | "media" | "document";
+type StatusFilter = "all" | "active" | "draft" | "rejected";
+
+const statusFilters: { id: StatusFilter; label: string }[] = [
+  { id: "all", label: "Tous les statuts" },
+  { id: "active", label: "Actifs" },
+  { id: "draft", label: "En attente de paiement" },
+  { id: "rejected", label: "Refusés" },
+];
 
 const filters: { id: Filter; label: string }[] = [
   { id: "all", label: "Tous" },
@@ -72,32 +83,20 @@ export default function AdminCardsList({
   const [filter, setFilter] = useState<Filter>("all");
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const stats: OverviewStats = useMemo(() => {
-    const now = new Date();
-    const typeOf = (c: CardSummary) => c.serviceType ?? "page";
-    return {
-      total: cards.length,
-      revenue: cards.reduce((sum, c) => sum + cardAmount(c), 0),
-      pages: cards.filter((c) => typeOf(c) === "page").length,
-      media: cards.filter((c) => typeOf(c) === "media").length,
-      documents: cards.filter((c) => typeOf(c) === "document").length,
-      thisMonth: cards.filter((c) => {
-        const d = new Date(c.createdAt);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-      }).length,
-    };
-  }, [cards]);
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [view, setView] = useState<"list" | "grid">("list");
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return cards.filter((c) => {
       if (filter !== "all" && (c.serviceType ?? "page") !== filter) return false;
+      if (status !== "all" && (c.status ?? "active") !== status) return false;
       if (!q) return true;
       return [c.title, c.restaurantName, c.clientName, c.userName, c.slug, c.phoneNumber]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [cards, query, filter]);
+  }, [cards, query, filter, status]);
 
   const handleDelete = async (slug: string): Promise<boolean> => {
     setActionError(null);
@@ -127,8 +126,6 @@ export default function AdminCardsList({
 
   return (
     <div className="space-y-6">
-      <AdminOverview stats={stats} />
-
       {actionError && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -138,7 +135,7 @@ export default function AdminCardsList({
 
       {cards.length === 0 ? (
         <div className="surface rounded-2xl border-dashed p-12 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-leaf text-forest">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-leaf text-ambre-deep">
             <QrCode className="h-7 w-7" />
           </span>
           <p className="mt-4 text-base font-semibold text-ink/90">Aucun QR code pour le moment</p>
@@ -167,6 +164,37 @@ export default function AdminCardsList({
             </div>
 
             <div className="flex items-center gap-3">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as StatusFilter)}
+                className="field !min-h-[2.5rem] w-auto pr-8 text-sm"
+                aria-label="Filtrer par statut"
+              >
+                {statusFilters.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              <div className="hidden rounded-xl border border-line bg-white p-1 sm:flex" role="radiogroup" aria-label="Affichage">
+                {([
+                  ["list", List, "Liste"],
+                  ["grid", LayoutGrid, "Grille des QR codes"],
+                ] as const).map(([id, Icon, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={view === id}
+                    aria-label={label}
+                    title={label}
+                    onClick={() => setView(id)}
+                    className={`rounded-lg p-1.5 ${view === id ? "bg-forest text-white" : "text-sage hover:text-ink"}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                ))}
+              </div>
               <label className="relative block sm:w-72">
                 <span className="sr-only">Rechercher</span>
                 <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-sage" />
@@ -190,7 +218,11 @@ export default function AdminCardsList({
               Aucun QR code ne correspond à cette recherche.
             </p>
           ) : (
-            <AdminTable cards={visible} onEdit={setEditingCard} onDelete={handleDelete} />
+            view === "grid" ? (
+              <QrGrid cards={visible} />
+            ) : (
+              <AdminTable cards={visible} onEdit={setEditingCard} onDelete={handleDelete} />
+            )
           )}
           <p className="text-xs text-sage">
             {visible.length} sur {cards.length} QR code{cards.length > 1 ? "s" : ""}
@@ -209,6 +241,41 @@ export default function AdminCardsList({
           }}
         />
       )}
+    </div>
+  );
+}
+
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  active: { label: "Actif", className: "bg-emerald-50 text-emerald-700" },
+  draft: { label: "En attente", className: "bg-amber-50 text-amber-700" },
+  rejected: { label: "Refusé", className: "bg-red-50 text-red-700" },
+};
+
+/** Planche des QR codes, tels qu'ils seront imprimés. */
+function QrGrid({ cards }: { cards: CardSummary[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {cards.map((card) => {
+        const badge = STATUS_BADGE[card.status ?? "active"];
+        return (
+          <Link
+            key={card.id}
+            href={`/admin/cartes/${card.slug}`}
+            className="surface group flex flex-col items-center p-4 text-center transition-shadow hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]"
+          >
+            <StyledQr data={card.cardUrl} style={card.qrStyle} logoUrl={card.serviceType === "page" ? card.logoUrl : null} size={132} />
+            <p className="mt-3 w-full truncate text-sm font-semibold text-ink/90 group-hover:text-forest">
+              {card.title || card.restaurantName || "Sans titre"}
+            </p>
+            <div className="mt-1.5 flex items-center gap-2 text-xs">
+              <span className={`rounded-full px-2 py-0.5 font-semibold ${badge.className}`}>{badge.label}</span>
+              <span className="inline-flex items-center gap-1 text-sage">
+                <ScanLine className="h-3 w-3" /> {card.scans ?? 0}
+              </span>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }

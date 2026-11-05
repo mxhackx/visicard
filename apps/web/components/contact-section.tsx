@@ -25,7 +25,7 @@ const emptyDraft: Draft = {
 
 const kinds = ["Restaurant", "Commerce", "Cabinet / service", "Hôtel", "Groupe ou enseigne"];
 
-export default function ContactSection() {
+export default function ContactSection({ headingLevel = "h2" }: { headingLevel?: "h1" | "h2" } = {}) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
   const [ready, setReady] = useState(false);
@@ -64,6 +64,7 @@ ${draft.message}`;
 
       <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
+          as={headingLevel}
           title="Parlons de votre établissement"
           subtitle="Une question, un groupe à équiper, un devis ? Décrivez votre situation, nous revenons vers vous avec une proposition concrète."
         />
@@ -208,7 +209,7 @@ ${draft.message}`;
               </ul>
             </div>
 
-            <div className="relative mx-3 mb-3 mt-auto overflow-hidden rounded-2xl border border-line shadow-[0_8px_24px_rgba(37,99,235,0.12)]">
+            <div className="relative mx-3 mb-3 mt-auto overflow-hidden rounded-2xl border border-line shadow-[0_8px_24px_rgba(23,23,26,0.1)]">
               <iframe
                 title={`Carte : ${CONTACT.address}`}
                 src={mapEmbedUrl()}
@@ -220,7 +221,7 @@ ${draft.message}`;
                 href={directionsUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-white/75 px-3 py-1.5 text-xs font-semibold text-forest shadow-sm transition-colors hover:bg-white"
+                className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-cream/90 px-3 py-1.5 text-xs font-semibold text-forest shadow-sm transition-colors hover:bg-cream-deep"
               >
                 <Navigation className="h-3.5 w-3.5" />
                 Itinéraire
@@ -265,7 +266,7 @@ function ReadyPanel({
           href={`mailto:${CONTACT.email}?subject=${encodeURIComponent(
             `Demande Moncode — ${draft.business.trim() || draft.name}`,
           )}&body=${encodeURIComponent(summary)}`}
-          className="btn btn-outline bg-white"
+          className="btn btn-outline"
         >
           <Mail className="h-4 w-4" />
           Envoyer par email
@@ -320,7 +321,7 @@ function Channel({
   );
 
   const className =
-    "flex items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5 transition-colors";
+    "flex items-center gap-3 rounded-xl border border-line bg-cream px-3 py-2.5 transition-colors";
 
   return (
     <li>
@@ -329,7 +330,7 @@ function Channel({
           href={href}
           target={external ? "_blank" : undefined}
           rel={external ? "noreferrer" : undefined}
-          className={`${className} hover:border-forest/30 hover:bg-leaf/40`}
+          className={`${className} hover:border-ambre/50 hover:bg-leaf/40`}
         >
           {body}
         </a>

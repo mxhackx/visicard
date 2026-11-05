@@ -7,15 +7,16 @@ import ContactSection from "@/components/contact-section";
 import Footer from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "À propos — Moncode",
+  title: "À propos",
   description:
     "Moncode publie une page digitale, une image/vidéo ou un PDF derrière un QR code unique : une équipe qui installe, forme et reste joignable.",
   openGraph: {
-    title: "À propos — Moncode",
+    title: "À propos de Moncode",
     description:
       "Nous publions le contenu, pas votre métier : page digitale, média ou PDF, QR code unique, accompagnement humain.",
-    url: "https://moncode-web.vercel.app/about",
+    url: "/a-propos",
   },
+  alternates: { canonical: "/a-propos" },
 };
 
 const weHandle = [
@@ -90,18 +91,19 @@ export default function AboutPage() {
           </div>
           </div>
 
-          {/* Photo : Unsplash (licence libre), stockée dans public/images. */}
+          {/* Illustration unDraw (licence libre), stockée dans public/illustrations. */}
           <div
-            className="relative aspect-[4/5] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-white shadow-[0_24px_60px_rgba(37,99,235,0.12)]"
+            className="relative aspect-[4/5] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-cream shadow-[0_24px_60px_rgba(23,23,26,0.12)]"
             data-reveal
           >
             <Image
-              src="/images/accompagnement.jpg"
-              alt="Trois personnes échangent en souriant autour de leurs ordinateurs"
+              src="/illustrations/accompagnement.svg"
+              alt="Un conseiller Moncode accompagne un client en visioconférence"
               fill
               priority
+              unoptimized
               sizes="(max-width: 1024px) 100vw, 480px"
-              className="object-cover"
+              className="object-contain p-10"
             />
           </div>
           </div>

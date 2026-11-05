@@ -1,6 +1,6 @@
 import AdminDashboard, { type AdminTab } from "@/components/admin/AdminDashboard";
 
-const TABS: AdminTab[] = ["cards", "orders", "accounts", "settings"];
+const TABS: AdminTab[] = ["overview", "cards", "orders", "accounts", "settings"];
 
 export default async function AdminPage({
   searchParams,
@@ -9,6 +9,6 @@ export default async function AdminPage({
 }) {
   const raw = (await searchParams).tab;
   const value = Array.isArray(raw) ? raw[0] : raw;
-  const tab = TABS.includes(value as AdminTab) ? (value as AdminTab) : "cards";
+  const tab = TABS.includes(value as AdminTab) ? (value as AdminTab) : "overview";
   return <AdminDashboard tab={tab} />;
 }

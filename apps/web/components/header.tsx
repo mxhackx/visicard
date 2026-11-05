@@ -6,9 +6,7 @@ import { useState } from "react";
 import Logo from "@/components/logo";
 
 const navLinks = [
-  { href: "/", label: "Accueil" },
   { href: "/#services", label: "Services" },
-  { href: "/#fonctionnement", label: "Fonctionnement" },
   { href: "/#tarifs", label: "Tarifs" },
   { href: "/#avis", label: "Avis" },
   { href: "/contact", label: "Contact" },
@@ -18,18 +16,18 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 brand-surface border-b border-white/10 shadow-[0_8px_30px_rgba(15,42,107,0.25)]">
+    <header className="fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line shadow-[0_6px_24px_rgba(23,23,26,0.05)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
-          <Logo variant="light" />
+          <Logo variant="dark" />
         </Link>
 
-        <nav aria-label="Sections du site" className="hidden items-center gap-7 lg:flex">
+        <nav aria-label="Sections du site" className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-[15px] font-medium text-white/80 transition-colors hover:text-white"
+              className="text-[15px] font-medium text-ink/75 transition-colors hover:text-forest"
             >
               {link.label}
             </Link>
@@ -37,7 +35,7 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-5 lg:flex">
-          <Link href="/creer" className="btn btn-light btn-sm">
+          <Link href="/creer" className="btn btn-primary btn-sm">
             Créer un QR code
           </Link>
         </div>
@@ -47,26 +45,26 @@ export default function Header() {
           aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={isOpen}
           onClick={() => setIsOpen((v) => !v)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 lg:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-forest hover:text-forest lg:hidden"
         >
           {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </div>
 
       {isOpen && (
-        <div className="border-t border-white/10 lg:hidden">
+        <div className="border-t border-line lg:hidden">
           <nav aria-label="Sections du site" className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className="block border-b border-white/10 py-3 text-base font-medium text-white/85 last:border-0 hover:text-white"
+                className="block border-b border-line py-3 text-base font-medium text-ink/80 last:border-0 hover:text-forest"
               >
                 {link.label}
               </Link>
             ))}
-            <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-light btn-sm my-3 w-full">
+            <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary btn-sm my-3 w-full">
               Créer un QR code
             </Link>
           </nav>

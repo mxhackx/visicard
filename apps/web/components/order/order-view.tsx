@@ -7,7 +7,6 @@ import {
   Check,
   Copy,
   CreditCard,
-  Download,
   ExternalLink,
   FileText,
   Loader2,
@@ -20,6 +19,8 @@ import {
   Smartphone,
   Wallet,
 } from "lucide-react";
+import StyledQr from "@/components/qr/styled-qr";
+import { useOrderKey } from "@/lib/use-order-key";
 import Stepper from "@/components/order/stepper";
 import ContentPreview from "@/components/order/content-preview";
 import {
@@ -30,7 +31,6 @@ import {
   fetchOrderAsAdmin,
   formatDate,
   privateOrderUrl,
-  recallOrderKey,
   refreshOrder,
   rememberOrderKey,
   startPayment,
@@ -54,26 +54,23 @@ export default function OrderView({
   /** Mode admin : lecture via l'API admin, actions d'encaissement au lieu du paiement. */
   adminToken?: string;
 }) {
-  const [key, setKey] = useState<string | null>(null);
+  const storedKey = useOrderKey(reference);
+  // Le jeton vient du lien (première visite) ou du navigateur (retour, retour de FedaPay).
+  const key = adminToken ? "admin" : (keyFromUrl || storedKey) ?? null;
   const [order, setOrder] = useState<Order | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setError] = useState<string | null>(null);
+  const error =
+    !adminToken && !keyFromUrl && storedKey === null
+      ? "Lien de commande incomplet. Ouvrez le lien privé reçu à la création de votre devis."
+      : fetchError;
   const [polling, setPolling] = useState(false);
   const pollStarted = useRef<number>(0);
 
-  // Le jeton vient du lien (première visite) ou du navigateur (retour, retour de FedaPay).
+  // Le lien secret est mémorisé, puis retiré de la barre d'adresse.
   useEffect(() => {
-    if (adminToken) {
-      setKey("admin");
-      return;
-    }
-    const found = keyFromUrl || recallOrderKey(reference);
-    if (keyFromUrl) {
-      rememberOrderKey(reference, keyFromUrl);
-      // Le lien secret ne reste pas affiché dans la barre d'adresse.
-      window.history.replaceState(null, "", `/commande/${reference}`);
-    }
-    if (!found) setError("Lien de commande incomplet. Ouvrez le lien privé reçu à la création de votre devis.");
-    setKey(found);
+    if (adminToken || !keyFromUrl) return;
+    rememberOrderKey(reference, keyFromUrl);
+    window.history.replaceState(null, "", `/commande/${reference}`);
   }, [keyFromUrl, reference, adminToken]);
 
   const load = useCallback(
@@ -97,12 +94,15 @@ export default function OrderView({
 
   useEffect(() => {
     if (!key) return;
-    load(Boolean(returningFrom)).then((o) => {
-      if (o?.status === "pending" || returningFrom) {
-        pollStarted.current = Date.now();
-        setPolling(true);
-      }
-    });
+    const id = window.setTimeout(() => {
+      load(Boolean(returningFrom)).then((o) => {
+        if (o?.status === "pending" || returningFrom) {
+          pollStarted.current = Date.now();
+          setPolling(true);
+        }
+      });
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [key, load, returningFrom]);
 
   // Vérification périodique tant qu'un paiement est en attente.
@@ -246,7 +246,7 @@ function StatusBadge({ status }: { status: Order["status"] }) {
         ? "bg-amber-50 text-amber-700 ring-amber-200"
         : status === "cancelled"
           ? "bg-red-50 text-red-700 ring-red-200"
-          : "bg-leaf text-forest ring-forest/20";
+          : "bg-leaf text-forest ring-ambre/30";
   return (
     <span className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ${tone}`}>
       <span className="h-2 w-2 rounded-full bg-current" />
@@ -281,7 +281,7 @@ function Preview({ order }: { order: Order }) {
           <p className="text-sm font-semibold text-ink/90">Changements demandés</p>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {Object.keys(order.pendingChanges).map((field) => (
-              <li key={field} className="rounded-full bg-leaf px-2.5 py-1 text-xs font-medium text-forest">
+              <li key={field} className="rounded-full bg-leaf px-2.5 py-1 text-xs font-medium text-ambre-deep">
                 {FIELD_LABELS[field] ?? field}
               </li>
             ))}
@@ -417,7 +417,7 @@ function PaymentPanel({
               disabled={waiting}
               onClick={() => setProvider(id)}
               className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-60 ${
-                active ? "border-forest bg-leaf/60" : "border-line bg-white hover:border-forest/40"
+                active ? "border-forest bg-leaf/60" : "border-line bg-white hover:border-ambre/60"
               }`}
             >
               <span className={`icon-tile h-10 w-10 ${active ? "bg-forest text-white" : ""}`}>
@@ -511,17 +511,17 @@ function QrPanel({ order, admin }: { order: Order; admin?: boolean }) {
   return (
     <div className="surface overflow-hidden">
       <div className="flex flex-col items-center gap-4 p-6 text-center">
-        {order.qrCode && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={order.qrCode} alt={`QR code vers ${order.cardUrl}`} className="h-56 w-56 rounded-2xl border border-line bg-white p-3" />
+        {order.cardUrl && (
+          <StyledQr
+            data={order.cardUrl}
+            style={order.card.preview?.qrStyle}
+            logoUrl={order.card.preview?.logoUrl}
+            size={224}
+            downloadName={`moncode-${order.card.slug}`}
+            className="w-full max-w-[260px]"
+          />
         )}
         <div className="flex w-full flex-col gap-2 sm:flex-row">
-          {order.qrCode && (
-            <a href={order.qrCode} download={`moncode-${order.card.slug}.png`} className="btn btn-primary flex-1">
-              <Download className="h-4 w-4" />
-              Télécharger le QR code
-            </a>
-          )}
           {order.cardUrl && (
             <a href={order.cardUrl} target="_blank" rel="noreferrer" className="btn btn-outline flex-1">
               <ExternalLink className="h-4 w-4" />

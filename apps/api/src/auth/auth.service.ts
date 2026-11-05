@@ -192,7 +192,7 @@ export class AuthService {
           user_metadata: { role }
         });
         this.logger.log(`Auto-healing: Rôle ${role} défini pour ${data.user.email}`);
-      } catch (err) {
+      } catch {
         this.logger.warn(`Impossible de mettre à jour les métadonnées pour ${data.user.email}`);
       }
     }
@@ -458,7 +458,7 @@ export class AuthService {
 
     const updatePayload: Record<string, unknown> = {};
     // Auto-réparation pendant la mise à jour : on s'assure que le rôle est conservé
-    updatePayload.user_metadata = { ...(user as any).user_metadata, role: user.role };
+    updatePayload.user_metadata = { ...(user as { user_metadata?: Record<string, unknown> }).user_metadata, role: user.role };
     
     if (trimmedEmail) {
       updatePayload.email = trimmedEmail;

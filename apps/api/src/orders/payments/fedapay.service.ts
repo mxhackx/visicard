@@ -68,12 +68,18 @@ export class FedapayService {
       amount: input.amount,
       currency: { iso: 'XOF' },
       callback_url: input.callbackUrl,
-      customer: {
-        firstname: firstname || 'Client',
-        lastname: rest.join(' ') || 'Moncode',
-        ...(input.customer.email ? { email: input.customer.email } : {}),
-        phone_number: { number: phone, country: 'bj' },
-      },
+      // FedaPay exige un e-mail pour créer un client : sans e-mail, la page de
+      // paiement hébergée demande elle-même les coordonnées.
+      ...(input.customer.email
+        ? {
+            customer: {
+              firstname: firstname || 'Client',
+              lastname: rest.join(' ') || 'Moncode',
+              email: input.customer.email,
+              phone_number: { number: phone, country: 'bj' },
+            },
+          }
+        : {}),
     });
     const transaction = created['v1/transaction'];
     if (!transaction?.id) throw new BadGatewayException('Réponse FedaPay inattendue.');

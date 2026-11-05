@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import OrderDocument from "@/components/order/order-document";
 
 export const metadata: Metadata = {
-  title: "Devis — Moncode",
+  title: "Devis",
   robots: { index: false, follow: false },
 };
 

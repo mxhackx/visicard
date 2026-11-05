@@ -69,7 +69,7 @@ export default function ContentPreview({
 
       {watermark && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
-          <span className="rotate-[-18deg] rounded-xl border-2 border-forest/25 px-5 py-2 text-2xl font-bold uppercase tracking-[0.2em] text-forest/25">
+          <span className="rotate-[-18deg] rounded-xl border-2 border-ambre/45 px-5 py-2 text-2xl font-bold uppercase tracking-[0.2em] text-ambre/60">
             {watermark}
           </span>
         </div>

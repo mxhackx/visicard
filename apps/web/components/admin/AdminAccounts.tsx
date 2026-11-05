@@ -85,7 +85,9 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
   }, [request]);
 
   useEffect(() => {
-    loadAccounts();
+    // Chargement différé d'un tour : l'état n'est jamais modifié pendant l'effet lui-même.
+    const id = window.setTimeout(() => void loadAccounts(), 0);
+    return () => window.clearTimeout(id);
   }, [loadAccounts]);
 
   const changeRole = async (account: Account, role: "admin" | "user") => {
@@ -216,7 +218,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
                           <span
                             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                               isAdmin
-                                ? "bg-leaf text-forest"
+                                ? "bg-leaf text-ambre-deep"
                                 : "bg-cream-deep text-ink/70"
                             }`}
                           >
@@ -234,7 +236,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                             isAdmin
-                              ? "bg-leaf text-forest"
+                              ? "bg-leaf text-ambre-deep"
                               : "bg-cream-deep text-ink/70"
                           }`}
                         >

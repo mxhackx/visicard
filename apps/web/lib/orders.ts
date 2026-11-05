@@ -29,6 +29,9 @@ export interface CardPreview {
   additionalInfo?: string | null;
   menuImages?: string[];
   placeImages?: string[];
+  qrStyle?: string | null;
+  themeId?: string | null;
+  cardLayout?: string | null;
   [key: string]: unknown;
 }
 
@@ -87,27 +90,38 @@ export function privateOrderUrl(reference: string, key: string): string {
   return `${origin}/commande/${reference}?cle=${encodeURIComponent(key)}`;
 }
 
+/** fetch avec un message compréhensible quand le serveur ne répond pas. */
+async function send(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new Error("Impossible de joindre le serveur. Vérifiez votre connexion, puis réessayez.");
+  }
+}
+
 async function parse<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = Array.isArray(data?.message) ? data.message[0] : data?.message;
+    if (res.status === 429) throw new Error("Trop de tentatives : patientez une minute avant de réessayer.");
+    if (res.status >= 500 && typeof message !== "string") throw new Error("Le serveur a rencontré une erreur. Réessayez dans un instant.");
     throw new Error(typeof message === "string" ? message : "Une erreur est survenue. Réessayez.");
   }
   return data as T;
 }
 
 export async function createOrder(body: FormData): Promise<CreatedOrder> {
-  return parse(await fetch(`${API_URL}/orders`, { method: "POST", body }));
+  return parse(await send(`${API_URL}/orders`, { method: "POST", body }));
 }
 
 export async function fetchOrder(reference: string, key: string): Promise<OrderView> {
-  return parse(await fetch(`${API_URL}/orders/${reference}`, { headers: { "X-Order-Key": key }, cache: "no-store" }));
+  return parse(await send(`${API_URL}/orders/${reference}`, { headers: { "X-Order-Key": key }, cache: "no-store" }));
 }
 
 /** Vue admin d'une commande (sans lien privé). */
 export async function fetchOrderAsAdmin(reference: string, adminToken: string): Promise<OrderView> {
   return parse(
-    await fetch(`${API_URL}/orders/admin/${reference}`, {
+    await send(`${API_URL}/orders/admin/${reference}`, {
       headers: { Authorization: `Bearer ${adminToken}` },
       credentials: "include",
       cache: "no-store",
@@ -117,7 +131,7 @@ export async function fetchOrderAsAdmin(reference: string, adminToken: string): 
 
 export async function adminOrderAction(orderId: string, action: "mark-paid" | "cancel", adminToken: string) {
   return parse(
-    await fetch(`${API_URL}/orders/admin/${orderId}/${action}`, {
+    await send(`${API_URL}/orders/admin/${orderId}/${action}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${adminToken}` },
       credentials: "include",
@@ -127,7 +141,7 @@ export async function adminOrderAction(orderId: string, action: "mark-paid" | "c
 
 export async function refreshOrder(reference: string, key: string): Promise<OrderView> {
   return parse(
-    await fetch(`${API_URL}/orders/${reference}/payments/refresh`, { method: "POST", headers: { "X-Order-Key": key } }),
+    await send(`${API_URL}/orders/${reference}/payments/refresh`, { method: "POST", headers: { "X-Order-Key": key } }),
   );
 }
 
@@ -138,7 +152,7 @@ export async function startPayment(
   phone?: string,
 ): Promise<{ provider: PaymentProvider; status: "pending" | "succeeded"; paymentUrl?: string }> {
   return parse(
-    await fetch(`${API_URL}/orders/${reference}/payments`, {
+    await send(`${API_URL}/orders/${reference}/payments`, {
       method: "POST",
       headers: { "X-Order-Key": key, "Content-Type": "application/json" },
       body: JSON.stringify({ provider, phone }),
@@ -148,7 +162,7 @@ export async function startPayment(
 
 export async function requestModification(reference: string, key: string, body: FormData): Promise<CreatedOrder> {
   return parse(
-    await fetch(`${API_URL}/orders/${reference}/modifications`, {
+    await send(`${API_URL}/orders/${reference}/modifications`, {
       method: "POST",
       headers: { "X-Order-Key": key },
       body,
@@ -174,8 +188,11 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 /** Validation partagée des coordonnées client. */
 export function validateCustomer(c: { name: string; phone: string; email: string }) {
   const errors: Partial<Record<"name" | "phone" | "email", string>> = {};
+  const digits = c.phone.replace(/\D/g, "").length;
   if (c.name.trim().length < 2) errors.name = "Indiquez votre nom.";
-  if (c.phone.replace(/\D/g, "").length < 8) errors.phone = "Numéro trop court.";
+  else if (c.name.trim().length > 120) errors.name = "120 caractères au maximum.";
+  if (digits < 8) errors.phone = "Numéro trop court : indiquez l’indicatif et le numéro.";
+  else if (digits > 15) errors.phone = "Numéro trop long.";
   if (c.email.trim() && !/^\S+@\S+\.\S+$/.test(c.email.trim())) errors.email = "Adresse e-mail invalide.";
   return errors;
 }

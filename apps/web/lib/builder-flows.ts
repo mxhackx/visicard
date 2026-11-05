@@ -1,7 +1,7 @@
 /**
  * Parcours de création d'une page digitale.
  *  - client : sans compte. Informations → Apparence → Validation (devis, puis paiement).
- *  - admin  : Intervention → Informations → Apparence → QR code (actif tout de suite, sans paiement).
+ *  - admin  : Informations → Apparence → QR code (actif tout de suite, sans paiement).
  */
 export type BuilderMode = "client" | "admin";
 
@@ -33,16 +33,16 @@ export const BUILDER_FLOWS: Record<BuilderMode, BuilderFlow> = {
     requiresAdmin: true,
     loginHref: "/admin/connexion",
     informations: {
-      back: "/admin/nouveau/page",
-      backLabel: "Intervention",
+      back: "/admin/nouveau",
+      backLabel: "Choix du parcours",
       next: "/admin/nouveau/apparence",
-      step: "Étape 2 sur 4",
+      step: "Étape 1 sur 3",
     },
     apparence: {
       back: "/admin/nouveau/informations",
       next: "/admin/nouveau/qr",
       nextLabel: "Suivant : QR code",
-      step: "Étape 3 sur 4",
+      step: "Étape 2 sur 3",
     },
   },
 };

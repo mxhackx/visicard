@@ -40,7 +40,7 @@ export default function UseCases() {
     <section id="cas-dusage" className="anchor border-b border-slate-100 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold text-blue-600">Cas d'usage</p>
+          <p className="text-sm font-semibold text-blue-600">Cas d’usage</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
             Pensé pour les établissements qui reçoivent
           </h2>

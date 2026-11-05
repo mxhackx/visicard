@@ -48,18 +48,19 @@ export default function AboutSection() {
             </Link>
           </div>
 
-          {/* Photo : Unsplash (licence libre), stockée dans public/images. */}
+          {/* Illustration unDraw (licence libre), stockée dans public/illustrations. */}
           <div className="relative" data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
-            <div className="relative aspect-[5/4] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-white shadow-[0_24px_60px_rgba(37,99,235,0.12)]">
+            <div className="relative aspect-[5/4] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-cream shadow-[0_24px_60px_rgba(23,23,26,0.1)]">
               <Image
-                src="/images/equipe-moncode.jpg"
-                alt="Une équipe travaille autour d'une table, ordinateurs ouverts"
+                src="/illustrations/equipe.svg"
+                alt="L’équipe Moncode prépare les contenus de ses clients"
                 fill
+                unoptimized
                 sizes="(max-width: 1024px) 100vw, 560px"
-                className="object-cover object-[center_35%]"
+                className="object-contain p-8 sm:p-12"
               />
             </div>
-            <div className="absolute -bottom-6 left-6 rounded-xl border border-line bg-white px-4 py-3 shadow-[0_14px_34px_rgba(37,99,235,0.16)]">
+            <div className="absolute -bottom-6 left-6 rounded-xl border border-line bg-cream px-4 py-3 shadow-[0_14px_34px_rgba(23,23,26,0.1)]">
               <p className="text-2xl font-semibold text-forest">24 h</p>
               <p className="text-xs text-sage">pour une réponse, jours ouvrés</p>
             </div>

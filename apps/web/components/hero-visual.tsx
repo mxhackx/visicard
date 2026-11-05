@@ -40,12 +40,12 @@ export default function HeroVisual() {
       aria-hidden="true"
     >
       {/* Anneaux */}
-      <div className="absolute inset-[12%] rounded-full border border-forest/15" />
-      <div className="absolute inset-[24%] rounded-full border border-dashed border-forest/20" />
+      <div className="absolute inset-[12%] rounded-full border border-ambre/35" />
+      <div className="absolute inset-[24%] rounded-full border border-dashed border-ambre/40" />
 
       {/* Chevalet de table avec le QR code imprimé */}
       <div className="float-soft absolute left-[2%] top-[20%] w-[42%]">
-        <div className="relative rotate-[-6deg] rounded-2xl bg-white p-3 shadow-[0_24px_50px_rgba(37,99,235,0.18)] ring-1 ring-line">
+        <div className="relative rotate-[-6deg] rounded-2xl bg-white p-3 shadow-[0_24px_50px_rgba(23,23,26,0.18)] ring-1 ring-line">
           <p className="text-center text-[9px] font-semibold uppercase tracking-[0.2em] text-sage">
             Scannez-moi
           </p>
@@ -92,7 +92,7 @@ export default function HeroVisual() {
                 ].map(({ icon: Icon, label }) => (
                   <span
                     key={label}
-                    className="flex flex-col items-center gap-1 rounded-lg bg-leaf py-2 text-[8.5px] font-semibold text-forest"
+                    className="flex flex-col items-center gap-1 rounded-lg bg-leaf py-2 text-[8.5px] font-semibold text-ambre-deep"
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {label}
@@ -129,7 +129,7 @@ export default function HeroVisual() {
       </div>
 
       {/* Bulles flottantes */}
-      <div className="float-slow absolute bottom-[14%] left-[6%] flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_14px_34px_rgba(37,99,235,0.18)] ring-1 ring-line [animation-delay:-2s]">
+      <div className="float-slow absolute bottom-[14%] left-[6%] flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_14px_34px_rgba(23,23,26,0.18)] ring-1 ring-line [animation-delay:-2s]">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
           <Check className="h-4 w-4" />
         </span>
@@ -139,8 +139,8 @@ export default function HeroVisual() {
         </span>
       </div>
 
-      <div className="float-soft absolute bottom-[4%] right-[10%] flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_14px_34px_rgba(37,99,235,0.18)] ring-1 ring-line [animation-delay:-4s]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-leaf text-forest">
+      <div className="float-soft absolute bottom-[4%] right-[10%] flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_14px_34px_rgba(23,23,26,0.18)] ring-1 ring-line [animation-delay:-4s]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-leaf text-ambre-deep">
           <RefreshCw className="h-3.5 w-3.5" />
         </span>
         <span>

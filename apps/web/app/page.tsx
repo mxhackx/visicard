@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Header from "../components/header";
+import { SITE } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: { absolute: SITE.title },
+  alternates: { canonical: "/" },
+};
 import Hero from "../components/hero";
 import AudienceStrip from "../components/audience-strip";
 import ServicesSection from "../components/services-section";

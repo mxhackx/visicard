@@ -1,4 +1,5 @@
 import {
+  HttpCode,
   Req,
   Controller,
   Get, Delete,
@@ -15,6 +16,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import 'multer';
 import { CardsService } from './cards.service';
@@ -65,6 +67,11 @@ export class CreateCardDto {
   cardLayout?: string;
   qrStyle?: string;
 }
+/** Cookie de la requête (cookie-parser), sans `any`. */
+function cookieOf(req: Request, name: string): string | null {
+  return (req as Request & { cookies?: Record<string, string> }).cookies?.[name] ?? null;
+}
+
 @Controller('cards')
 export class CardsController {
   constructor(
@@ -118,8 +125,8 @@ export class CardsController {
     @Body() body?: CreateCardDto,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'];
+    if (!token) {
+      token = cookieOf(req, 'access_token');
     }
     if (!token) {
       throw new UnauthorizedException("Authentification requise pour générer un QR code.");
@@ -196,7 +203,7 @@ export class CardsController {
   ) {
     // Ancienne route publique : elle créait des QR actifs sans paiement. Réservée à l'admin.
     let adminToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!adminToken && (req as any).cookies) adminToken = (req as any).cookies['access_token'];
+    if (!adminToken) adminToken = cookieOf(req, 'access_token');
     if (!adminToken || !(await this.authService.validateAdminToken(adminToken))) {
       throw new ForbiddenException("Les QR codes clients se créent via une commande (devis puis paiement).");
     }
@@ -221,8 +228,8 @@ export class CardsController {
     // Associe le QR code au compte connecté s'il existe, sans obliger à se connecter.
     let ownerId: string | null = null;
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
+    if (!token) {
+      token = cookieOf(req, 'access_token') ?? cookieOf(req, 'refresh_token') ?? null;
     }
     if (token) {
       const { valid, user } = await this.authService.validateToken(token);
@@ -264,8 +271,8 @@ export class CardsController {
   @Get()
   async getAllCards(@Req() req: Request, @Headers('authorization') authHeader?: string) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'];
+    if (!token) {
+      token = cookieOf(req, 'access_token');
     }
     if (!token) {
       throw new UnauthorizedException('Accès réservé aux administrateurs. Token d’authentification manquant.');
@@ -284,8 +291,8 @@ export class CardsController {
     @Headers('authorization') authHeader?: string,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
+    if (!token) {
+      token = cookieOf(req, 'access_token') ?? cookieOf(req, 'refresh_token') ?? null;
     }
     if (!token) {
       throw new UnauthorizedException('Connectez-vous pour retrouver vos QR codes.');
@@ -309,8 +316,8 @@ export class CardsController {
     @Body() body: UpdateCardDto,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'];
+    if (!token) {
+      token = cookieOf(req, 'access_token');
     }
     if (!token) {
       throw new UnauthorizedException('Accès réservé aux administrateurs. Token d’authentification manquant.');
@@ -368,6 +375,14 @@ export class CardsController {
     res.setHeader('Content-Disposition', `attachment; filename="${fileData.filename}"`);
     res.send(fileData.buffer);
   }
+  /** Compte une ouverture de la page publique (appelée par /c/[slug], une fois par session). */
+  @Post(':slug/scan')
+  @HttpCode(204)
+  @Throttle({ short: { limit: 30, ttl: 60_000 } })
+  async recordScan(@Param('slug') slug: string, @Headers('user-agent') userAgent?: string) {
+    await this.cardsService.recordScan(slug, userAgent);
+  }
+
   @Get(':slug')
   async getCard(@Param('slug') slug: string) {
     return this.cardsService.getCardBySlug(slug);
@@ -380,8 +395,8 @@ export class CardsController {
     @Headers('authorization') authHeader: string | undefined,
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    if (!token && (req as any).cookies) {
-      token = (req as any).cookies['access_token'] ?? (req as any).cookies['refresh_token'] ?? null;
+    if (!token) {
+      token = cookieOf(req, 'access_token') ?? cookieOf(req, 'refresh_token') ?? null;
     }
     if (!token) {
       throw new UnauthorizedException("Token d'authentification manquant");

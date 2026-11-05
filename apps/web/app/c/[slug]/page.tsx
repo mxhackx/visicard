@@ -1,5 +1,6 @@
 "use client";
 import RestaurantCardLayout from "../../../components/RestaurantCardLayout";
+import type { ScheduleDay } from "@/components/card-themes/kit";
 import MediaCardView from "../../../components/media-card-view";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -26,12 +27,12 @@ interface CardData {
   xUrl?: string | null;
   snapchatUrl?: string | null;
   additionalInfo?: string | null;
-  schedule?: any;
+  schedule?: Record<string, ScheduleDay>;
   themeId?: string | null;
   cardLayout?: string | null;
   qrStyle?: string | null;
   createdAt: string;
-  status?: "draft" | "active";
+  status?: "draft" | "active" | "rejected";
 }
 
 export default function CardViewPage() {
@@ -56,6 +57,7 @@ export default function CardViewPage() {
         return res.json();
       })
       .then((data: CardData) => {
+        if (data.status !== "draft" && data.status !== "rejected") recordScan(apiUrl, slug);
         if (isMounted) {
           setCard(data);
           setLoading(false);
@@ -86,19 +88,23 @@ export default function CardViewPage() {
   }
 
   // Commande pas encore payée : le contenu n'est pas publié.
-  if (card?.status === "draft") {
+  if (card?.status === "draft" || card?.status === "rejected") {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans p-6 text-center">
         <div className="surface max-w-md w-full p-8">
-          <div className="w-14 h-14 bg-leaf text-forest rounded-xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 bg-leaf text-ambre-deep rounded-xl flex items-center justify-center mx-auto mb-4">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
               <rect x="5" y="11" width="14" height="9" rx="2" />
               <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-ink/90 mb-2">QR code pas encore activé</h1>
+          <h1 className="text-xl font-semibold text-ink/90 mb-2">
+            {card.status === "rejected" ? "QR code désactivé" : "QR code pas encore activé"}
+          </h1>
           <p className="text-sage mb-6">
-            Ce contenu sera visible dès que la commande associée aura été réglée.
+            {card.status === "rejected"
+              ? "Ce contenu n’est pas disponible pour le moment."
+              : "Ce contenu sera visible dès que la commande associée aura été réglée."}
           </p>
           <Link href="/" className="btn btn-primary">
             Découvrir Moncode
@@ -112,7 +118,7 @@ export default function CardViewPage() {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans p-6 text-center">
         <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-line">
-          <div className="w-14 h-14 bg-leaf text-forest rounded-xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 bg-leaf text-ambre-deep rounded-xl flex items-center justify-center mx-auto mb-4">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">
               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none" />
               <path d="M12 7v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -147,7 +153,6 @@ export default function CardViewPage() {
     );
   }
 
-  const cleanPhone = card.phoneNumber ? card.phoneNumber.replace(/\D/g, "") : null;
   const safeLocationUrl =
     card.locationUrl && (card.locationUrl.startsWith("http://") || card.locationUrl.startsWith("https://"))
       ? card.locationUrl
@@ -155,22 +160,15 @@ export default function CardViewPage() {
         ? `https://${card.locationUrl}`
         : null;
 
-  const themeClass = `restaurant-${card.themeId || "theme-1"}`;
-
   return (
-    <div
-      className={`min-h-screen w-full flex items-center justify-center font-sans ${themeClass}`}
-    >
-      <main
-        className="w-full sm:max-w-[420px] min-h-screen sm:min-h-[100dvh] relative bg-white sm:shadow-2xl sm:border-x border-slate-200 overflow-x-hidden"
-        style={{ backgroundColor: "var(--theme-bg)" }}
-      >
+    <div className="min-h-screen w-full font-sans [overflow-x:clip]">
+      <main className="relative min-h-[100dvh] w-full">
         <RestaurantCardLayout
           restaurantName={card.restaurantName || ""}
           address={card.address || undefined}
           logoUrl={card.logoUrl || undefined}
           locationUrl={safeLocationUrl || undefined}
-          phoneNumber={cleanPhone || undefined}
+          phoneNumber={card.phoneNumber || undefined}
           facebookUrl={card.facebookUrl || undefined}
           instagramUrl={card.instagramUrl || undefined}
           xUrl={card.xUrl || undefined}
@@ -180,8 +178,22 @@ export default function CardViewPage() {
           menuImages={card.menuImages || []}
           placeImages={card.placeImages || []}
           layout={card.cardLayout || "classic"}
+          tagline={card.title || undefined}
+          themeId={card.themeId || undefined}
         />
       </main>
     </div>
   );
+}
+
+/** Une visite = un scan, compté une fois par session de navigation. */
+function recordScan(apiUrl: string, slug: string) {
+  try {
+    const key = `moncode-scan-${slug}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // Stockage indisponible (navigation privée stricte) : on compte quand même.
+  }
+  fetch(`${apiUrl}/cards/${encodeURIComponent(slug)}/scan`, { method: "POST", keepalive: true }).catch(() => {});
 }

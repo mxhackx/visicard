@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Nous Contacter — Support Moncode",
-  description: "Contactez notre équipe Moncode par email, téléphone ou WhatsApp. Support disponible lun-ven 9h-18h. Réponse en moins de 24h.",
-  keywords: "contact, support, moncode, email, téléphone, whatsapp",
+  title: "Contact",
+  description:
+    "Contactez l’équipe Moncode à Cotonou par WhatsApp, téléphone ou e-mail, du lundi au vendredi de 9 h à 18 h. Réponse sous 24 h ouvrées.",
+  alternates: { canonical: "/contact" },
+  openGraph: { url: "/contact", title: "Contacter Moncode" },
 };
 
 export default function ContactLayout({ children }: { children: React.ReactNode }) {

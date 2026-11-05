@@ -35,16 +35,21 @@ export function cardFileFilter(
     return callback(null, true);
   }
 
-  if (!type.startsWith('image/')) {
+  // Images de page : converties en WebP par sharp, qui ne lit pas le HEIC des iPhone.
+  if (!PAGE_IMAGE_TYPES.includes(type)) {
     return callback(
       new BadRequestException(
-        `Le fichier "${file.originalname}" n'est pas une image valide (PNG, JPG, WEBP).`,
+        type === 'image/heic' || type === 'image/heif'
+          ? `« ${file.originalname} » est au format HEIC (iPhone) : exportez-la en JPG ou PNG.`
+          : `« ${file.originalname} » n'est pas une image prise en charge (JPG, PNG, WEBP).`,
       ),
       false,
     );
   }
   return callback(null, true);
 }
+
+const PAGE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
 
 /** Champs de fichiers acceptés à la création ou à la modification d'un contenu. */
 export const CARD_FILE_FIELDS = [

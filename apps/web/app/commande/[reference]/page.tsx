@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import OrderView from "@/components/order/order-view";
 
 export const metadata: Metadata = {
-  title: "Votre commande — Moncode",
+  title: "Votre commande",
   robots: { index: false, follow: false },
 };
 

@@ -103,7 +103,7 @@ export default function PricingSection() {
         </div>
 
         <article
-          className="brand-surface mt-6 overflow-hidden rounded-[var(--radius-card)] shadow-[0_22px_50px_rgba(29,78,216,0.3)]"
+          className="brand-surface mt-6 overflow-hidden rounded-[var(--radius-card)] shadow-[0_22px_50px_rgba(23,23,26,0.1)]"
           data-reveal
         >
           <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:p-10">
@@ -147,7 +147,7 @@ export default function PricingSection() {
           </div>
         </article>
 
-        <p className="mt-10 border-l-2 border-forest/40 pl-4 text-[15px] leading-7 text-sage">
+        <p className="mt-10 border-l-2 border-ambre/60 pl-4 text-[15px] leading-7 text-sage">
           Paiement par Mobile Money ou virement. Facture établie à votre nom. Un QR code déjà
           imprimé continue de fonctionner même si vous faites évoluer la page.
         </p>

@@ -5,8 +5,9 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
-  Download,
   ExternalLink,
+  Paintbrush,
+  ScanLine,
   Loader2,
   Pencil,
   RotateCcw,
@@ -18,6 +19,9 @@ import AdminEditCardModal from "./AdminEditCardModal";
 import type { CardSummary } from "./AdminCardsList";
 import { useAdminFetch } from "./use-admin-fetch";
 import ContentPreview from "@/components/order/content-preview";
+import StyledQr from "@/components/qr/styled-qr";
+import QrDesigner from "@/components/qr/qr-designer";
+import { BarChart, MeterList } from "./charts";
 import { fcfa, formatDate, STATUS_LABELS, type CardPreview, type OrderStatus } from "@/lib/orders";
 
 interface DetailOrder {
@@ -50,6 +54,8 @@ interface CardDetail extends CardPreview {
   workDone: string | null;
   amountReceived: number | null;
   qrCode: string | null;
+  qrStyle?: string | null;
+  scans?: { total: number; last30: number; days: { date: string; count: number }[]; byDevice: Record<string, number> };
   orders: DetailOrder[];
 }
 
@@ -101,7 +107,9 @@ function DetailBody({ slug, adminToken }: { slug: string; adminToken: string }) 
   }, [adminFetch, slug]);
 
   useEffect(() => {
-    load();
+    // Chargement différé d'un tour : l'état n'est jamais modifié pendant l'effet lui-même.
+    const id = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(id);
   }, [load]);
 
   const restore = async () => {
@@ -204,20 +212,7 @@ function DetailBody({ slug, adminToken }: { slug: string; adminToken: string }) 
         </div>
 
         <div className="space-y-6">
-          {card.qrCode && (
-            <div className="surface flex items-center gap-5 p-5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={card.qrCode} alt="QR code" className="h-28 w-28 rounded-xl border border-line bg-white p-2" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink/90">QR code actif</p>
-                <p className="truncate text-xs text-sage">{card.cardUrl}</p>
-                <a href={card.qrCode} download={`moncode-${card.slug}.png`} className="btn btn-outline btn-sm mt-3">
-                  <Download className="h-4 w-4" /> Télécharger
-                </a>
-              </div>
-            </div>
-          )}
-
+          <QrPanel card={card} adminFetch={adminFetch} onSaved={load} />
           <div className="surface p-5">
             <p className="text-sm font-semibold text-ink/90">Informations</p>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -232,6 +227,8 @@ function DetailBody({ slug, adminToken }: { slug: string; adminToken: string }) 
           </div>
         </div>
       </div>
+
+      {card.scans && <ScansPanel scans={card.scans} />}
 
       <div className="surface overflow-hidden">
         <div className="border-b border-line px-5 py-3 text-sm font-semibold text-ink/90">
@@ -286,6 +283,143 @@ function DetailBody({ slug, adminToken }: { slug: string; adminToken: string }) 
             setCard(next);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+const DEVICE_LABELS: Record<string, string> = { ios: "iPhone / iPad", android: "Android", desktop: "Ordinateur", other: "Autre" };
+
+function ScansPanel({ scans }: { scans: NonNullable<CardDetail["scans"]> }) {
+  const data = scans.days.map((d) => {
+    const date = new Date(`${d.date}T12:00:00`);
+    return {
+      label: date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+      title: date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }),
+      value: d.count,
+      display: `${d.count} scan${d.count > 1 ? "s" : ""}`,
+    };
+  });
+  return (
+    <div className="surface p-5 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-semibold text-ink/90">
+            <ScanLine className="h-4 w-4 text-forest" /> Scans
+          </p>
+          <p className="mt-1 text-sm text-sage">Ouvertures de la page, une par visiteur et par session.</p>
+        </div>
+        <div className="flex gap-6 text-right">
+          <div>
+            <p className="text-2xl font-semibold tabular-nums text-ink/90">{scans.last30}</p>
+            <p className="text-xs text-sage">30 derniers jours</p>
+          </div>
+          <div>
+            <p className="text-2xl font-semibold tabular-nums text-ink/90">{scans.total}</p>
+            <p className="text-xs text-sage">depuis la création</p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_260px]">
+        <BarChart data={data} height={140} labelEvery={7} ariaLabel="Scans par jour sur 30 jours" />
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-sage">Appareils (30 jours)</p>
+          <MeterList
+            items={Object.entries(scans.byDevice)
+              .sort((a, b) => b[1] - a[1])
+              .map(([device, value]) => ({ label: DEVICE_LABELS[device] ?? device, value }))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QrPanel({
+  card,
+  adminFetch,
+  onSaved,
+}: {
+  card: CardDetail;
+  adminFetch: ReturnType<typeof useAdminFetch>;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(card.qrStyle ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const url = card.cardUrl ?? "";
+  const logo = card.serviceType === "page" ? card.logoUrl : null;
+
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await adminFetch(`/cards/${card.slug}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrStyle: draft }),
+      });
+      if (!res.ok) throw new Error("Enregistrement impossible.");
+      setEditing(false);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!url) return null;
+
+  return (
+    <div className="surface p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-ink/90">QR code</p>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            card.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {card.status === "active" ? "Actif" : card.status === "draft" ? "Inactif avant paiement" : "Désactivé"}
+        </span>
+      </div>
+
+      {editing ? (
+        <div className="mt-4 space-y-4">
+          <QrDesigner value={draft} onChange={setDraft} data={url} logoUrl={logo} />
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => { setEditing(false); setDraft(card.qrStyle ?? ""); }} className="btn btn-outline btn-sm">
+              Annuler
+            </button>
+            <button type="button" onClick={save} disabled={busy} className="btn btn-primary btn-sm">
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer le style
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+          <StyledQr
+            data={url}
+            style={card.qrStyle}
+            logoUrl={logo}
+            size={168}
+            downloadName={card.status === "active" ? `moncode-${card.slug}` : undefined}
+            className="w-[168px] shrink-0"
+          />
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <p className="break-all text-xs text-sage">{url}</p>
+            <p className="mt-2 text-xs leading-5 text-sage">
+              {card.status === "active"
+                ? "PNG 1200 px pour l’impression, SVG pour les grands formats."
+                : "Le téléchargement sera possible dès que le QR code sera actif."}
+            </p>
+            <button type="button" onClick={() => setEditing(true)} className="btn btn-outline btn-sm mt-3">
+              <Paintbrush className="h-4 w-4" /> Personnaliser
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -369,7 +503,7 @@ function RejectDialog({
               key={preset}
               type="button"
               onClick={() => setReason(preset)}
-              className="rounded-full border border-line px-2.5 py-1 text-xs text-ink/75 hover:border-forest/40 hover:text-forest"
+              className="rounded-full border border-line px-2.5 py-1 text-xs text-ink/75 hover:border-ambre/60 hover:text-forest"
             >
               {preset}
             </button>

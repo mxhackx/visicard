@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ConnexionForm from "@/components/connexion-form";
 
 export const metadata: Metadata = {
-  title: "Connexion administrateur — Moncode",
+  title: "Connexion administrateur",
   robots: { index: false, follow: false },
 };
 

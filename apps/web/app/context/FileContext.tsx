@@ -79,9 +79,9 @@ const initialRestaurantInfo: RestaurantInfo = {
 };
 
 const initialCustomization: CustomizationInfo = {
-  themeId: "theme-1",
+  themeId: "",
     cardLayout: "classic",
-  qrStyle: "style-1",
+  qrStyle: "",
 };
 
 interface FileContextType {

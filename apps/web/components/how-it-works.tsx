@@ -48,14 +48,15 @@ export default function HowItWorks() {
           </div>
 
           <div className="surface overflow-hidden" data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
-            {/* Photo : Unsplash (licence libre), stockée dans public/images. */}
+            {/* Illustration unDraw (licence libre), stockée dans public/illustrations. */}
             <div className="relative aspect-[16/9] bg-cream-deep">
               <Image
-                src="/images/scan-qr.jpg"
-                alt="Une main tient un téléphone qui affiche un QR code"
+                src="/illustrations/scan-qr.svg"
+                alt="Un téléphone scanne un QR code"
                 fill
+                unoptimized
                 sizes="(max-width: 1024px) 100vw, 440px"
-                className="object-cover object-[center_40%]"
+                className="object-contain p-6"
               />
             </div>
             <div className="p-6 sm:p-8">
@@ -107,7 +108,7 @@ function Track({
       <ol className="mt-7 space-y-7">
         {items.map((item, idx) => (
           <li key={item.title} className="flex gap-5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-leaf text-sm font-semibold text-forest">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-leaf text-sm font-semibold text-ambre-deep">
               {String(idx + 1).padStart(2, "0")}
             </span>
             <div>
@@ -119,7 +120,7 @@ function Track({
       </ol>
 
       {!compact && (
-        <p className="mt-7 border-l-2 border-forest/40 pl-4 text-[15px] leading-7 text-sage">
+        <p className="mt-7 border-l-2 border-ambre/60 pl-4 text-[15px] leading-7 text-sage">
           <UploadCloud className="mb-1 inline h-4 w-4 text-ink" /> Vos fichiers restent accessibles
           depuis votre espace client, avec leur QR code.
         </p>

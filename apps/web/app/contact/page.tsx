@@ -7,7 +7,7 @@ export default function ContactPage() {
     <main className="min-h-screen">
       <Header />
       <div className="header-spacer"></div>
-      <ContactSection />
+      <ContactSection headingLevel="h1" />
       <Footer />
     </main>
   );

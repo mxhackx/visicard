@@ -166,7 +166,7 @@ export default function AdminEditCardModal({ card, adminToken, onClose, onSucces
             </div>
 
             {!isPage && (
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-forest/40 bg-leaf/40 p-4 transition-colors hover:bg-leaf">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-ambre/60 bg-leaf/40 p-4 transition-colors hover:bg-leaf">
                 <ImagePlus className="h-5 w-5 shrink-0 text-forest" />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-ink/85">
@@ -208,7 +208,7 @@ export default function AdminEditCardModal({ card, adminToken, onClose, onSucces
                       </button>
                     </div>
                   ))}
-                  <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-forest/40 bg-leaf/60 text-forest transition-colors hover:bg-leaf">
+                  <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-ambre/60 bg-leaf/60 text-ambre-deep transition-colors hover:bg-leaf">
                     <ImagePlus className="h-5 w-5" />
                     <span className="sr-only">Ajouter des images</span>
                     <input
@@ -257,12 +257,12 @@ function ImageInput({
 }) {
   const preview = file ? URL.createObjectURL(file) : current;
   return (
-    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 transition-colors hover:border-forest/40">
+    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 transition-colors hover:border-ambre/60">
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={preview} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-line object-cover" />
       ) : (
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-leaf text-forest">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-leaf text-ambre-deep">
           <ImagePlus className="h-5 w-5" />
         </span>
       )}

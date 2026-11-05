@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BadgeCheck, Check, RefreshCw } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check } from "lucide-react";
 
 // Photo : Unsplash (licence libre, usage commercial autorisé), stockée dans public/images.
-const HERO_IMAGE = "/images/hero-comptoir.jpg";
+/** Illustration unDraw (licence libre, sans attribution), recolorée au rouge du site. */
+const HERO_IMAGE = "/illustrations/menu-telephone.svg";
 
 export default function Hero() {
   return (
@@ -56,19 +57,20 @@ export default function Hero() {
 function HeroPhoto() {
   return (
     <div className="relative" data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-white shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-[calc(var(--radius-card)+0.5rem)] border border-line bg-cream shadow-[0_24px_60px_rgba(23,23,26,0.1)]">
         <Image
           src={HERO_IMAGE}
-          alt="Une cliente présente son téléphone au comptoir d'une boutique"
+          alt="Un menu de restaurant ouvert sur un téléphone, prêt à commander"
           fill
           priority
+          unoptimized
           sizes="(max-width: 1024px) 100vw, 560px"
-          className="object-cover"
+          className="object-contain p-8 sm:p-12"
         />
       </div>
 
-      <div className="absolute -bottom-5 left-4 flex items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2.5 shadow-[0_14px_34px_rgba(37,99,235,0.16)] sm:-left-6">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white">
+      <div className="absolute -bottom-5 left-4 flex items-center gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-2.5 shadow-[0_14px_34px_rgba(23,23,26,0.1)] sm:-left-6">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-white">
           <Check className="h-4 w-4" />
         </span>
         <span>
@@ -77,15 +79,6 @@ function HeroPhoto() {
         </span>
       </div>
 
-      <div className="absolute -top-5 right-4 hidden items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2.5 shadow-[0_14px_34px_rgba(37,99,235,0.16)] sm:flex sm:-right-4">
-        <span className="icon-tile h-8 w-8">
-          <RefreshCw className="h-4 w-4" />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold text-ink/90">Contenu mis à jour</span>
-          <span className="block text-xs text-sage">Le QR code reste le même</span>
-        </span>
-      </div>
     </div>
   );
 }
