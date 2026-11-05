@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api-url";
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,7 @@ export default function ConnexionForm({ next }: { next: string }) {
     setError(null);
 
     setIsLoading(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
 
     try {
       const endpoint = "/auth/login";

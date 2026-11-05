@@ -4,7 +4,9 @@
  * Le jeton du lien privé est gardé dans le navigateur et envoyé dans l'en-tête
  * `X-Order-Key` ; il n'apparaît jamais dans les URL envoyées à l'API.
  */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+import { API_URL } from "./api-url";
+
+export { API_URL };
 
 export type OrderStatus = "quote" | "pending" | "paid" | "cancelled";
 

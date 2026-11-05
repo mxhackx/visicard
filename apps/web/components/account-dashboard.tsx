@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api-url";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -59,7 +60,7 @@ export default function AccountDashboard() {
   }, [isAuthLoading, isAuthed, router]);
 
   const loadCards = useCallback(async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
 
     const request = (token: string | null) =>
       fetch(`${apiUrl}/cards/mine`, {
@@ -135,7 +136,7 @@ export default function AccountDashboard() {
     setDeleting(card.slug);
     setError(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
 
     const request = (token: string | null) =>
       fetch(`${apiUrl}/cards/${card.slug}`, {
@@ -170,7 +171,7 @@ export default function AccountDashboard() {
   };
 
   const handleLogout = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
     try {
       await fetch(`${apiUrl}/auth/logout`, {
         method: "POST",

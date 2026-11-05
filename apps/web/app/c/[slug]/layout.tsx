@@ -1,3 +1,4 @@
+import { API_URL } from "@/lib/api-url";
 import type { Metadata } from "next";
 import { SITE, SITE_URL } from "@/lib/site";
 
@@ -7,7 +8,6 @@ import { SITE, SITE_URL } from "@/lib/site";
  * partage (WhatsApp, Facebook…) et données structurées « LocalBusiness ».
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
 
 interface PublicCard {
   slug: string;

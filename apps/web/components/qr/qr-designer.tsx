@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, Check, ImageIcon, RotateCcw, ScanLine } from "lucide-react";
 import StyledQr from "./styled-qr";
+import { SITE_URL } from "@/lib/site";
 import {
   DEFAULT_QR_STYLE,
   QR_CORNERS,
@@ -24,7 +25,7 @@ const HEX = /^#[0-9a-f]{6}$/i;
 export default function QrDesigner({
   value,
   onChange,
-  data = "https://moncode.bj/c/apercu",
+  data = `${SITE_URL}/c/apercu`,
   logoUrl,
   brandColor,
   downloadName,

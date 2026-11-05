@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from "@/lib/api-url";
 import RestaurantCardLayout from "../../../components/RestaurantCardLayout";
 import type { ScheduleDay } from "@/components/card-themes/kit";
 import MediaCardView from "../../../components/media-card-view";
@@ -47,7 +48,7 @@ export default function CardViewPage() {
     if (!slug) return;
 
     let isMounted = true;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
 
     fetch(`${apiUrl}/cards/${slug}`)
       .then(async (res) => {

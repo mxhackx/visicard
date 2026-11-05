@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api-url";
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export type UserRole = "user" | "admin" | null;
@@ -259,7 +260,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+      const apiUrl = API_URL;
       const res = await fetch(`${apiUrl}/auth/refresh`, {
       credentials: 'include',
         method: "POST",

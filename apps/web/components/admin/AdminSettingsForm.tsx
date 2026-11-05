@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api-url";
 import { useState, FormEvent } from "react";
 import { Lock, Mail, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -31,7 +32,7 @@ export default function AdminSettingsForm({ adminToken }: AdminSettingsFormProps
     }
 
     setIsUpdatingCreds(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+    const apiUrl = API_URL;
 
     try {
       const res = await fetch(`${apiUrl}/auth/admin/credentials`, {

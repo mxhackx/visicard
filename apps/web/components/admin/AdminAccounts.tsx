@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api-url";
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -30,7 +31,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500";
+  const apiUrl = API_URL;
 
   const request = useCallback(
     async (path: string, init?: RequestInit, token = adminToken): Promise<Response> => {
