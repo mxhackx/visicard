@@ -1,0 +1,82 @@
+# Blueprint Render : API NestJS (apps/api) + base PostgreSQL.
+# Le site (apps/web) reste sur Vercel.
+#
+# Utilisation : Render > New > Blueprint > choisir ce dépôt. Render demande les
+# variables marquées `sync: false` (à saisir une seule fois, jamais commitées).
+
+databases:
+  - name: moncode-db
+    region: frankfurt
+    # Le plan « free » est supprimé après 30 jours : à ne pas utiliser en production.
+    plan: basic-256mb
+    databaseName: moncode
+    user: moncode
+
+services:
+  - type: web
+    name: moncode-api
+    runtime: node
+    region: frankfurt # même région que la base
+    # Un disque persistant exige un plan payant (starter minimum).
+    plan: starter
+    rootDir: apps/api
+    # Le dépôt est un monorepo npm : on installe depuis la racine, puis on bâtit l'API
+    # (le script `build` génère aussi le client Prisma).
+    buildCommand: npm install --prefix=../.. && npm run build
+    # Avant chaque démarrage : crée/met à jour les tables, puis réaligne le compte admin
+    # sur ADMIN_EMAIL / ADMIN_PASSWORD (le seed est idempotent).
+    preDeployCommand: npm run db:push && npm run seed
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    autoDeploy: true
+
+    # Fichiers envoyés (logos, menus, PDF, vidéos). L'API les écrit dans ./uploads
+    # quand Supabase Storage n'est pas configuré. Sans disque, ils sont perdus à
+    # chaque déploiement. Si vous passez à Supabase Storage, ce bloc devient inutile.
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/apps/api/uploads
+      sizeGB: 5
+
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+
+      # Base de données : fournie automatiquement par Render.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moncode-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: moncode-db
+          property: connectionString
+
+      # Signature des sessions : générée par Render, stable d'un déploiement à l'autre.
+      - key: AUTH_SECRET
+        generateValue: true
+
+      # Adresse publique du SITE sur Vercel, avec https:// et sans barre finale.
+      # Elle sert aux CORS et aux liens des QR codes.
+      - key: APP_URL
+        sync: false
+      # Adresse publique de CETTE API (https://moncode-api.onrender.com, ou votre
+      # domaine). Elle sert aux URL des fichiers envoyés.
+      - key: API_URL
+        sync: false
+
+      # Compte administrateur créé par le seed.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # Supabase Storage (facultatif). Laisser vide pour utiliser le disque ci-dessus.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: cards

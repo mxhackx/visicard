@@ -14,4 +14,7 @@ if (!fromEnv && process.env.NODE_ENV === "production") {
 }
 
 /** Sans barre finale : `${API_URL}/cards` ne produit jamais `//cards`. */
-export const API_URL = (fromEnv || LOCAL_API).replace(/\/+$/, "");
+const withScheme = (url: string) =>
+  /^https?:\/\//i.test(url) ? url : `${url.startsWith("localhost") ? "http" : "https"}://${url}`;
+
+export const API_URL = withScheme(fromEnv || LOCAL_API).replace(/\/+$/, "");

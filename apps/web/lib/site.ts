@@ -5,7 +5,13 @@ import { CONTACT } from "./contact";
  * structurées. L'adresse publique vient de NEXT_PUBLIC_SITE_URL (à définir en
  * production) ; à défaut, l'URL de déploiement actuelle.
  */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://moncode-web.vercel.app").replace(/\/$/, "");
+/** Ajoute `https://` si la variable n'a pas de schéma (`monsite.com` → `https://monsite.com`). */
+export function withScheme(url: string): string {
+  const t = url.trim();
+  return /^https?:\/\//i.test(t) ? t : `${t.startsWith("localhost") ? "http" : "https"}://${t}`;
+}
+
+export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://moncode-web.vercel.app").replace(/\/+$/, "");
 
 export const SITE = {
   name: CONTACT.brand,
