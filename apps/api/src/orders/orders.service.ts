@@ -1,10 +1,24 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { Order, Prisma } from '@prisma/client';
+import { Order, Payment, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
+import { FedapayService } from './payments/fedapay.service';
 import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
+
+/** Preuve d'accès à une commande : le lien privé (jeton) ou le compte propriétaire. */
+export interface OrderAccess {
+  token?: string;
+  userId?: string;
+}
 
 export interface CustomerInput {
   customerName?: string;
@@ -25,18 +39,29 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cards: CardsService,
+    private readonly fedapay: FedapayService,
   ) {}
 
   /* ------------------------------------------------------------------ */
   /* Création : contenu en aperçu + devis                               */
   /* ------------------------------------------------------------------ */
 
-  async createOrder(serviceType: unknown, customer: CustomerInput, files: UploadedCardFiles, metadata: CardMetadata) {
+  async createOrder(
+    serviceType: unknown,
+    customer: CustomerInput,
+    files: UploadedCardFiles,
+    metadata: CardMetadata,
+    userId?: string | null,
+  ) {
     if (!isServiceType(serviceType)) throw new BadRequestException('Service inconnu.');
     const buyer = this.validateCustomer(customer);
     assertOrderContent(serviceType, metadata, files);
 
-    const created = await this.cards.createCard(files, { ...metadata, serviceType, clientName: buyer.name }, null, {
+    // Un contenu mis en ligne exige un compte : c'est lui qui retrouve ensuite ses QR codes.
+    if (serviceType !== 'direct' && !userId) {
+      throw new UnauthorizedException('Connectez-vous ou créez un compte pour mettre votre QR code en ligne.');
+    }
+    const created = await this.cards.createCard(files, { ...metadata, serviceType, clientName: buyer.name }, userId ?? null, {
       status: 'draft',
     });
     try {
@@ -46,6 +71,7 @@ export class OrdersService {
         serviceType,
         cardId: card.id,
         buyer,
+        userId: userId ?? null,
         items: itemsFor('creation', serviceType),
       });
     } catch (err) {
@@ -56,8 +82,11 @@ export class OrdersService {
   }
 
   /** Une modification = un nouveau devis ; elle n'est appliquée qu'une fois payée. */
-  async createModification(reference: string, token: string, files: UploadedCardFiles, metadata: CardMetadata) {
-    const parent = await this.authorize(reference, token);
+  async createModification(reference: string, access: OrderAccess, files: UploadedCardFiles, metadata: CardMetadata) {
+    const parent = await this.authorize(reference, access);
+    if (parent.serviceType === 'direct') {
+      throw new ConflictException('Un QR code direct ne se modifie pas : commandez-en un nouveau.');
+    }
     if (parent.status !== 'paid') {
       throw new ConflictException('Le QR code doit être payé avant de pouvoir être modifié.');
     }
@@ -71,6 +100,7 @@ export class OrdersService {
       cardId: card.id,
       parentId: parent.id,
       buyer: { name: parent.customerName, phone: parent.customerPhone, email: parent.customerEmail },
+      userId: parent.userId,
       items: itemsFor('modification', service),
       pendingChanges: toJson(changes),
     });
@@ -82,6 +112,7 @@ export class OrdersService {
     cardId: bigint;
     parentId?: string;
     buyer: { name: string; phone: string; email?: string | null };
+    userId?: string | null;
     items: OrderItem[];
     pendingChanges?: Prisma.InputJsonValue;
   }) {
@@ -99,6 +130,7 @@ export class OrdersService {
         customerName: input.buyer.name,
         customerPhone: input.buyer.phone,
         customerEmail: input.buyer.email ?? null,
+        userId: input.userId ?? null,
         accessTokenHash: hashToken(accessToken),
         quoteNumber,
         cardId: input.cardId,
@@ -113,8 +145,8 @@ export class OrdersService {
   /* Lecture par le client (lien privé)                                  */
   /* ------------------------------------------------------------------ */
 
-  async getForCustomer(reference: string, token: string) {
-    const order = await this.authorize(reference, token);
+  async getForCustomer(reference: string, access: OrderAccess) {
+    const order = await this.authorize(reference, access);
     return this.present(order);
   }
 
@@ -158,12 +190,101 @@ export class OrdersService {
         : null,
       modifications: children,
       pendingChanges: order.kind === 'modification' ? order.pendingChanges : null,
+      /** Le paiement en ligne n'est proposé que si FedaPay est configuré. */
+      payment: { online: this.fedapay.configured },
     };
   }
 
   /* ------------------------------------------------------------------ */
-  /* Paiement : réglé sur WhatsApp, confirmé par un administrateur       */
+  /* Paiement en ligne (FedaPay) ; repli : WhatsApp + « Encaisser » admin */
   /* ------------------------------------------------------------------ */
+
+  /** Crée la transaction FedaPay et renvoie l'adresse de la page de paiement. */
+  async startPayment(reference: string, access: OrderAccess) {
+    const order = await this.authorize(reference, access);
+    if (order.status === 'paid') throw new ConflictException('Cette commande est déjà payée.');
+    if (order.status === 'cancelled') throw new ConflictException('Cette commande a été annulée.');
+    const card = await this.prisma.card.findUnique({ where: { id: order.cardId } });
+    if (card?.status === 'rejected') {
+      throw new ConflictException('Ce contenu a été refusé : contactez-nous avant de payer.');
+    }
+
+    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const checkout = await this.fedapay.createCheckout({
+      amount: order.amount,
+      description: `Moncode ${order.reference} · ${order.quoteNumber}`,
+      // Le lien secret n'est pas transmis à FedaPay : le navigateur le garde de son côté.
+      callbackUrl: `${appUrl}/commande/${order.reference}?paiement=fedapay`,
+      customer: { name: order.customerName, phone: order.customerPhone, email: order.customerEmail },
+    });
+    await this.prisma.$transaction([
+      this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          provider: 'fedapay',
+          providerRef: checkout.transactionId,
+          amount: order.amount,
+          currency: order.currency,
+          phone: order.customerPhone,
+        },
+      }),
+      this.prisma.order.update({ where: { id: order.id }, data: { status: 'pending' } }),
+    ]);
+    return { paymentUrl: checkout.paymentUrl };
+  }
+
+  /** Interroge FedaPay pour le dernier paiement en attente, puis renvoie la commande. */
+  async refreshPayment(reference: string, access: OrderAccess) {
+    const order = await this.authorize(reference, access);
+    if (order.status !== 'paid') {
+      const pending = await this.prisma.payment.findFirst({
+        where: { orderId: order.id, status: 'pending', provider: 'fedapay' },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (pending) await this.verifyWithProvider(pending);
+    }
+    const fresh = await this.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    return this.present(fresh);
+  }
+
+  /** Le statut ne vient jamais du navigateur : il est relu chez FedaPay. */
+  private async verifyWithProvider(payment: Payment) {
+    try {
+      const { status, amount, raw } = await this.fedapay.getStatus(payment.providerRef);
+      if (status === 'approved' || status === 'transferred') {
+        if (amount !== undefined && amount !== payment.amount) {
+          this.logger.error(`Montant FedaPay inattendu pour ${payment.id} : ${amount} ≠ ${payment.amount}`);
+          return;
+        }
+        await this.settle(payment, 'succeeded', raw);
+      } else if (['declined', 'canceled', 'refunded'].includes(status)) {
+        await this.settle(payment, 'failed', raw);
+      }
+    } catch (error) {
+      this.logger.warn(`Vérification FedaPay ${payment.providerRef} impossible : ${error}`);
+    }
+  }
+
+  private async settle(payment: Payment, status: 'succeeded' | 'failed', raw: unknown) {
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status, raw: (raw ?? Prisma.JsonNull) as Prisma.InputJsonValue },
+    });
+    if (status === 'succeeded') {
+      await this.markPaid(payment.orderId, payment.id);
+    } else {
+      await this.prisma.order.updateMany({ where: { id: payment.orderId, status: 'pending' }, data: { status: 'quote' } });
+    }
+  }
+
+  /** Webhook FedaPay : on ne se fie pas au corps reçu, on relit la transaction. */
+  async handleFedapayEvent(transactionId: string | number | undefined) {
+    if (!transactionId) return;
+    const payment = await this.prisma.payment.findUnique({
+      where: { provider_providerRef: { provider: 'fedapay', providerRef: String(transactionId) } },
+    });
+    if (payment && payment.status === 'pending') await this.verifyWithProvider(payment);
+  }
 
   /**
    * Passe la commande en payée (idempotent) : numéro de facture, puis activation
@@ -249,15 +370,58 @@ export class OrdersService {
   /* Outils                                                              */
   /* ------------------------------------------------------------------ */
 
-  private async authorize(reference: string, token: string): Promise<Order> {
+  private async authorize(reference: string, access: OrderAccess): Promise<Order> {
     const order = await this.prisma.order.findUnique({ where: { reference: reference.toUpperCase() } });
+    // Le compte propriétaire retrouve sa commande sans lien privé.
+    if (order && access.userId && order.userId === access.userId) return order;
     const expected = order ? Buffer.from(order.accessTokenHash, 'hex') : Buffer.alloc(32);
-    const given = Buffer.from(hashToken(token || ''), 'hex');
+    const given = Buffer.from(hashToken(access.token || ''), 'hex');
     // Comparaison à temps constant, y compris quand la référence n'existe pas.
     if (!order || !timingSafeEqual(expected, given)) {
       throw new NotFoundException('Commande introuvable ou lien invalide.');
     }
     return order;
+  }
+
+  /** Commandes d'un compte client, de la plus récente à la plus ancienne. */
+  async listForUser(userId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { userId, kind: 'creation' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    const cards = await this.prisma.card.findMany({
+      where: { id: { in: orders.map((o) => o.cardId) } },
+      select: { id: true, slug: true, title: true, restaurantName: true, status: true },
+    });
+    const byId = new Map(cards.map((c) => [String(c.id), c]));
+    // Ouvertures des pages publiques (page, image, vidéo, PDF) : total et 7 derniers jours.
+    const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const cardIds = cards.map((c) => c.id);
+    const [totals, recents] = cardIds.length
+      ? await Promise.all([
+          this.prisma.cardScan.groupBy({ by: ['cardId'], where: { cardId: { in: cardIds } }, _count: { _all: true } }),
+          this.prisma.cardScan.groupBy({ by: ['cardId'], where: { cardId: { in: cardIds }, createdAt: { gte: since7 } }, _count: { _all: true } }),
+        ])
+      : [[], []];
+    const totalBy = new Map(totals.map((t) => [String(t.cardId), t._count._all]));
+    const recentBy = new Map(recents.map((t) => [String(t.cardId), t._count._all]));
+    return orders.map((o) => {
+      const card = byId.get(String(o.cardId));
+      return {
+        scans: o.serviceType === 'direct' ? null : { total: totalBy.get(String(o.cardId)) ?? 0, last7: recentBy.get(String(o.cardId)) ?? 0 },
+        reference: o.reference,
+        serviceType: o.serviceType,
+        serviceLabel: SERVICE_LABELS[o.serviceType as ServiceType] ?? 'QR code',
+        status: o.status,
+        amount: o.amount,
+        currency: o.currency,
+        createdAt: o.createdAt,
+        paidAt: o.paidAt,
+        title: card?.title || card?.restaurantName || SERVICE_LABELS[o.serviceType as ServiceType] || 'QR code',
+        cardStatus: card?.status ?? null,
+      };
+    });
   }
 
   private validateCustomer(input: CustomerInput) {

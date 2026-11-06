@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Minus } from "lucide-react";
+import { ArrowRight, Check, Minus } from "lucide-react";
 import Header from "@/components/header";
 import ContactSection from "@/components/contact-section";
 import Footer from "@/components/footer";
@@ -56,14 +56,6 @@ export default function AboutPage() {
 
       <section>
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-1.5 text-sm font-medium text-sage transition-colors hover:text-ink"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-            Retour à l’accueil
-          </Link>
-
 
           <div className="mt-8 grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           <div>

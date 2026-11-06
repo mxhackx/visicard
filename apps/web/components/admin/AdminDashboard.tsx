@@ -110,9 +110,7 @@ function DashboardBody({ tab, adminToken }: { tab: AdminTab; adminToken: string 
       )}
 
       {tab === "settings" && (
-        <div className="surface max-w-2xl rounded-2xl p-6 sm:p-8">
-          <AdminSettingsForm adminToken={adminToken} />
-        </div>
+        <AdminSettingsForm adminToken={adminToken} />
       )}
     </>
   );

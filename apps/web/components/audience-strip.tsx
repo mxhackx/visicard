@@ -28,7 +28,7 @@ const audiences: { icon: typeof ShoppingBag; label: string; use: string; tags: T
 ];
 
 const stats = [
-  { value: "3", label: "formats au choix" },
+  { value: "12", label: "types de QR code" },
   { value: "1", label: "QR code par contenu" },
   { value: "0", label: "application à installer" },
   { value: "24 h", label: "pour une réponse (jours ouvrés)" },

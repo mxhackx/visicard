@@ -11,16 +11,6 @@ export const CONTACT = {
   longitude: 2.4183,
 } as const;
 
-/**
- * Mentions du vendeur sur les devis et factures.
- * À COMPLÉTER avec les informations officielles avant la mise en ligne.
- */
-export const LEGAL = {
-  company: "Moncode",
-  ifu: "IFU : à compléter",
-  rccm: "RCCM : à compléter",
-  taxNote: "Régime fiscal : à compléter",
-} as const;
 
 /** Carte OpenStreetMap intégrable, centrée sur les coordonnées ci-dessus (sans clé d'API). */
 export function mapEmbedUrl(delta = 0.012): string {

@@ -4,7 +4,7 @@ import { useOrderKey } from "@/lib/use-order-key";
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2, UploadCloud } from "lucide-react";
+import { ArrowRight, ImagePlus, Loader2, UploadCloud } from "lucide-react";
 import {
   fcfa,
   fetchOrder,
@@ -14,7 +14,7 @@ import {
 } from "@/lib/orders";
 
 /** À garder aligné avec MODIFICATION_PRICES côté API (affichage indicatif). */
-const MODIFICATION_PRICE: Record<OrderView["serviceType"], number> = { page: 5000, media: 2500, document: 2500 };
+const MODIFICATION_PRICE: Record<OrderView["serviceType"], number> = { page: 5000, media: 2500, document: 2500, direct: 0 };
 
 type PageFields = "restaurantName" | "phoneNumber" | "address" | "additionalInfo" | "facebookUrl" | "instagramUrl";
 
@@ -107,13 +107,7 @@ export default function ModificationForm({ reference }: { reference: string }) {
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
-      <Link
-        href={`/commande/${reference}`}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> Commande {reference}
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">Modifier le contenu</h1>
+      <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">Modifier le contenu</h1>
       <p className="mt-3 text-base leading-7 text-sage">
         Changez ce qui doit l’être : un nouveau devis de {fcfa(MODIFICATION_PRICE[order.serviceType])} est émis, et les
         changements sont mis en ligne dès son paiement. Le QR code imprimé ne change pas.

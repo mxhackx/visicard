@@ -4,12 +4,14 @@ import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ImageIcon, Loader2, MapPin, Palette, Phone, QrCode, ShieldCheck } from "lucide-react";
+import FedapayBadge from "@/components/fedapay-badge";
 import QrDesigner from "@/components/qr/qr-designer";
 import { paletteFor } from "@/lib/palette";
 import { useFile } from "@/app/context/FileContext";
 import { SERVICES } from "@/lib/services";
-import { createOrder, rememberOrderKey, validateCustomer } from "@/lib/orders";
+import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
 import Stepper from "@/components/order/stepper";
+import AccountGate, { useIsSignedIn } from "@/components/account/account-gate";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
 
 const offer = SERVICES.find((s) => s.id === "page")!;
@@ -17,11 +19,18 @@ const offer = SERVICES.find((s) => s.id === "page")!;
 /** Dernière étape client de la page digitale : récapitulatif, coordonnées, puis devis. */
 export default function PageCheckout() {
   const router = useRouter();
-  const { restaurantInfo, customization, setQrStyle, resetAll } = useFile();
+  const { restaurantInfo, customization, setQrStyle, resetAll, authUser } = useFile();
+  const signedIn = useIsSignedIn();
   const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Connecté : l'e-mail du compte est repris dans la facture.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (authUser?.email) setCustomer((c) => (c.email ? c : { ...c, email: authUser.email! }));
+  }, [authUser?.email]);
 
   // Arrivée directe sans contenu préparé : retour à la première étape.
   useEffect(() => {
@@ -63,11 +72,13 @@ export default function PageCheckout() {
 
     try {
       const order = await createOrder(body);
-      rememberOrderKey(order.reference, order.accessToken);
-      router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
-      resetAll();
+      if (!(await payOrder(order))) {
+        // Paiement en ligne indisponible : la page de commande propose de contacter l’équipe.
+        router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
+        resetAll();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "La création du devis a échoué.");
+      setError(err instanceof Error ? err.message : "La commande a échoué. Réessayez.");
       setSubmitting(false);
     }
   };
@@ -83,15 +94,15 @@ export default function PageCheckout() {
       </Link>
 
       <div className="mt-6 max-w-3xl">
-        <Stepper current={2} steps={["Informations", "Apparence", "Devis", "Paiement"]} />
+        <Stepper current={2} steps={["Informations", "Apparence", "Paiement"]} />
       </div>
 
       <h1 className="mt-10 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
-        Votre page est prête. Voici votre devis.
+        Votre page est prête. Dernière étape.
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-7 text-sage">
-        Indiquez à qui adresser le devis. Vous verrez ensuite l’aperçu de votre page, puis vous réglerez
-        avec notre équipe sur WhatsApp. Le QR code s’active dès le paiement reçu.
+        Indiquez votre nom et votre numéro, puis réglez en ligne. Votre QR code est activé dès la
+        confirmation du paiement.
       </p>
 
       <form onSubmit={submit} className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -141,20 +152,22 @@ export default function PageCheckout() {
             </div>
           </div>
 
-          <div className="surface p-6 sm:p-8">
-            <h2 className="text-lg font-semibold text-ink/90">Vos coordonnées</h2>
-            <p className="mt-1 text-sm text-sage">Elles figurent sur le devis et la facture. Aucun compte n’est créé.</p>
-            <div className="mt-5">
-              <CustomerFields value={customer} onChange={setCustomer} errors={errors} />
+          <AccountGate>
+            <div className="surface p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-ink/90">Vos coordonnées</h2>
+              <p className="mt-1 text-sm text-sage">Elles figurent sur votre facture.</p>
+              <div className="mt-5">
+                <CustomerFields value={customer} onChange={setCustomer} errors={errors} />
+              </div>
             </div>
-          </div>
+          </AccountGate>
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="surface overflow-hidden">
             <div className="brand-surface px-6 py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Devis estimatif</p>
-              <p className="mt-2 text-3xl font-semibold">{offer.price} FCFA</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Total à payer</p>
+              <p className="mt-2 text-3xl font-semibold">{fcfa(Number(offer.price.replace(/\s/g, "")))}</p>
               <p className="mt-1 text-sm text-white/75">Paiement unique, sans abonnement</p>
             </div>
             <div className="p-6">
@@ -171,13 +184,16 @@ export default function PageCheckout() {
                   {error}
                 </p>
               )}
-              <button type="submit" disabled={submitting} className="btn btn-primary mt-6 w-full">
+              <button type="submit" disabled={submitting || !signedIn} className="btn btn-primary mt-6 w-full">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {submitting ? "Création du devis…" : "Obtenir mon devis"}
+                {submitting ? "Redirection vers le paiement…" : `Payer ${fcfa(Number(offer.price.replace(/\s/g, "")))}`}
                 {!submitting && <ArrowRight className="h-4 w-4" />}
               </button>
-              <p className="mt-3 text-center text-xs leading-5 text-sage">
-                Aucun paiement à cette étape. Le montant définitif figure sur le devis.
+              {signedIn && <FedapayBadge className="mt-3 flex justify-center" />}
+              <p className="mt-2 text-center text-xs leading-5 text-sage">
+                {signedIn
+                  ? "Mobile Money ou carte. Facture envoyée après paiement."
+                  : "Créez votre compte à gauche pour continuer vers le paiement."}
               </p>
             </div>
           </div>

@@ -7,8 +7,8 @@ import { Layers, QrCode, RefreshCw, ShieldCheck, Smartphone, UserRound } from "l
 const features = [
   {
     icon: Layers,
-    title: "Trois formats",
-    description: "Page digitale, image / vidéo ou document PDF : un service pour chaque besoin.",
+    title: "Un QR pour chaque besoin",
+    description: "Page digitale, image, vidéo, PDF, Wi-Fi, carte de visite, appel : choisissez ce que le téléphone doit faire.",
   },
   {
     icon: QrCode,

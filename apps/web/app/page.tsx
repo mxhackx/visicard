@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 };
 import Hero from "../components/hero";
 import AudienceStrip from "../components/audience-strip";
-import ServicesSection from "../components/services-section";
+import DemoSection from "../components/demo-section";
 import HowItWorks from "../components/how-it-works";
 import FeaturesSection from "../components/features-section";
-import PricingSection from "../components/pricing-section";
 import Testimonials from "../components/testimonials";
-import AboutSection from "../components/about-section";
+import ExamplesSection from "../components/examples-section";
+import PricingSection from "../components/pricing-section";
 import ContactSection from "../components/contact-section";
 import Footer from "../components/footer";
 
@@ -27,12 +27,12 @@ export default function Home() {
 
       <Hero />
       <AudienceStrip />
-      <ServicesSection />
       <HowItWorks />
+      <DemoSection />
       <FeaturesSection />
+      <ExamplesSection />
       <PricingSection />
       <Testimonials />
-      <AboutSection />
       <ContactSection />
       <Footer />
     </main>

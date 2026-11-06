@@ -17,7 +17,7 @@ export const SITE = {
   name: CONTACT.brand,
   title: "Moncode — Menu digital, page, image, vidéo ou PDF derrière un QR code",
   description:
-    "Créez le QR code de votre restaurant, hôtel ou boutique au Bénin : menu digital, page d’établissement, image, vidéo ou PDF. Sans compte, paiement simple sur WhatsApp, actif dès le paiement.",
+    "Créez le QR code de votre restaurant, hôtel ou boutique au Bénin : menu digital, page d’établissement, image, vidéo ou PDF. Paiement en ligne par Mobile Money ou carte, actif dès le paiement.",
   locale: "fr_BJ",
   keywords: [
     "QR code",
@@ -37,6 +37,8 @@ export const PUBLIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
   { path: "/creer", priority: 0.9, changeFrequency: "monthly" as const },
   { path: "/qr-gratuit", priority: 0.8, changeFrequency: "monthly" as const },
+  { path: "/manuel", priority: 0.6, changeFrequency: "monthly" as const },
+  { path: "/developpeurs", priority: 0.5, changeFrequency: "monthly" as const },
   { path: "/a-propos", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/contact", priority: 0.6, changeFrequency: "yearly" as const },
 ];

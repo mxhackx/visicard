@@ -34,6 +34,7 @@ export default function StyledQr({
   logoUrl,
   size = 220,
   downloadName,
+  hideQr = false,
   className = "",
 }: {
   data: string;
@@ -42,6 +43,8 @@ export default function StyledQr({
   logoUrl?: string | null;
   size?: number;
   downloadName?: string;
+  /** N'affiche que les boutons de téléchargement (le QR est déjà visible ailleurs). */
+  hideQr?: boolean;
   className?: string;
 }) {
   const resolved = typeof style === "object" && style !== null ? style : parseQrStyle(style);
@@ -85,20 +88,22 @@ export default function StyledQr({
 
   return (
     <div className={className}>
-      <div
-        ref={container}
-        className="mx-auto overflow-hidden rounded-xl [&_svg]:block [&_svg]:h-full [&_svg]:w-full"
-        style={{ width: size, height: size, backgroundColor: resolved.bg }}
-        role="img"
-        aria-label={`QR code vers ${data}`}
-      />
+      {!hideQr && (
+        <div
+          ref={container}
+          className="mx-auto overflow-hidden rounded-xl [&_svg]:block [&_svg]:h-full [&_svg]:w-full"
+          style={{ width: size, height: size, backgroundColor: resolved.bg }}
+          role="img"
+          aria-label={`QR code vers ${data}`}
+        />
+      )}
       {downloadName && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => download("png")} disabled={busy !== null} className="btn btn-primary btn-sm">
-            {busy === "png" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} PNG
-          </button>
+        <div className={`${hideQr ? "" : "mt-4 "}grid grid-cols-2 gap-2`}>
           <button type="button" onClick={() => download("svg")} disabled={busy !== null} className="btn btn-outline btn-sm">
             {busy === "svg" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} SVG
+          </button>
+          <button type="button" onClick={() => download("png")} disabled={busy !== null} className="btn btn-primary btn-sm">
+            {busy === "png" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} PNG
           </button>
         </div>
       )}

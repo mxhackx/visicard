@@ -2,22 +2,30 @@
 
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { useFile } from "@/app/context/FileContext";
 import Logo from "@/components/logo";
 
 const navLinks = [
-  { href: "/#services", label: "Services" },
+  { href: "/#fonctionnement", label: "Fonctionnement" },
+  { href: "/#exemples", label: "Exemples" },
   { href: "/#tarifs", label: "Tarifs" },
-  { href: "/qr-gratuit", label: "QR gratuit" },
-  { href: "/#avis", label: "Avis" },
+  { href: "/#avis", label: "Fondateurs" },
+  { href: "/manuel", label: "Manuel" },
   { href: "/contact", label: "Contact" },
 ];
 
+const noopSubscribe = () => () => {};
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { authToken, authRole } = useFile();
+  // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const account = mounted && authToken && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line shadow-[0_6px_24px_rgba(23,23,26,0.05)]">
+    <header className="fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line/80 shadow-[0_1px_0_rgba(23,23,26,0.02),0_8px_28px_rgba(23,23,26,0.05)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
           <Logo variant="dark" />
@@ -28,7 +36,7 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-[15px] font-medium text-ink/75 transition-colors hover:text-forest"
+              className="relative py-1 text-[15px] font-medium text-ink/70 transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-forest after:transition-transform hover:text-ink hover:after:scale-x-100"
             >
               {link.label}
             </Link>
@@ -36,6 +44,11 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-5 lg:flex">
+          {account && (
+            <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
+              {account.label}
+            </Link>
+          )}
           <Link href="/creer" className="btn btn-primary btn-sm">
             Créer un QR code
           </Link>
@@ -65,6 +78,11 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {account && (
+              <Link href={account.href} onClick={() => setIsOpen(false)} className="block border-b border-line py-3 text-base font-medium text-ink/80 hover:text-forest">
+                {account.label}
+              </Link>
+            )}
             <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary btn-sm my-3 w-full">
               Créer un QR code
             </Link>

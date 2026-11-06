@@ -260,6 +260,10 @@ export class AuthService {
     }
   }
 
+  /** Domaines jetables ou d'exemple : presque toujours de faux comptes. */
+  private static readonly FAKE_DOMAINS =
+    /@(example\.(com|org|net)|test\.(com|fr|dev)|mailinator\.com|yopmail\.(com|fr)|guerrillamail\.com|tempmail\.[a-z]+|10minutemail\.com|trashmail\.com|fake\.[a-z]+)$/i;
+
   /** Liste des comptes, réservée au panneau d'administration. */
   async listAccounts() {
     const accounts = await this.prisma.adminUser.findMany({
@@ -270,18 +274,102 @@ export class AuthService {
         name: true,
         role: true,
         createdAt: true,
+        updatedAt: true,
         _count: { select: { cards: true } },
       },
     });
 
-    return accounts.map((account) => ({
-      id: account.id,
-      email: account.email,
-      name: account.name,
-      role: account.role === 'admin' ? 'admin' : 'user',
-      cardsCount: account._count.cards,
-      createdAt: account.createdAt,
-    }));
+    const orders = await this.prisma.order.findMany({
+      where: { userId: { in: accounts.map((a) => a.id) } },
+      select: { userId: true, status: true, amount: true, createdAt: true },
+    });
+    const byUser = new Map<
+      string,
+      { orders: number; paid: number; spent: number; last: Date | null }
+    >();
+    for (const order of orders) {
+      if (!order.userId) continue;
+      const row = byUser.get(order.userId) ?? { orders: 0, paid: 0, spent: 0, last: null };
+      row.orders += 1;
+      if (order.status === 'paid') {
+        row.paid += 1;
+        row.spent += order.amount;
+      }
+      if (!row.last || order.createdAt > row.last) row.last = order.createdAt;
+      byUser.set(order.userId, row);
+    }
+
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return accounts.map((account) => {
+      const stats = byUser.get(account.id) ?? { orders: 0, paid: 0, spent: 0, last: null };
+      const isAdmin = account.role === 'admin';
+      const idle = stats.orders === 0 && account._count.cards === 0;
+      const reasons: string[] = [];
+      if (!isAdmin && AuthService.FAKE_DOMAINS.test(account.email)) reasons.push('Adresse jetable ou d’exemple');
+      if (!isAdmin && idle && account.createdAt.getTime() < weekAgo) reasons.push('Aucune activité depuis plus de 7 jours');
+      return {
+        id: account.id,
+        email: account.email,
+        name: account.name,
+        role: isAdmin ? 'admin' : 'user',
+        cardsCount: account._count.cards,
+        ordersCount: stats.orders,
+        paidOrdersCount: stats.paid,
+        totalPaid: stats.spent,
+        lastOrderAt: stats.last,
+        createdAt: account.createdAt,
+        updatedAt: account.updatedAt,
+        suspect: reasons.length > 0 && stats.paid === 0,
+        suspectReasons: stats.paid === 0 ? reasons : [],
+      };
+    });
+  }
+
+  /** Création d'un compte par un administrateur (autre admin ou client). */
+  async createAccountAsAdmin(input: { name?: string; email?: string; password?: string; role?: string }) {
+    const role = input.role === 'admin' ? 'admin' : 'user';
+    const email = (input.email || '').trim().toLowerCase();
+    const password = input.password || '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Adresse e-mail invalide.');
+    }
+    if (password.length < 8) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
+    }
+    if (await this.findLocalAccount(email)) {
+      throw new BadRequestException('Un compte existe déjà avec cette adresse e-mail.');
+    }
+    const account = await this.prisma.adminUser.create({
+      data: {
+        email,
+        name: (input.name || '').trim() || null,
+        passwordHash: await hashPassword(password),
+        role,
+      },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
+    this.logger.log(`Compte ${role} créé par un administrateur : ${email}`);
+    return { ...account, role: account.role === 'admin' ? 'admin' : 'user' };
+  }
+
+  /** Suppression d'un compte : jamais soi-même, jamais le dernier admin, jamais un compte qui a payé. */
+  async deleteAccount(accountId: string, actingUserId?: string) {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
+    if (!account) throw new BadRequestException('Compte introuvable.');
+    if (account.id === actingUserId) {
+      throw new BadRequestException('Vous ne pouvez pas supprimer votre propre compte.');
+    }
+    if (account.role === 'admin') {
+      const admins = await this.prisma.adminUser.count({ where: { role: 'admin' } });
+      if (admins <= 1) throw new BadRequestException('Impossible de supprimer le dernier administrateur.');
+    }
+    const paid = await this.prisma.order.count({ where: { userId: accountId, status: 'paid' } });
+    if (paid > 0) {
+      throw new BadRequestException('Ce compte a des commandes payées : il ne peut pas être supprimé.');
+    }
+    await this.prisma.adminUser.delete({ where: { id: accountId } });
+    this.logger.log(`Compte supprimé : ${account.email}`);
+    return { success: true };
   }
 
   /** Promotion ou retrait du rôle administrateur, avec garde-fou du dernier admin. */

@@ -73,6 +73,14 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
 
+      # Paiement en ligne FedaPay (facultatif : sans clé, repli sur WhatsApp + « Encaisser »).
+      - key: FEDAPAY_ENV
+        value: live
+      - key: FEDAPAY_SECRET_KEY
+        sync: false
+      - key: FEDAPAY_WEBHOOK_SECRET
+        sync: false
+
       # Supabase Storage (facultatif). Laisser vide pour utiliser le disque ci-dessus.
       - key: SUPABASE_URL
         sync: false

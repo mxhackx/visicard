@@ -1,10 +1,9 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
+  ChevronDown,
   ArrowRight,
   Camera,
   Check,
@@ -13,7 +12,6 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
-  MessageCircle,
   Share2,
   Store,
   UtensilsCrossed,
@@ -24,6 +22,9 @@ import { useFile } from "@/app/context/FileContext";
 import AdminShell from "@/components/admin/AdminShell";
 import Header from "@/components/header";
 import Stepper from "@/components/order/stepper";
+import { SECTORS, sectorById } from "@/lib/sectors";
+import AddressSearch from "@/components/address-search";
+import { mapsLink, reversePlace } from "@/lib/geocode";
 import { BUILDER_FLOWS, type BuilderMode } from "@/lib/builder-flows";
 import { IMAGE_ACCEPT, LIMITS, imageError, isHttpUrl, normalizeUrl, phoneDigits, pickImages } from "@/lib/validation";
 
@@ -62,7 +63,7 @@ const SOCIALS = [
 
 
 const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
-const CLIENT_STEPS = ["Informations", "Apparence", "Devis", "Paiement"] as const;
+const CLIENT_STEPS = ["Informations", "Apparence", "Paiement"] as const;
 
 type TextField =
   | "restaurantName"
@@ -108,9 +109,14 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     removeMenuFile,
     addPlaceFiles,
     removePlaceFile,
+    customization,
+    setSector,
   } = useFile();
+  const sector = sectorById(customization.sector);
+  const copy = sector.copy;
 
   const [errors, setErrors] = useState<Errors>({});
+  const [moreOpen, setMoreOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   /** Photos écartées à la sélection (format, poids, nombre). */
@@ -155,8 +161,14 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
       (position) => {
         setIsLocating(false);
         const { latitude, longitude } = position.coords;
-        setText("locationUrl", `https://maps.google.com/?q=${latitude},${longitude}`);
+        setText("locationUrl", mapsLink(latitude, longitude));
         clearError("location");
+        // L'adresse est retrouvée automatiquement (si le champ est vide) à partir de la position.
+        if (!restaurantInfo.address.trim()) {
+          reversePlace(latitude, longitude)
+            .then((place) => place && setText("address", place.label))
+            .catch(() => undefined);
+        }
       },
       () => {
         setIsLocating(false);
@@ -207,8 +219,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     else if (name.length < 2) found.name = "Le nom doit compter au moins 2 caractères.";
     if (!localNumber.trim()) found.phone = "Indiquez le numéro WhatsApp de l’établissement.";
     else if (!hasPhone) found.phone = "Numéro invalide : vérifiez l’indicatif et le nombre de chiffres.";
-    if (!restaurantInfo.locationUrl.trim()) found.location = "Ajoutez la localisation : position actuelle ou lien Google Maps.";
-    else if (!hasLocation) found.location = "Lien invalide : collez l’adresse complète (https://maps.app.goo.gl/…).";
+    if (restaurantInfo.locationUrl.trim() && !hasLocation) found.location = "Lien invalide : collez l’adresse complète (https://maps.app.goo.gl/…).";
     if (restaurantInfo.address.length > LIMITS.address) found.address = `${LIMITS.address} caractères au maximum.`;
     if (restaurantInfo.additionalInfo.length > LIMITS.info) found.info = `${LIMITS.info} caractères au maximum.`;
     for (const social of SOCIALS) {
@@ -217,6 +228,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     }
     if (!hasPhotos) found.photos = "Ajoutez au moins le logo ou une photo du menu.";
     setErrors(found);
+    if (["address", "location", ...SOCIALS.map((x) => x.field)].some((k) => found[k as ErrorKey])) setMoreOpen(true);
     if (Object.keys(found).length === 0) {
       router.push(flow.informations.next);
       return;
@@ -230,7 +242,6 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
   const checklist = [
     { label: "Nom de l’établissement", done: hasName },
     { label: "Numéro WhatsApp", done: hasPhone },
-    { label: "Localisation", done: hasLocation },
     { label: "Logo ou photo du menu", done: hasPhotos },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
@@ -239,13 +250,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Link
-            href={flow.informations.back}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink"
-          >
-            <ArrowLeft className="h-4 w-4" /> {flow.informations.backLabel}
-          </Link>
-          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">
+          <h1 className=" text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">
             Informations de l’établissement
           </h1>
           <p className="mt-1 text-sm text-sage">
@@ -259,9 +264,34 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
 
       <form onSubmit={submit} noValidate className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 space-y-6">
+          {/* Secteur */}
+          <section className="surface p-5 sm:p-7">
+            <h2 className="text-base font-semibold text-ink/90">Quelle est votre activité ?</h2>
+            <p className="text-sm text-sage">Nous adaptons les questions et proposons le style de page qui convient. Vous pourrez le changer à l’étape suivante.</p>
+            <div className="-mx-5 mt-4 flex snap-x gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="radiogroup" aria-label="Activité">
+              {SECTORS.map((s) => {
+                const on = customization.sector === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setSector(s.id, s.layout)}
+                    className={`inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition active:scale-95 ${
+                      on ? "border-forest bg-forest text-white" : "border-line bg-white text-ink/80 hover:border-ink/30"
+                    }`}
+                  >
+                    <s.icon className="h-4 w-4" /> {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* Identité */}
-          <Section icon={Store} title="Identité" subtitle="Le nom et l’adresse affichés en haut de la page.">
-            <Field id="name" label="Nom de l’établissement" required error={errors.name}>
+          <Section icon={Store} title="L’essentiel" subtitle="Le nom, le contact et ce que vous proposez.">
+            <Field id="name" label={copy.nameLabel} required error={errors.name}>
               <input
                 className="field"
                 value={restaurantInfo.restaurantName}
@@ -269,50 +299,16 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                   setText("restaurantName", e.target.value);
                   clearError("name");
                 }}
-                placeholder="Le Comptoir, Haie Vive"
+                placeholder={copy.namePlaceholder}
                 maxLength={LIMITS.name}
                 autoFocus
                 aria-invalid={errors.name ? "true" : undefined}
               />
             </Field>
-            <Field id="address" label="Adresse" hint="Quartier, rue, repère : ce qui aide à vous trouver." error={errors.address}>
-              <input
-                className="field"
-                value={restaurantInfo.address}
-                maxLength={LIMITS.address}
-                onChange={(e) => {
-                  setText("address", e.target.value);
-                  clearError("address");
-                }}
-                placeholder="Haie Vive, rue 12.075, face à la pharmacie"
-              />
-            </Field>
-            <Field
-              id="info"
-              label="Informations supplémentaires"
-              hint={`Spécialités, livraison, moyens de paiement… La 1re ligne sert d’accroche. ${restaurantInfo.additionalInfo.length} / ${LIMITS.info}`}
-              error={errors.info}
-            >
-              <textarea
-                rows={3}
-                className="field leading-6"
-                value={restaurantInfo.additionalInfo}
-                maxLength={LIMITS.info}
-                onChange={(e) => {
-                  setText("additionalInfo", e.target.value);
-                  clearError("info");
-                }}
-                placeholder="Livraison à Cotonou de 11 h à 22 h · Paiement MoMo accepté"
-              />
-            </Field>
-          </Section>
-
-          {/* Contact & localisation */}
-          <Section icon={MessageCircle} title="Contact et localisation" subtitle="Les boutons « WhatsApp » et « Itinéraire » de la page.">
-            <Field id="phone" label="Numéro WhatsApp" required error={errors.phone}>
+            <Field id="phone" label="Numéro WhatsApp" hint="Vos clients vous écrivent directement." required error={errors.phone}>
               <div className="flex gap-2">
                 <select
-                  className="field w-auto shrink-0 pr-8"
+                  className="field w-[8.6rem] shrink-0 px-3 pr-7 sm:w-auto sm:pr-8"
                   value={countryCode}
                   onChange={(e) => {
                     setCountryCode(e.target.value);
@@ -340,48 +336,38 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                 />
               </div>
             </Field>
-
-            <Field id="location" label="Localisation" required error={errors.location ?? locateError ?? undefined}>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <div className="relative min-w-0 flex-1">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-sage" />
-                  <input
-                    className="field pl-9"
-                    type="url"
-                    value={restaurantInfo.locationUrl}
-                    onBlur={(e) => setText("locationUrl", normalizeUrl(e.target.value))}
-                    onChange={(e) => {
-                      setText("locationUrl", e.target.value);
-                      clearError("location");
-                    }}
-                    placeholder="Lien Google Maps"
-                    aria-invalid={errors.location ? "true" : undefined}
-                  />
-                </div>
-                <button type="button" onClick={locate} disabled={isLocating} className="btn btn-outline shrink-0">
-                  {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
-                  {isLocating ? "Localisation…" : "Ma position"}
+            <Field
+              id="info"
+              label={copy.infoLabel}
+              hint={`${copy.infoHint} ${restaurantInfo.additionalInfo.length} / ${LIMITS.info}`}
+              error={errors.info}
+            >
+              <textarea
+                rows={4}
+                className="field leading-6"
+                value={restaurantInfo.additionalInfo}
+                maxLength={LIMITS.info}
+                onChange={(e) => {
+                  setText("additionalInfo", e.target.value);
+                  clearError("info");
+                }}
+                placeholder={copy.infoPlaceholder}
+              />
+              {!restaurantInfo.additionalInfo.trim() && (
+                <button type="button" onClick={() => setText("additionalInfo", copy.infoTemplate)} className="mt-2 text-xs font-semibold text-forest underline underline-offset-2">
+                  Insérer un modèle pour « {sector.label.toLowerCase()} »
                 </button>
-              </div>
-              {hasLocation && !errors.location && (
-                <a
-                  href={restaurantInfo.locationUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1.5 inline-block text-xs font-medium text-forest hover:underline"
-                >
-                  Vérifier sur la carte ↗
-                </a>
               )}
             </Field>
           </Section>
+
 
           {/* Photos */}
           <Section
             id="photos"
             icon={Camera}
             title="Photos"
-            subtitle="Le logo ou au moins une photo du menu est nécessaire."
+            subtitle="Un logo ou une photo suffit pour commencer."
             error={errors.photos}
           >
             <div className="grid gap-5 sm:grid-cols-[160px_1fr]">
@@ -416,8 +402,8 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
 
               <PhotoGroup
                 icon={UtensilsCrossed}
-                label="Photos du menu"
-                hint="Une photo par page de la carte."
+                label={copy.menuLabel}
+                hint={copy.menuHint}
                 previews={restaurantInfo.menuPreviews}
                 onAdd={() => menuInputRef.current?.click()}
                 onRemove={removeMenuFile}
@@ -431,12 +417,97 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                 onChange={(e) => pickFiles(e, "menu")}
               />
             </div>
+            {photoNotice && (
+              <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {photoNotice}
+              </p>
+            )}
+            <p className="text-xs text-sage">
+              JPG, PNG ou WEBP, {LIMITS.imageMb} Mo maximum par photo · {LIMITS.totalFiles} fichiers au total ({filesUsed} utilisés).
+            </p>
+          </Section>
 
+          {/* Détails facultatifs */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              className="surface surface-hover flex w-full items-center justify-between gap-4 p-5 text-left sm:px-7"
+            >
+              <span>
+                <span className="block text-base font-semibold text-ink/90">Ajouter plus de détails</span>
+                <span className="block text-sm text-sage">Facultatif : adresse, localisation, horaires, photos du lieu, réseaux.</span>
+              </span>
+              <ChevronDown className={`h-5 w-5 shrink-0 text-sage transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+
+          {moreOpen && (
+            <div className="space-y-6 [animation:example-enter_.35s_both]">
+              <Section icon={MapPin} title="Adresse et localisation" subtitle="Affiche un bouton « Itinéraire » sur la page.">
+                <Field id="address-search" label="Retrouver mon adresse automatiquement" hint="Tapez quelques lettres : l’adresse et la position se remplissent d’un clic.">
+                  <AddressSearch
+                    onPick={(place) => {
+                      setText("address", place.label);
+                      setText("locationUrl", mapsLink(place.lat, place.lng));
+                      clearError("address");
+                      clearError("location");
+                    }}
+                  />
+                </Field>
+            <Field id="address" label="Adresse" hint="Quartier, rue, repère : ce qui aide à vous trouver." error={errors.address}>
+              <input
+                className="field"
+                value={restaurantInfo.address}
+                maxLength={LIMITS.address}
+                onChange={(e) => {
+                  setText("address", e.target.value);
+                  clearError("address");
+                }}
+                placeholder={copy.addressPlaceholder}
+              />
+            </Field>
+            <Field id="location" label="Localisation" error={errors.location ?? locateError ?? undefined}>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative min-w-0 flex-1">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-sage" />
+                  <input
+                    className="field pl-9"
+                    type="url"
+                    value={restaurantInfo.locationUrl}
+                    onBlur={(e) => setText("locationUrl", normalizeUrl(e.target.value))}
+                    onChange={(e) => {
+                      setText("locationUrl", e.target.value);
+                      clearError("location");
+                    }}
+                    placeholder="Lien Google Maps"
+                    aria-invalid={errors.location ? "true" : undefined}
+                  />
+                </div>
+                <button type="button" onClick={locate} disabled={isLocating} className="btn btn-outline shrink-0">
+                  {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+                  {isLocating ? "Localisation…" : "Ma position"}
+                </button>
+              </div>
+              {hasLocation && !errors.location && (
+                <a
+                  href={restaurantInfo.locationUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1.5 inline-block text-xs font-medium text-forest hover:underline"
+                >
+                  Vérifier sur la carte ↗
+                </a>
+              )}
+            </Field>
+              </Section>
+              <Section icon={ImagePlus} title={copy.placeLabel} subtitle={copy.placeHint}>
             <div className="border-t border-line pt-5">
               <PhotoGroup
                 icon={ImagePlus}
-                label="Photos du lieu"
-                hint="Salle, terrasse, plats : facultatif, mais ça donne envie."
+                label={copy.placeLabel}
+                hint={copy.placeHint}
                 previews={restaurantInfo.placePreviews}
                 onAdd={() => placeInputRef.current?.click()}
                 onRemove={removePlaceFile}
@@ -450,23 +521,14 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                 onChange={(e) => pickFiles(e, "place")}
               />
             </div>
-            {photoNotice && (
-              <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                {photoNotice}
-              </p>
-            )}
-            <p className="text-xs text-sage">
-              JPG, PNG ou WEBP, {LIMITS.imageMb} Mo maximum par photo · {LIMITS.menuPhotos} photos du menu et {LIMITS.placePhotos} du lieu au plus, {LIMITS.totalFiles} fichiers au total ({filesUsed} utilisés).
-            </p>
-          </Section>
-
+              </Section>
           {/* Horaires */}
-          <Section icon={Clock} title="Horaires" subtitle="Activez les jours d’ouverture.">
+          <Section icon={Clock} title="Horaires" subtitle={copy.scheduleHint}>
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
               {DAYS.map((day) => {
                 const hours = restaurantInfo.schedule[day.id] ?? { isOpen: false, open: "09:00", close: "22:00" };
                 return (
-                  <li key={day.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                  <li key={day.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4">
                     <button
                       type="button"
                       role="switch"
@@ -483,14 +545,14 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                         }`}
                       />
                     </button>
-                    <span className={`w-24 text-sm font-medium ${hours.isOpen ? "text-ink/90" : "text-sage"}`}>
+                    <span className={`w-20 text-sm font-medium sm:w-24 ${hours.isOpen ? "text-ink/90" : "text-sage"}`}>
                       {day.label}
                     </span>
                     {hours.isOpen ? (
-                      <span className="ml-auto flex items-center gap-2 text-sm text-sage">
+                      <span className="flex w-full items-center gap-2 text-sm text-sage sm:ml-auto sm:w-auto">
                         <input
                           type="time"
-                          className="field h-9 w-[7.5rem] py-1"
+                          className="field h-10 min-w-0 flex-1 px-3 py-1 text-[15px] sm:w-[7.5rem] sm:flex-none"
                           value={hours.open}
                           onChange={(e) => setDay(day.id, "open", e.target.value)}
                           aria-label={`${day.label}, ouverture`}
@@ -498,7 +560,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
                         à
                         <input
                           type="time"
-                          className="field h-9 w-[7.5rem] py-1"
+                          className="field h-10 min-w-0 flex-1 px-3 py-1 text-[15px] sm:w-[7.5rem] sm:flex-none"
                           value={hours.close}
                           onChange={(e) => setDay(day.id, "close", e.target.value)}
                           aria-label={`${day.label}, fermeture`}
@@ -533,6 +595,8 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
               ))}
             </div>
           </Section>
+            </div>
+          )}
         </div>
 
         {/* Récapitulatif */}
@@ -620,7 +684,7 @@ function Section({
   return (
     <section
       id={id ? `field-${id}` : undefined}
-      className={`surface p-6 sm:p-7 ${error ? "ring-2 ring-red-300" : ""}`}
+      className={`surface p-5 sm:p-7 ${error ? "ring-2 ring-red-300" : ""}`}
     >
       <div className="flex items-start gap-3">
         <span className="icon-tile h-10 w-10">
@@ -691,18 +755,18 @@ function PhotoGroup({
 }) {
   return (
     <div className="min-w-0">
-      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+      <div className="mb-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-ink/70">
           <Icon className="h-3.5 w-3.5 text-forest" /> {label}
           {previews.length > 0 && <span className="font-normal text-sage">· {previews.length}</span>}
         </p>
-        <p className="truncate text-xs text-sage">{hint}</p>
+        <p className="mt-0.5 text-xs text-sage">{hint}</p>
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
         {previews.map((src, index) => (
           <Thumb key={src} src={src} alt={`${label} ${index + 1}`} onRemove={() => onRemove(index)} />
         ))}
-        <DropButton label={previews.length ? "Ajouter" : "Ajouter des photos"} onClick={onAdd} />
+        <DropButton label={previews.length ? "Ajouter" : "Ajouter des photos"} onClick={onAdd} wide={previews.length === 0} />
       </div>
     </div>
   );
@@ -725,13 +789,13 @@ function Thumb({ src, alt, onRemove, square }: { src: string; alt: string; onRem
   );
 }
 
-function DropButton({ label, onClick, square }: { label: string; onClick: () => void; square?: boolean }) {
+function DropButton({ label, onClick, square, wide }: { label: string; onClick: () => void; square?: boolean; wide?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-ambre/60 bg-leaf/40 p-3 text-center text-xs font-semibold text-ambre-deep transition-colors hover:bg-leaf ${
-        square ? "aspect-square w-full max-w-40" : "aspect-[3/4]"
+        square ? "aspect-square w-full max-w-40" : wide ? "col-span-full flex-row py-6" : "aspect-[3/4]"
       }`}
     >
       <ImagePlus className="h-5 w-5" />

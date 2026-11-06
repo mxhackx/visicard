@@ -258,10 +258,6 @@ function ReadyPanel({
       </pre>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <a href={whatsappUrl(summary)} target="_blank" rel="noreferrer" className="btn btn-primary">
-          <MessageCircle className="h-4 w-4" />
-          Envoyer sur WhatsApp
-        </a>
         <a
           href={`mailto:${CONTACT.email}?subject=${encodeURIComponent(
             `Demande Moncode — ${draft.business.trim() || draft.name}`,
@@ -270,6 +266,10 @@ function ReadyPanel({
         >
           <Mail className="h-4 w-4" />
           Envoyer par email
+        </a>
+        <a href={whatsappUrl(summary)} target="_blank" rel="noreferrer" className="btn btn-primary">
+          <MessageCircle className="h-4 w-4" />
+          Envoyer sur WhatsApp
         </a>
         <button
           type="button"

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Printer } from "lucide-react";
 import Logo from "@/components/logo";
-import { CONTACT, LEGAL } from "@/lib/contact";
+import { CONTACT } from "@/lib/contact";
 import { fcfa, fetchOrder, fetchOrderAsAdmin, formatDate, type OrderView } from "@/lib/orders";
 import { useFile } from "@/app/context/FileContext";
 
@@ -101,7 +101,6 @@ export default function OrderDocument({
             <div className="mt-4 space-y-0.5 text-xs leading-5 text-sage">
               <p>{CONTACT.address}</p>
               <p>{CONTACT.whatsappDisplay} · {CONTACT.email}</p>
-              <p>{LEGAL.ifu} · {LEGAL.rccm}</p>
             </div>
           </div>
           <div className="sm:text-right">
@@ -158,7 +157,6 @@ export default function OrderDocument({
               <dt className="font-semibold text-ink/90">Total {isInvoice ? "payé" : "à payer"}</dt>
               <dd className="text-lg font-semibold text-forest">{fcfa(order.amount)}</dd>
             </div>
-            <p className="text-right text-xs text-sage">{LEGAL.taxNote}</p>
           </dl>
         </div>
 

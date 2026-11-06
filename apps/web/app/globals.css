@@ -302,13 +302,13 @@
   }
 
   .field:hover {
-    border-color: rgba(242, 146, 13, 0.55);
+    border-color: rgba(227, 5, 29, 0.4);
   }
 
   .field:focus {
     background: #ffffff;
-    border-color: rgba(242, 146, 13, 0.9);
-    box-shadow: 0 0 0 4px rgba(242, 146, 13, 0.16);
+    border-color: rgba(227, 5, 29, 0.85);
+    box-shadow: 0 0 0 4px rgba(227, 5, 29, 0.14);
   }
 
   .field[aria-invalid="true"] {
@@ -344,8 +344,17 @@
 
   /* Header et footer : blanc légèrement grisé, texte foncé, liseré fin. */
   .chrome-surface {
-    background-color: #f4f4f6;
+    background-color: rgba(255, 255, 255, 0.86);
+    -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    backdrop-filter: saturate(1.6) blur(14px);
     color: var(--color-ink);
+  }
+
+  /* Pied de page : noir de marque, filet rouge en tête. */
+  .footer-surface {
+    background-color: #17171a;
+    color: #fff;
+    border-top: 3px solid var(--color-forest);
   }
 
 
@@ -590,9 +599,91 @@
 [data-slot="textarea"]:focus-visible,
 [data-slot="select-trigger"]:focus-visible {
   background: #ffffff;
-  border-color: rgba(242, 146, 13, 0.9);
+  border-color: rgba(227, 5, 29, 0.85);
 }
 
 [data-slot="button"] {
   border-radius: 0.75rem;
+}
+
+/* ------------------------------------------------------------------
+   Scène 3D du hero (components/hero-3d.tsx)
+------------------------------------------------------------------ */
+.hero3d-stage {
+  --rx: 10deg;
+  --ry: -16deg;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes hero3d-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+.hero3d-float {
+  animation: hero3d-float 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero3d-stage { transition: none; }
+  .hero3d-float { animation: none; }
+}
+
+/* Défilement continu d'une bande de texte (style Boutique). */
+@keyframes pg-marquee {
+  to { transform: translateX(-50%); }
+}
+.pg-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: pg-marquee 30s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-marquee { animation: none; }
+}
+
+/* Changement de style dans la section « Exemples » : fondu léger. */
+@keyframes example-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.example-enter { animation: example-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .example-enter { animation: none; }
+}
+
+
+/* Tablettes et téléphones : zones tactiles confortables, et pas de zoom automatique d'iOS dans les champs. */
+@media (pointer: coarse) {
+  .field,
+  select.field,
+  textarea.field,
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="password"],
+  input[type="search"] {
+    font-size: 16px;
+  }
+
+  .btn,
+  .btn-sm {
+    min-height: 2.75rem;
+  }
+
+  footer a,
+  header nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+  }
+
+  html {
+    -webkit-tap-highlight-color: rgba(227, 5, 29, 0.12);
+  }
+}
+
+@supports (padding: max(0px)) {
+  footer > div {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

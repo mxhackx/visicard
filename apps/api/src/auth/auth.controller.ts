@@ -6,6 +6,7 @@ import {
   Get,
   Patch,
   Put,
+  Delete,
   Param,
   Body,
   Headers,
@@ -154,6 +155,35 @@ export class AuthController {
     }
 
     return this.authService.listAccounts();
+  }
+
+  /** Crée un compte (autre administrateur ou client) depuis le panneau admin. */
+  @Post('accounts')
+  async createAccount(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() body: { name?: string; email?: string; password?: string; role?: string },
+  ) {
+    const token = this.sessionToken(req, authHeader);
+    if (!token || !(await this.authService.validateAdminToken(token))) {
+      throw new UnauthorizedException('Accès réservé aux administrateurs.');
+    }
+    return this.authService.createAccountAsAdmin(body ?? {});
+  }
+
+  /** Supprime un compte (faux compte, doublon) avec garde-fous. */
+  @Delete('accounts/:id')
+  async deleteAccount(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Param('id') id: string,
+  ) {
+    const token = this.sessionToken(req, authHeader);
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || session.user?.role !== 'admin') {
+      throw new UnauthorizedException('Accès réservé aux administrateurs.');
+    }
+    return this.authService.deleteAccount(id, session.user.id);
   }
 
   /** Nomme un client administrateur, ou lui retire ce rôle. */

@@ -14,7 +14,7 @@ import sharp from 'sharp';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Card, Prisma } from '@prisma/client';
 import 'multer';
-export type CardServiceType = 'page' | 'media' | 'document';
+export type CardServiceType = 'page' | 'media' | 'document' | 'direct';
 
 export interface CardMetadata {
   userName?: string;
@@ -38,6 +38,8 @@ export interface CardMetadata {
   /** Nature du QR code : page digitale, média (image / vidéo) ou document. */
   serviceType?: string;
   title?: string;
+  /** QR « direct » (payant) : contenu écrit tel quel dans le QR code (tel:, WIFI:, vCard…). */
+  directPayload?: string;
 }
 export interface UploadedCardFiles {
   file?: Express.Multer.File;
@@ -156,7 +158,7 @@ export class CardsService {
     options: { status?: 'draft' | 'active' } = {},
   ) {
     const serviceType: CardServiceType =
-      metadata?.serviceType === 'media' || metadata?.serviceType === 'document'
+      metadata?.serviceType === 'media' || metadata?.serviceType === 'document' || metadata?.serviceType === 'direct'
         ? metadata.serviceType
         : 'page';
 
@@ -172,6 +174,10 @@ export class CardsService {
     }
     if (serviceType === 'document' && !hasDocumentFile) {
       throw new BadRequestException('Veuillez fournir un document PDF pour générer le QR code.');
+    }
+    const directPayload = metadata?.directPayload?.trim() ?? '';
+    if (serviceType === 'direct' && (!directPayload || directPayload.length > 1500)) {
+      throw new BadRequestException('Contenu du QR code manquant ou trop long.');
     }
 
     // 1. Génération d'un slug unique (8 caractères alphanumériques)
@@ -240,12 +246,22 @@ export class CardsService {
       primaryImageUrl = logoUrl || '';
     }
 
+    if (serviceType === 'direct') {
+      // Le contenu du QR est conservé tel quel ; aucune page n'est hébergée.
+      contentUrl = directPayload;
+      contentType = 'direct';
+      if (files.logo) logoUrl = await this.processAndUploadImage(files.logo.buffer, `${slug}-logo.webp`);
+    }
+
     if (!primaryImageUrl && !contentUrl) {
       throw new BadRequestException('Aucun fichier exploitable n\'a été fourni.');
     }
 
     // 3. Génération du QR code selon le style choisi
-    const qrCode = await this.generateStyledQrCode(cardUrl, normalizeQrStyle(metadata?.qrStyle));
+    const qrCode = await this.generateStyledQrCode(
+      serviceType === 'direct' ? directPayload : cardUrl,
+      normalizeQrStyle(metadata?.qrStyle),
+    );
     // Validation de sécurité de l'URL de localisation (protection anti-XSS)
     let safeLocationUrl: string | null = null;
     if (metadata?.locationUrl) {
@@ -338,7 +354,8 @@ export class CardsService {
     if (!card) throw new NotFoundException(`Carte introuvable pour le slug "${slug}"`);
     const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
     const cardUrl = `${appUrl}/c/${slug}`;
-    return { qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle), cardUrl };
+    const target = card.serviceType === 'direct' && card.contentUrl ? card.contentUrl : cardUrl;
+    return { qrCode: await this.generateStyledQrCode(target, card.qrStyle), cardUrl: target };
   }
 
   /**
@@ -633,7 +650,10 @@ export class CardsService {
           fileName: card.fileName ?? null,
           restaurantName: card.restaurantName ?? null,
           cardUrl,
-          qrCode: await this.generateStyledQrCode(cardUrl, card.qrStyle),
+          qrCode: await this.generateStyledQrCode(
+            card.serviceType === 'direct' && card.contentUrl ? card.contentUrl : cardUrl,
+            card.qrStyle,
+          ),
           createdAt: card.createdAt,
         };
       }),

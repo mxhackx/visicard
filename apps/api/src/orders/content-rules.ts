@@ -34,7 +34,8 @@ export function assertOrderContent(serviceType: ServiceType, metadata: CardMetad
     if (digits.length < 8 || digits.length > 15) fail('Numéro WhatsApp de l’établissement invalide.');
 
     const location = metadata.locationUrl?.trim() ?? '';
-    if (!HTTP.test(location)) fail('Localisation invalide : utilisez « Ma position » ou un lien Google Maps.');
+    // La localisation est facultative : on ne la contrôle que si elle est fournie.
+    if (location && !HTTP.test(location)) fail('Localisation invalide : utilisez « Ma position » ou un lien Google Maps.');
 
     for (const [key, label] of SOCIALS) {
       const value = metadata[key]?.trim();
@@ -46,6 +47,11 @@ export function assertOrderContent(serviceType: ServiceType, metadata: CardMetad
     if (!files.logo && !files.file && !files.menu?.length) {
       fail('Ajoutez au moins le logo ou une photo du menu.');
     }
+  } else if (serviceType === 'direct') {
+    const payload = metadata.directPayload?.trim() ?? '';
+    if (!payload) fail('Contenu du QR code manquant.');
+    if (payload.length > 1500) fail('Contenu trop long pour un QR code lisible (1 500 caractères au maximum).');
+    maxLength(metadata.title, 90, 'Nom du QR code');
   } else {
     maxLength(metadata.title, 90, 'Nom du QR code');
   }

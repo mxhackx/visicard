@@ -41,7 +41,7 @@ export interface OrderView {
   id: string;
   reference: string;
   kind: "creation" | "modification";
-  serviceType: "page" | "media" | "document";
+  serviceType: "page" | "media" | "document" | "direct";
   serviceLabel: string;
   status: OrderStatus;
   items: OrderItem[];
@@ -58,6 +58,8 @@ export interface OrderView {
   lastPayment: { provider: string; status: "pending" | "succeeded" | "failed"; createdAt: string } | null;
   modifications: { reference: string; status: OrderStatus; amount: number; quoteNumber: string; createdAt: string }[];
   pendingChanges: Record<string, unknown> | null;
+  /** `online` : le paiement en ligne (FedaPay) est disponible. */
+  payment?: { online: boolean };
 }
 
 export interface CreatedOrder {
@@ -75,6 +77,31 @@ export function rememberOrderKey(reference: string, key: string) {
   } catch {
     /* navigation privée : le lien reste la seule clé */
   }
+}
+
+/** Valeur spéciale : la commande s'ouvre avec le compte connecté, sans lien privé. */
+export const ACCOUNT_KEY = "__account__";
+
+function sessionToken(): string | null {
+  try {
+    return sessionStorage.getItem("moncode_token");
+  } catch {
+    return null;
+  }
+}
+
+/** Preuve d'accès envoyée à l'API : lien privé (`X-Order-Key`) ou compte connecté (Bearer). */
+function accessHeaders(key: string): Record<string, string> {
+  if (key === ACCOUNT_KEY) {
+    const token = sessionToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+  return { "X-Order-Key": key };
+}
+
+/** Lien privé mémorisé, sinon le compte connecté, sinon rien. */
+export function recallAccess(reference: string): string | null {
+  return recallOrderKey(reference) ?? (sessionToken() ? ACCOUNT_KEY : null);
 }
 
 export function recallOrderKey(reference: string): string | null {
@@ -112,11 +139,20 @@ async function parse<T>(res: Response): Promise<T> {
 }
 
 export async function createOrder(body: FormData): Promise<CreatedOrder> {
-  return parse(await send(`${API_URL}/orders`, { method: "POST", body }));
+  // Connecté : la commande est rattachée au compte (obligatoire pour page, image, vidéo, PDF).
+  const token = sessionToken();
+  return parse(
+    await send(`${API_URL}/orders`, {
+      method: "POST",
+      body,
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }),
+  );
 }
 
 export async function fetchOrder(reference: string, key: string): Promise<OrderView> {
-  return parse(await send(`${API_URL}/orders/${reference}`, { headers: { "X-Order-Key": key }, cache: "no-store" }));
+  return parse(await send(`${API_URL}/orders/${reference}`, { headers: accessHeaders(key), cache: "no-store" }));
 }
 
 /** Vue admin d'une commande (sans lien privé). */
@@ -140,11 +176,37 @@ export async function adminOrderAction(orderId: string, action: "mark-paid" | "c
   );
 }
 
+/** Crée la transaction FedaPay et renvoie l'adresse de sa page de paiement. */
+export async function startPayment(reference: string, key: string): Promise<{ paymentUrl: string }> {
+  return parse(await send(`${API_URL}/orders/${reference}/payments`, { method: "POST", headers: accessHeaders(key) }));
+}
+
+/** Relit le paiement chez FedaPay, puis renvoie la commande à jour. */
+export async function refreshOrder(reference: string, key: string): Promise<OrderView> {
+  return parse(await send(`${API_URL}/orders/${reference}/payments/refresh`, { method: "POST", headers: accessHeaders(key) }));
+}
+
+/**
+ * Parcours « un seul bouton » : mémorise la commande puis envoie le client sur la page de
+ * paiement FedaPay. Renvoie `false` si le paiement en ligne n'est pas disponible : l'appelant
+ * ouvre alors la page de commande (paiement sur WhatsApp).
+ */
+export async function payOrder(order: CreatedOrder): Promise<boolean> {
+  rememberOrderKey(order.reference, order.accessToken);
+  try {
+    const { paymentUrl } = await startPayment(order.reference, order.accessToken);
+    window.location.assign(paymentUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function requestModification(reference: string, key: string, body: FormData): Promise<CreatedOrder> {
   return parse(
     await send(`${API_URL}/orders/${reference}/modifications`, {
       method: "POST",
-      headers: { "X-Order-Key": key },
+      headers: accessHeaders(key),
       body,
     }),
   );

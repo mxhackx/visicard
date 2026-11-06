@@ -122,10 +122,10 @@ function HubBody({ adminToken }: { adminToken: string }) {
             <QrCode className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-lg font-semibold text-ink/90">QR code simple · gratuit</span>
+            <span className="block text-lg font-semibold text-ink/90">QR code simple</span>
             <span className="mt-1 block text-sm leading-6 text-sage">
               Lien web, texte, carte de visite (vCard), appel, SMS, e-mail, Wi-Fi, événement ou coordonnées GPS,
-              écrits dans le QR lui-même. Gratuit, aussi ouvert aux clients sur /qr-gratuit.
+              écrits dans le QR lui-même. Tous contenus libres pour l’équipe ; les clients paient 5 000 FCFA (hors lien) sur /qr-gratuit.
             </span>
           </span>
           <span className="btn btn-primary btn-sm shrink-0 justify-between gap-2">

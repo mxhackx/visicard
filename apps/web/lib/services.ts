@@ -98,5 +98,6 @@ export function isServiceType(value: string | null | undefined): value is Servic
 }
 
 export function serviceLabel(value: string | null | undefined): string {
+  if (value === "direct") return "QR code direct";
   return isServiceType(value) ? SERVICE_LABELS[value] : "QR code";
 }

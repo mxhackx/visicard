@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   FileText,
@@ -14,8 +13,12 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { createOrder, rememberOrderKey, validateCustomer } from "@/lib/orders";
-import Stepper from "@/components/order/stepper";
+import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
+import { useFile } from "@/app/context/FileContext";
+import AccountGate, { useIsSignedIn } from "@/components/account/account-gate";
+import PhonePreview from "@/components/phone-preview";
+import ExamplePage from "@/components/example-page";
+import FedapayBadge from "@/components/fedapay-badge";
 import QrDesigner from "@/components/qr/qr-designer";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
 import { SERVICES, type ServiceType } from "@/lib/services";
@@ -30,13 +33,15 @@ const icons = {
 const pagePath = [
   "Vous remplissez la présentation, les photos, les horaires et les contacts.",
   "Vous choisissez un thème : l’aperçu se met à jour en direct.",
-  "Vous recevez un devis et réglez avec notre équipe sur WhatsApp : le QR code s’active dès le paiement reçu.",
+  "Vous payez en ligne par Mobile Money ou carte (FedaPay) : le QR code s’active dès la confirmation.",
 ];
 
 export default function CreateFlow({ initialService }: { initialService: ServiceType | null }) {
   const router = useRouter();
 
-  const [service, setService] = useState<ServiceType | null>(initialService);
+  const signedIn = useIsSignedIn();
+  const { authUser } = useFile();
+  const [service, setService] = useState<ServiceType | null>(initialService ?? "page");
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -45,6 +50,11 @@ export default function CreateFlow({ initialService }: { initialService: Service
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
+  // Connecté : l'e-mail du compte est repris dans la facture.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (authUser?.email) setCustomer((c) => (c.email ? c : { ...c, email: authUser.email! }));
+  }, [authUser?.email]);
   const [qrStyle, setQrStyle] = useState("");
   const [customerErrors, setCustomerErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
 
@@ -143,8 +153,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
 
     try {
       const order = await createOrder(body);
-      rememberOrderKey(order.reference, order.accessToken);
-      router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
+      if (!(await payOrder(order))) router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
       setIsSubmitting(false);
@@ -156,29 +165,60 @@ export default function CreateFlow({ initialService }: { initialService: Service
 
       <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-2xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sage transition-colors hover:text-ink"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Accueil
-          </Link>
-
-          <div className="mt-6 max-w-3xl">
-            <Stepper current={0} />
-          </div>
-
-          <p className="eyebrow mt-10">Créer un QR code</p>
+          <p className="eyebrow">Créer un QR code</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl lg:text-5xl">
             Quel contenu voulez-vous mettre derrière le code ?
           </h1>
           <p className="mt-5 text-base leading-7 text-sage">
-            Choisissez un service : un QR code correspond à un seul contenu. Pas besoin de compte :
-            vous recevez un devis, puis votre QR code dès le paiement.
+            Choisissez un service : un QR code correspond à un seul contenu. Vous remplissez
+            quelques champs, vous payez en ligne, et votre QR code est prêt.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-3">
+        <ol className="mt-8 grid gap-3 text-sm sm:grid-cols-3" aria-label="Les étapes">
+          {[
+            ["1", "Choisissez", "ce que le QR code doit faire"],
+            ["2", "Remplissez", "deux ou trois informations"],
+            ["3", "Payez et téléchargez", "votre QR code est prêt"],
+          ].map(([n, t, d]) => (
+            <li key={n} className="flex items-start gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-line">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{n}</span>
+              <span>
+                <span className="block font-semibold text-ink">{t}</span>
+                <span className="block text-xs text-sage">{d}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-xs text-sage">
+          Contenu mis en ligne (page, image, vidéo, PDF) : un compte est demandé au moment de payer.{" "}
+          <Link href="/connexion?next=%2Fcompte" className="font-semibold text-forest underline-offset-4 hover:underline">
+            J’ai déjà un compte
+          </Link>
+          {" · "}
+          <Link href="/manuel" className="font-semibold text-forest underline-offset-4 hover:underline">
+            Manuel d’utilisation
+          </Link>
+        </p>
+
+        <Link
+          href="/creer/qr"
+          className="group mt-10 flex items-center justify-between gap-4 rounded-2xl border border-forest/30 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(227,5,29,0.08)] transition hover:-translate-y-0.5 hover:border-forest hover:shadow-[0_16px_40px_rgba(227,5,29,0.14)] active:scale-[0.99] sm:px-7 sm:py-6"
+        >
+          <span>
+            <span className="block text-base font-semibold text-ink sm:text-lg">
+              Juste un lien, un Wi-Fi, une carte de visite ou un numéro ?
+            </span>
+            <span className="mt-1 block text-sm leading-6 text-sage">
+              Un lien est gratuit. Wi-Fi, vCard, appel ou SMS : le tarif s’affiche à la fin.
+            </span>
+          </span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest text-white transition-transform group-hover:translate-x-0.5">
+            <ArrowRight className="h-5 w-5" />
+          </span>
+        </Link>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {SERVICES.map((offer) => {
             const Icon = icons[offer.id];
             const active = service === offer.id;
@@ -202,13 +242,6 @@ export default function CreateFlow({ initialService }: { initialService: Service
                   >
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span
-                    className={`text-[11.5px] font-semibold uppercase tracking-[0.14em] ${
-                      active ? "text-white/60" : "text-sage"
-                    }`}
-                  >
-                    {offer.price} FCFA
-                  </span>
                 </span>
                 <span className="text-sm font-semibold">{offer.name}</span>
                 <span
@@ -221,30 +254,12 @@ export default function CreateFlow({ initialService }: { initialService: Service
           })}
         </div>
 
-        <Link
-          href="/qr-gratuit"
-          className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-dashed border-ambre/50 bg-white px-5 py-4 text-sm transition-colors hover:border-forest"
-        >
-          <span>
-            <span className="font-semibold text-ink/90">Juste un lien, un Wi-Fi, une carte de visite ou un numéro ?</span>{" "}
-            <span className="text-sage">Créez un QR code simple, gratuitement et tout de suite.</span>
-          </span>
-          <span className="shrink-0 font-semibold text-forest">QR gratuit →</span>
-        </Link>
-
-        {!service && (
-          <div className="mt-8 rounded-[var(--radius-card)] border border-dashed border-ambre/50 bg-white p-8 text-center">
-            <p className="text-sm text-sage">
-              Sélectionnez l’un des trois services ci-dessus pour continuer.
-            </p>
-          </div>
-        )}
 
         {service === "page" && selectedOffer && (
           <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="surface p-6 sm:p-8">
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">
-                Service {selectedOffer.index} · {selectedOffer.price} FCFA
+                Service {selectedOffer.index}
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink/90">
                 {selectedOffer.name}
@@ -272,22 +287,19 @@ export default function CreateFlow({ initialService }: { initialService: Service
               </button>
             </div>
 
-            <div className="brand-surface rounded-[var(--radius-card)] p-6 sm:p-8">
-              <p className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-white/55">
-                Compris dans l’offre
-              </p>
-              <ul className="mt-5 space-y-3">
+            <div className="order-first lg:order-none">
+              <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">Exemple de page</p>
+              <PhonePreview width={250} height={440}>
+                <ExamplePage layout="maquis" />
+              </PhonePreview>
+              <ul className="mt-6 space-y-2">
                 {selectedOffer.features.map((feature) => (
-                  <li key={feature} className="flex gap-3 text-sm leading-6 text-white/80">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-white" />
+                  <li key={feature} className="flex gap-3 text-sm leading-6 text-sage">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
                     {feature}
                   </li>
                 ))}
               </ul>
-              <p className="mt-7 border-t border-white/15 pt-5 text-xs leading-5 text-white/55">
-                Vous gardez la main sur le contenu : chaque modification est en ligne immédiatement,
-                sans réimprimer le QR code.
-              </p>
             </div>
           </div>
         )}
@@ -296,7 +308,7 @@ export default function CreateFlow({ initialService }: { initialService: Service
           <form onSubmit={handleSubmit} className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="surface p-6 sm:p-8">
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">
-                Service {selectedOffer.index} · {selectedOffer.price} FCFA
+                Service {selectedOffer.index}
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink/90">
                 {selectedOffer.name}
@@ -398,11 +410,13 @@ export default function CreateFlow({ initialService }: { initialService: Service
               </div>
 
               <div className="mt-8 border-t border-line pt-6">
-                <h3 className="text-sm font-semibold text-ink/90">Vos coordonnées</h3>
-                <p className="mt-1 text-xs text-sage">Pour le devis et la facture. Aucun compte n’est créé.</p>
-                <div className="mt-4">
-                  <CustomerFields value={customer} onChange={setCustomer} errors={customerErrors} />
-                </div>
+                <AccountGate>
+                  <h3 className="text-sm font-semibold text-ink/90">Vos coordonnées</h3>
+                  <p className="mt-1 text-xs text-sage">Elles figurent sur votre facture.</p>
+                  <div className="mt-4">
+                    <CustomerFields value={customer} onChange={setCustomer} errors={customerErrors} />
+                  </div>
+                </AccountGate>
               </div>
 
               {error && (
@@ -416,24 +430,25 @@ export default function CreateFlow({ initialService }: { initialService: Service
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !signedIn}
                 className="btn btn-primary mt-6 w-full"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Création du devis…
+                    Redirection vers le paiement…
                   </>
                 ) : (
                   <>
-                    Obtenir mon devis
+                    Payer {fcfa(Number(selectedOffer.price.replace(/\s/g, "")))}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </button>
 
-              <p className="mt-3 text-center text-xs leading-5 text-sage">
-                Aucun paiement à cette étape : vous verrez l’aperçu et le devis de {selectedOffer.price} FCFA.
+              <FedapayBadge className="mt-3 flex justify-center" />
+              <p className="mt-2 text-center text-xs leading-5 text-sage">
+                Mobile Money ou carte. Votre QR code est activé dès la confirmation.
               </p>
             </div>
 

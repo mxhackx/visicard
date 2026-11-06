@@ -28,7 +28,7 @@ function qrCells(size = 21): boolean[] {
   return cells;
 }
 
-const CELLS = qrCells();
+export const CELLS = qrCells();
 
 /** Illustration du hero : un QR imprimé, le téléphone qui le scanne, la page qui s'ouvre. */
 export default function HeroVisual() {
@@ -60,7 +60,7 @@ export default function HeroVisual() {
             </span>
             <span className="scan-line" />
           </div>
-          <p className="mt-2 text-center text-[10px] font-semibold text-ink/80">Le Comptoir</p>
+          <p className="mt-2 text-center text-[10px] font-semibold text-ink/80">Moncode</p>
         </div>
         <div className="mx-auto h-2 w-[70%] rounded-b-xl bg-ink/10" />
       </div>
@@ -79,7 +79,7 @@ export default function HeroVisual() {
             </div>
 
             <div className="px-4 pb-4 pt-7">
-              <p className="text-sm font-semibold text-ink">Le Comptoir</p>
+              <p className="text-sm font-semibold text-ink">Moncode</p>
               <p className="mt-0.5 flex items-center gap-1 text-[10px] text-sage">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Restaurant · Cotonou
               </p>

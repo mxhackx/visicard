@@ -42,6 +42,8 @@ export interface CustomizationInfo {
   themeId: string;
   cardLayout: string;
   qrStyle: string;
+  /** Secteur d'activité : règle les libellés du formulaire et le style proposé. */
+  sector: string;
 }
 
 const initialUserInfo: UserInfo = {
@@ -83,6 +85,7 @@ const initialCustomization: CustomizationInfo = {
   themeId: "",
     cardLayout: "classic",
   qrStyle: "",
+  sector: "",
 };
 
 interface FileContextType {
@@ -109,6 +112,7 @@ interface FileContextType {
   customization: CustomizationInfo;
   setThemeId: (themeId: string) => void;
   setCardLayout: (layoutId: string) => void;
+  setSector: (sectorId: string, layoutId: string) => void;
   setQrStyle: (qrStyle: string) => void;
   resetAll: () => void;
 
@@ -391,6 +395,11 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setCustomization((prev) => ({ ...prev, cardLayout }));
   };
 
+  const setSector = (sector: string, cardLayout: string) => {
+    // Changer de secteur repart de la palette d'origine du style proposé.
+    setCustomization((prev) => ({ ...prev, sector, cardLayout, themeId: "" }));
+  };
+
   const setThemeId = (themeId: string) => {
     setCustomization((prev) => ({ ...prev, themeId }));
   };
@@ -434,6 +443,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         customization,
         setThemeId,
         setCardLayout,
+        setSector,
         setQrStyle,
         resetAll,
         authToken,

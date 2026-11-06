@@ -1,27 +1,20 @@
 import { Quote } from "lucide-react";
 import SectionHeading from "@/components/section-heading";
-// Textes d'exemple à remplacer par des retours réels avant la mise en ligne.
+// Mots des fondateurs : à faire relire et valider par les intéressés avant la mise en ligne.
 const reviews = [
   {
     quote:
-      "Nous avons remplacé la carte papier par une page digitale : un seul QR code sur les tables, et les prix changent sans réimpression.",
-    name: "Awa K.",
-    role: "Gérante, Le Comptoir des Halles",
-    initials: "AK",
+      "Nous voulons qu’un commerçant puisse mettre son menu, ses horaires ou son catalogue derrière un QR code en quelques minutes, sans compétence technique et à un prix qu’il comprend.",
+    name: "Carmel TINHOUINTIN",
+    role: "PDG, Moncode",
+    initials: "CT",
   },
   {
     quote:
-      "Une vidéo de présentation derrière un QR code sur nos flyers : les clients la regardent avant même de pousser la porte.",
-    name: "Yann D.",
-    role: "Fondateur, Maison Braise",
-    initials: "YD",
-  },
-  {
-    quote:
-      "Le catalogue PDF est accessible en un scan. Nos commerciaux n’impriment plus des dizaines de brochures à chaque salon.",
-    name: "Sarah M.",
-    role: "Directrice, Groupe Ambre",
-    initials: "SM",
+      "Un QR code imprimé ne doit jamais devenir inutile : le contenu évolue, le code reste. C’est la promesse que nous tenons à chaque commande, avec une équipe joignable sur WhatsApp.",
+    name: "Mateo GRAND",
+    role: "PDG, Moncode",
+    initials: "MG",
   },
 ];
 
@@ -30,11 +23,11 @@ export default function Testimonials() {
     <section id="avis" className="anchor">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
-          title="Ce qu’en disent les établissements"
-          subtitle="Quelques retours de clients Moncode."
+          title="Un mot des fondateurs"
+          subtitle="Pourquoi nous avons créé Moncode, et ce que nous vous promettons."
         />
 
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
+        <div className="mx-auto mt-14 grid max-w-4xl gap-5 md:grid-cols-2">
           {reviews.map((review, idx) => (
             <figure
               key={review.name}

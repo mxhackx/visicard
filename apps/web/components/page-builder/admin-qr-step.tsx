@@ -171,14 +171,14 @@ function Success({ created, copied, onCopy, onDone }: { created: Created; copied
             </button>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Link href={`/admin/cartes/${created.slug}`} onClick={onDone} className="btn btn-primary btn-sm">
-              Fiche de la page
-            </Link>
             <a href={created.cardUrl} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
               <Smartphone className="h-4 w-4" /> Ouvrir la page <ExternalLink className="h-3.5 w-3.5" />
             </a>
             <Link href="/admin/nouveau" onClick={onDone} className="btn btn-outline btn-sm">
               Nouveau QR code
+            </Link>
+            <Link href={`/admin/cartes/${created.slug}`} onClick={onDone} className="btn btn-primary btn-sm">
+              Fiche de la page
             </Link>
           </div>
         </div>

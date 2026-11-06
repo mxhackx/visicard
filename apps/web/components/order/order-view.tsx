@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   Receipt,
   ShieldAlert,
+  CreditCard,
 } from "lucide-react";
+import FedapayBadge from "@/components/fedapay-badge";
+import DirectResult from "@/components/order/direct-result";
 import StyledQr from "@/components/qr/styled-qr";
 import { useOrderKey } from "@/lib/use-order-key";
 import Stepper from "@/components/order/stepper";
@@ -31,6 +34,8 @@ import {
   privateOrderUrl,
   rememberOrderKey,
   type OrderView as Order,
+  refreshOrder,
+  startPayment,
 } from "@/lib/orders";
 import { providerLabel, whatsappUrl } from "@/lib/contact";
 
@@ -81,6 +86,27 @@ export default function OrderView({
     const id = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(id);
   }, [key, load]);
+
+  // Retour de la page de paiement FedaPay : on relit le statut chez FedaPay (jamais depuis l'adresse).
+  useEffect(() => {
+    if (adminToken || !key) return;
+    if (new URLSearchParams(window.location.search).get("paiement") !== "fedapay") return;
+    window.history.replaceState(null, "", `/commande/${reference}`);
+    let tries = 0;
+    let timer = 0;
+    const check = async () => {
+      try {
+        const next = await refreshOrder(reference, key);
+        setOrder(next);
+        // Le paiement mobile peut mettre quelques secondes à être confirmé.
+        if (next.status === "pending" && ++tries < 8) timer = window.setTimeout(check, 4000);
+      } catch {
+        /* le bouton « actualiser » reste disponible */
+      }
+    };
+    void check();
+    return () => window.clearTimeout(timer);
+  }, [adminToken, key, reference]);
 
   // Le paiement est confirmé par l'équipe : la page se relit quand le client y revient.
   useEffect(() => {
@@ -150,6 +176,21 @@ export default function OrderView({
         <StatusBadge status={order.status} />
       </div>
 
+      {paid && order.serviceType === "direct" && order.card.preview?.contentUrl ? (
+        <>
+        <DirectResult
+          payload={order.card.preview.contentUrl}
+          style={order.card.preview.qrStyle}
+          slug={order.card.slug}
+          reference={order.reference}
+          invoiceNumber={order.invoiceNumber}
+          invoiceHref={adminToken ? `/admin/commandes/${order.reference}/facture` : `/commande/${order.reference}/facture`}
+          amountLabel={fcfa(order.amount)}
+          paidLabel={`Payée le ${formatDate(order.paidAt)}`}
+        />
+        {!adminToken && <div className="mt-6 max-w-2xl"><PrivateLink reference={order.reference} orderKey={key} /></div>}
+        </>
+      ) : (
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <Preview order={order} />
 
@@ -163,14 +204,15 @@ export default function OrderView({
           ) : order.status !== "cancelled" && order.card.status !== "rejected" ? (
             <>
               <QuotePanel order={order} />
-              <PaymentPanel order={order} onRefresh={load} />
+              <PaymentPanel order={order} onRefresh={load} onPay={async () => { const { paymentUrl } = await startPayment(reference, key!); window.location.assign(paymentUrl); }} />
             </>
           ) : null}
           {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
         </div>
       </div>
+      )}
 
-      {paid && order.kind === "creation" && !adminToken && (
+      {paid && order.kind === "creation" && !adminToken && order.serviceType !== "direct" && (
         <div className="surface mt-6 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-ink/90">Besoin de changer le contenu ?</h2>
@@ -314,23 +356,46 @@ function QuotePanel({ order, admin }: { order: Order; admin?: boolean }) {
 
 /* ----------------------------------- Paiement ----------------------------------- */
 
-function PaymentPanel({ order, onRefresh }: { order: Order; onRefresh: () => Promise<unknown> }) {
+function PaymentPanel({ order, onRefresh, onPay }: { order: Order; onRefresh: () => Promise<unknown>; onPay: () => Promise<void> }) {
   const [checking, setChecking] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const message =
-    `Bonjour Moncode, je souhaite régler ma commande ${order.reference} ` +
-    `(devis ${order.quoteNumber}, ${order.serviceLabel}) : ${fcfa(order.amount)}.`;
+    `Bonjour Moncode, j’ai une question sur ma commande ${order.reference} ` +
+    `(devis ${order.quoteNumber}, ${order.serviceLabel}, ${fcfa(order.amount)}).`;
 
   return (
     <div className="surface p-6">
-      <h2 className="text-base font-semibold text-ink/90">Paiement sur WhatsApp</h2>
+      <h2 className="text-base font-semibold text-ink/90">Paiement</h2>
       <p className="mt-2 text-sm leading-6 text-sage">
-        Écrivez-nous sur WhatsApp : notre équipe vous indique comment régler {fcfa(order.amount)}. Dès réception,
-        votre QR code est activé et votre facture émise.
+        Réglez {fcfa(order.amount)} par Mobile Money ou carte. Votre QR code est activé et votre facture émise dès la confirmation.
       </p>
-      <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="btn btn-primary mt-5 w-full">
-        <MessageCircle className="h-4 w-4" />
-        Payer {fcfa(order.amount)} sur WhatsApp
-      </a>
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <button
+          type="button"
+          disabled={paying}
+          onClick={async () => {
+            setPaying(true);
+            setPayError(null);
+            try {
+              await onPay();
+            } catch (err) {
+              setPayError(
+                err instanceof Error && !/503|indisponible/i.test(err.message)
+                  ? err.message
+                  : "Le paiement en ligne est momentanément indisponible. Écrivez-nous sur WhatsApp : nous vous aidons à finaliser.",
+              );
+              setPaying(false);
+            }
+          }}
+          className="btn btn-primary min-w-0 flex-1 sm:flex-none"
+        >
+          {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+          {paying ? "Redirection…" : `Payer ${fcfa(order.amount)}`}
+        </button>
+        <FedapayBadge />
+      </div>
+      {payError && <p role="alert" className="mt-3 text-sm font-medium text-red-600">{payError}</p>}
       <button
         type="button"
         disabled={checking}
@@ -339,13 +404,16 @@ function PaymentPanel({ order, onRefresh }: { order: Order; onRefresh: () => Pro
           await onRefresh();
           setChecking(false);
         }}
-        className="btn btn-outline btn-sm mt-3 w-full"
+        className="btn btn-outline btn-sm mt-4 w-full"
       >
         {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         J’ai payé : actualiser
       </button>
-      <p className="mt-3 text-center text-xs text-sage">
-        Référence à rappeler : <span className="font-semibold text-ink/80">{order.reference}</span>
+      <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
+        <MessageCircle className="h-4 w-4" /> Une question sur le paiement ? Écrivez-nous
+      </a>
+      <p className="mt-3 text-xs text-sage">
+        Référence : <span className="font-semibold text-ink/80">{order.reference}</span>
       </p>
     </div>
   );
@@ -355,12 +423,15 @@ function PaymentPanel({ order, onRefresh }: { order: Order; onRefresh: () => Pro
 
 function QrPanel({ order, admin }: { order: Order; admin?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const direct = order.serviceType === "direct";
+  // Un QR direct encode son contenu ; les autres pointent vers la page Moncode.
+  const qrData = direct ? (order.card.preview?.contentUrl ?? null) : order.cardUrl;
   return (
     <div className="surface overflow-hidden">
       <div className="flex flex-col items-center gap-4 p-6 text-center">
-        {order.cardUrl && (
+        {qrData && (
           <StyledQr
-            data={order.cardUrl}
+            data={qrData}
             style={order.card.preview?.qrStyle}
             logoUrl={order.card.preview?.logoUrl}
             size={224}
@@ -369,14 +440,14 @@ function QrPanel({ order, admin }: { order: Order; admin?: boolean }) {
           />
         )}
         <div className="flex w-full flex-col gap-2 sm:flex-row">
-          {order.cardUrl && (
+          {order.cardUrl && !direct && (
             <a href={order.cardUrl} target="_blank" rel="noreferrer" className="btn btn-outline flex-1">
               <ExternalLink className="h-4 w-4" />
               Voir la page
             </a>
           )}
         </div>
-        {order.cardUrl && (
+        {order.cardUrl && !direct && (
           <button
             type="button"
             onClick={async () => {

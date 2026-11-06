@@ -8,7 +8,10 @@ import { join } from 'node:path';
 import { UploadErrorsFilter } from './common/upload-errors.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Corps brut conservé : nécessaire pour vérifier la signature du webhook FedaPay.
+    rawBody: true,
+  });
 
   const allowedOrigins = [
   process.env.APP_URL,

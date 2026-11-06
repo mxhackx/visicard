@@ -25,7 +25,7 @@ export const BUILDER_FLOWS: Record<BuilderMode, BuilderFlow> = {
     apparence: {
       back: "/creer/page/informations",
       next: "/creer/page/validation",
-      nextLabel: "Suivant : devis",
+      nextLabel: "Suivant : paiement",
       step: "Étape 2 sur 3",
     },
   },

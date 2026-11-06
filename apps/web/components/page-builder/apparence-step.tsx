@@ -11,20 +11,13 @@ import Header from "@/components/header";
 import Stepper from "@/components/order/stepper";
 import PaletteEditor from "@/components/page-builder/palette-editor";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
+import { LAYOUT_OPTIONS } from "@/lib/layouts";
 import { BUILDER_FLOWS, type BuilderMode } from "@/lib/builder-flows";
 import { paletteFor, isCustomThemeId, LAYOUT_DEFAULTS, samePalette, type LayoutId, type Palette } from "@/lib/palette";
 
-const LAYOUT_OPTIONS: { id: LayoutId; name: string; desc: string }[] = [
-  { id: "classic", name: "Classique", desc: "En-tête coloré, actions rapides, menu en grille" },
-  { id: "saas", name: "SaaS", desc: "Page produit : accroche, vitrine, appel à l’action" },
-  { id: "maps", name: "Couverture", desc: "Grande photo, logo rond, onglets" },
-  { id: "minimal", name: "Minimaliste", desc: "Typographique, centré, le menu avant tout" },
-  { id: "premium", name: "Avant-garde", desc: "Éditorial, grandes capitales, sections numérotées" },
-  { id: "exoticas", name: "Exoticas", desc: "Hero plein, galerie en verre, contact et carte" },
-];
 
 const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
-const CLIENT_STEPS = ["Informations", "Apparence", "Devis", "Paiement"] as const;
+const CLIENT_STEPS = ["Informations", "Apparence", "Paiement"] as const;
 
 export default function ApparenceStep({ mode }: { mode: BuilderMode }) {
   if (mode === "admin") {
@@ -283,6 +276,74 @@ function LayoutThumb({ id, palette: p }: { id: LayoutId; palette: Palette }) {
             <rect key={i} x={7 + i * 23} y="63" width="20" height="24" rx="3" fill="#fff" stroke={line} />
           ))}
           <rect y="92" width="80" height="8" fill={p.brand} />
+        </>
+      )}
+      {id === "maquis" && (
+        <>
+          <rect width="80" height="16" fill={p.accent} />
+          <rect x="22" y="5" width="36" height="6" rx="1" fill={p.brand} />
+          <rect x="7" y="22" width="66" height="34" rx="2" fill={p.text} />
+          {[0, 1, 2, 3].map((i) => <rect key={i} x="12" y={28 + i * 7} width={46 - (i % 2) * 10} height="2" fill="#fff" opacity=".8" />)}
+          <rect x="7" y="62" width="32" height="14" rx="2" fill={soft} />
+          <rect x="41" y="62" width="32" height="14" rx="2" fill={soft} />
+          <rect y="88" width="80" height="12" fill={p.brand} />
+        </>
+      )}
+      {id === "beaute" && (
+        <>
+          <path d="M10 56 V34 A30 30 0 0 1 70 34 V56 Z" fill={p.accent} opacity=".35" />
+          <path d="M16 56 V35 A24 24 0 0 1 64 35 V56 Z" fill={soft} stroke={p.accent} />
+          <rect x="22" y="64" width="36" height="5" rx="1" fill={p.text} />
+          <rect x="30" y="73" width="20" height="2" rx="1" fill={line} />
+          <rect x="28" y="82" width="24" height="7" rx="3.5" fill={p.brand} />
+        </>
+      )}
+      {id === "boutique" && (
+        <>
+          <rect x="6" y="8" width="68" height="14" fill={p.text} />
+          <rect x="6" y="26" width="34" height="30" fill={line} />
+          <rect x="42" y="26" width="32" height="14" fill={soft} />
+          <rect x="42" y="42" width="32" height="14" fill={p.accent} />
+          {[0, 1, 2].map((i) => <rect key={i} x={6 + i * 23} y="62" width="21" height="28" fill={soft} stroke={line} />)}
+        </>
+      )}
+      {id === "hotel" && (
+        <>
+          <rect width="80" height="8" fill={p.brand} />
+          <rect width="80" height="52" y="8" fill={p.brand} />
+          <rect x="44" y="8" width="36" height="52" fill={soft} opacity=".5" />
+          <rect x="7" y="30" width="32" height="8" fill="#fff" opacity=".9" />
+          <rect x="7" y="41" width="24" height="3" fill={p.accent} />
+          <rect x="10" y="54" width="60" height="14" fill="#fff" stroke={line} />
+          <rect x="7" y="76" width="32" height="18" fill={soft} />
+          <rect x="41" y="76" width="32" height="18" fill={soft} />
+        </>
+      )}
+      {id === "clinique" && (
+        <>
+          <rect width="80" height="6" fill="#d93636" />
+          <rect x="7" y="12" width="3" height="10" rx="1" fill={p.brand} />
+          <rect x="3.5" y="15.5" width="10" height="3" rx="1" fill={p.brand} />
+          <rect x="18" y="15" width="26" height="4" rx="2" fill={p.text} />
+          <rect x="7" y="30" width="38" height="6" rx="2" fill={p.text} />
+          <rect x="7" y="42" width="24" height="7" rx="3" fill={p.brand} />
+          <rect x="48" y="28" width="26" height="26" rx="4" fill={soft} stroke={line} />
+          {[0, 1, 2].map((i) => <rect key={i} x="7" y={62 + i * 10} width="66" height="7" rx="2" fill={soft} stroke={line} />)}
+        </>
+      )}
+      {id === "chantier" && (
+        <>
+          <rect width="80" height="4" fill={p.brand} />
+          <rect y="4" width="80" height="44" fill={p.text} />
+          <rect x="7" y="16" width="52" height="10" fill="#fff" />
+          <rect x="7" y="34" width="22" height="7" fill={p.brand} />
+          <rect y="48" width="80" height="4" fill={p.brand} />
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <rect x="7" y={58 + i * 13} width="66" height="10" fill="#fff" />
+              <rect x="7" y={58 + i * 13} width="3" height="10" fill={p.brand} />
+            </g>
+          ))}
         </>
       )}
     </svg>

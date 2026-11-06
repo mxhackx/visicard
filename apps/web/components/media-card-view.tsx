@@ -93,20 +93,20 @@ export default function MediaCardView({ card }: { card: MediaCardData }) {
               <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                 <a
                   href={card.contentUrl}
+                  download={card.fileName || `${card.slug}.pdf`}
+                  className="btn btn-sm btn-outline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Télécharger
+                </a>
+                <a
+                  href={card.contentUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-sm btn-primary"
                 >
                   Ouvrir le PDF
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                </a>
-                <a
-                  href={card.contentUrl}
-                  download={card.fileName || `${card.slug}.pdf`}
-                  className="btn btn-sm btn-outline"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Télécharger
                 </a>
               </div>
             </div>

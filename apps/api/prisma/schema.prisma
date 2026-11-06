@@ -81,6 +81,8 @@ model Order {
   customerName    String    @map("customer_name")
   customerPhone   String    @map("customer_phone")
   customerEmail   String?   @map("customer_email")
+  /// Compte client propriétaire (obligatoire pour page, image, vidéo, PDF ; facultatif pour un QR direct).
+  userId          String?   @map("user_id")
   /// Empreinte SHA-256 du jeton du lien privé : le jeton lui-même n'est jamais stocké.
   accessTokenHash String    @map("access_token_hash")
   quoteNumber     String    @unique @map("quote_number")
@@ -96,6 +98,7 @@ model Order {
   payments        Payment[]
 
   @@index([cardId])
+  @@index([userId])
   @@map("orders")
 }
 
@@ -145,6 +148,7 @@ model AdminUser {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   cards        Card[]
+  apiKeys      ApiKey[]
 
   @@map("admin_users")
 }
@@ -159,4 +163,39 @@ model CardScan {
 
   @@index([cardId, createdAt])
   @@map("card_scans")
+}
+
+/// Clé d'API développeur. La clé en clair n'est jamais stockée : seulement son empreinte SHA-256.
+model ApiKey {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  name       String
+  /// Début de la clé (non secret), pour la reconnaître dans la liste.
+  prefix     String
+  keyHash    String    @unique @map("key_hash")
+  /// Requêtes autorisées par minute et par mois (ignorées pour un compte administrateur).
+  perMinute  Int       @default(30) @map("per_minute")
+  perMonth   Int       @default(1000) @map("per_month")
+  revokedAt  DateTime? @map("revoked_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usage      ApiUsage[]
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+/// Compteur mensuel d'appels par clé (période « AAAA-MM », UTC).
+model ApiUsage {
+  id     BigInt @id @default(autoincrement())
+  keyId  String @map("key_id")
+  period String
+  count  Int    @default(0)
+
+  key    ApiKey @relation(fields: [keyId], references: [id], onDelete: Cascade)
+
+  @@unique([keyId, period])
+  @@map("api_usage")
 }

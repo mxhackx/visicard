@@ -6,32 +6,44 @@ import { CUSTOM_OFFER } from "@/lib/services";
 
 const offers = [
   {
-    title: "Page digitale",
-    subtitle: "Pour un restaurant, salon, boutique ou cabinet",
-    price: "20 000",
-    priceNote: "FCFA · paiement unique",
+    title: "QR direct",
+    subtitle: "Wi-Fi, carte de visite, appel, SMS, e-mail, événement, GPS",
+    price: "5 000",
+    priceNote: "FCFA · par QR code",
     items: [
-      "1 QR code pour 1 page complète",
-      "Menu, photos, horaires, adresse et réseaux",
-      "Bouton de contact / WhatsApp",
-      "Modifications en ligne à volonté",
-      "QR code prêt à imprimer",
+      "Le téléphone agit sans connexion",
+      "Enregistre un contact, rejoint un Wi-Fi, lance un appel",
+      "Style et logo personnalisés",
+      "PNG et SVG + facture",
     ],
-    cta: { label: "Créer ma page", href: "/creer?service=page" },
+    cta: { label: "Créer un QR direct", href: "/creer/qr" },
   },
   {
-    title: "Image / vidéo ou document PDF",
-    subtitle: "Pour un média ou un document à partager",
+    title: "Image, vidéo ou PDF",
+    subtitle: "Un média ou un document à partager",
     price: "5 000",
-    priceNote: "FCFA · paiement unique",
+    priceNote: "FCFA · par QR code",
     items: [
       "1 QR code pour 1 image, 1 vidéo ou 1 PDF",
       "Page de lecture mobile optimisée",
-      "Lien direct et fichier QR téléchargeables",
-      "Idéal pour une affiche, une brochure ou un menu ponctuel",
-      "Rapide, sans page complète",
+      "Modifiable après impression",
+      "PNG et SVG + facture",
     ],
-    cta: { label: "Créer un QR média / document", href: "/creer" },
+    cta: { label: "Créer un QR média", href: "/creer" },
+  },
+  {
+    title: "Page digitale",
+    subtitle: "Restaurant, salon, boutique ou cabinet",
+    price: "20 000",
+    priceNote: "FCFA · paiement unique",
+    highlight: true,
+    items: [
+      "Menu, photos, horaires, adresse et réseaux",
+      "Bouton WhatsApp et appel",
+      "Modifications en ligne",
+      "Statistiques de scans",
+    ],
+    cta: { label: "Créer ma page", href: "/creer?service=page" },
   },
 ];
 
@@ -48,26 +60,31 @@ export default function PricingSection() {
     <section id="tarifs" className="anchor">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
-          title="Un tarif clair, un sur-mesure quand ça dépasse"
-          subtitle="Paiement unique, sans abonnement, sans commission sur vos ventes."
+          title="Des prix simples, sans abonnement"
+          subtitle="Un paiement unique par QR code, annoncé avant de payer."
         />
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {offers.map((offer, index) => (
             <article
               key={offer.title}
-              className="surface surface-hover flex flex-col p-6 sm:p-8"
+              className={`surface surface-hover relative flex flex-col p-6 ${offer.highlight ? "ring-2 ring-forest" : ""}`}
               data-reveal
               style={{ "--d": `${index * 80}ms` } as React.CSSProperties}
             >
+              {offer.highlight && (
+                <span className="absolute -top-3 left-6 rounded-full bg-forest px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white">
+                  Le plus complet
+                </span>
+              )}
               <h3 className="text-lg font-semibold text-ink">{offer.title}</h3>
               <p className="mt-1 text-sm text-sage">{offer.subtitle}</p>
 
               <p className="mt-7 flex items-baseline gap-2">
-                <span className="text-4xl font-medium tracking-[-0.03em] text-ink sm:text-5xl">
+                <span className="text-4xl font-semibold tracking-[-0.03em] text-ink">
                   {offer.price}
                 </span>
-                <span className="text-sm font-semibold uppercase tracking-[0.12em] text-sage">
+                <span className="text-xs font-medium text-sage">
                   {offer.priceNote}
                 </span>
               </p>
@@ -81,21 +98,10 @@ export default function PricingSection() {
                 ))}
               </ul>
 
-              <div className="mt-auto flex flex-col gap-3 pt-8 sm:flex-row">
-                <Link href={offer.cta.href} className="btn btn-primary">
+              <div className="mt-auto flex flex-col gap-3 pt-8">
+                <Link href={offer.cta.href} className={`btn w-full ${offer.highlight ? "btn-primary" : "btn-outline"}`}>
                   {offer.cta.label}
                 </Link>
-                <a
-                  href={whatsappUrl(
-                    "Bonjour Moncode, j'ai une question sur le tarif de ce service.",
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-outline"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Poser une question
-                </a>
               </div>
             </article>
           ))}
@@ -148,7 +154,7 @@ export default function PricingSection() {
         </article>
 
         <p className="mt-10 border-l-2 border-ambre/60 pl-4 text-[15px] leading-7 text-sage">
-          Paiement avec notre équipe sur WhatsApp. Facture établie à votre nom. Un QR code déjà
+          Paiement en ligne par Mobile Money ou carte, via FedaPay. Facture établie à votre nom. Un QR code déjà
           imprimé continue de fonctionner même si vous faites évoluer la page.
         </p>
       </div>

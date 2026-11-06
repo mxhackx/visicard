@@ -23,7 +23,9 @@ export interface Palette {
   text: string;
 }
 
-export type LayoutId = "classic" | "maps" | "minimal" | "premium" | "saas" | "exoticas";
+export type LayoutId =
+  | "classic" | "maps" | "minimal" | "premium" | "saas" | "exoticas"
+  | "maquis" | "beaute" | "boutique" | "hotel" | "clinique" | "chantier";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -89,6 +91,13 @@ export const LAYOUT_DEFAULTS: Record<LayoutId, Palette> = {
   premium: { brand: "#d4af37", accent: "#d4af37", surface: "#0d0b09", text: "#f5efdc" },
   saas: { brand: "#4f46e5", accent: "#818cf8", surface: "#ffffff", text: "#0f172a" },
   exoticas: { brand: "#466931", accent: "#6ea03f", surface: "#f7f6f1", text: "#22331b" },
+  // Styles « métier » : ils partent chacun d'une palette propre à leur univers.
+  maquis: { brand: "#c81d25", accent: "#f6c200", surface: "#ffffff", text: "#1f3b2d" },
+  beaute: { brand: "#3b2620", accent: "#b88a4a", surface: "#f3e3dd", text: "#3b2620" },
+  boutique: { brand: "#000000", accent: "#f05a28", surface: "#ffffff", text: "#000000" },
+  hotel: { brand: "#23403a", accent: "#a88a5a", surface: "#e7ebe6", text: "#1e2422" },
+  clinique: { brand: "#00796b", accent: "#2dd4bf", surface: "#ffffff", text: "#102a2a" },
+  chantier: { brand: "#ff6b00", accent: "#ff6b00", surface: "#e4e4df", text: "#2c3036" },
 };
 
 /** Anciens thèmes nommés → palettes équivalentes (cartes déjà publiées). */

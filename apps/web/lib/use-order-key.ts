@@ -1,18 +1,18 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { recallOrderKey } from "./orders";
+import { recallAccess } from "./orders";
 
 const noopSubscribe = () => () => {};
 
 /**
- * Jeton privé d'une commande mémorisé dans ce navigateur.
+ * Accès à une commande depuis ce navigateur : lien privé mémorisé, ou compte connecté.
  * `undefined` tant que la page n'est pas hydratée (rendu serveur), puis la clé ou `null`.
  */
 export function useOrderKey(reference: string): string | null | undefined {
   return useSyncExternalStore(
     noopSubscribe,
-    () => recallOrderKey(reference),
+    () => recallAccess(reference),
     () => undefined,
   );
 }

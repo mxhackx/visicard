@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  Lock,
+  Loader2,
   AlertTriangle,
   CalendarDays,
   Check,
@@ -20,18 +22,24 @@ import {
   Wifi,
   X,
 } from "lucide-react";
+import FedapayBadge from "@/components/fedapay-badge";
 import QrDesigner from "./qr-designer";
+import AddressSearch from "@/components/address-search";
+import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
+import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
 import { coordsFromUrl } from "@/lib/page-design";
 import {
   DENSE_PAYLOAD,
   DIRECT_QR_DEFAULTS,
+  DIRECT_QR_PRICE,
   DIRECT_QR_TYPES,
   encodeDirectQr,
+  isFreeDirectType,
   type DirectQrData,
   type DirectQrType,
 } from "@/lib/qr-payloads";
 
-const ICONS: Record<DirectQrType, typeof Link2> = {
+export const ICONS: Record<DirectQrType, typeof Link2> = {
   url: Link2,
   text: Type,
   vcard: Contact,
@@ -43,7 +51,7 @@ const ICONS: Record<DirectQrType, typeof Link2> = {
   geo: MapPin,
 };
 
-type AllData = { [K in DirectQrType]: DirectQrData[K] };
+export type AllData = { [K in DirectQrType]: DirectQrData[K] };
 
 /**
  * Générateur gratuit de QR codes directs (lien, texte, vCard, appel, SMS, e-mail,
@@ -51,8 +59,16 @@ type AllData = { [K in DirectQrType]: DirectQrData[K] };
  * Tout se passe dans le navigateur : rien n'est enregistré ni envoyé à l'API
  * (un mot de passe Wi-Fi ne quitte pas la page).
  */
-export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: string }) {
-  const [type, setType] = useState<DirectQrType>("url");
+export default function DirectQrGenerator({
+  mode = "public",
+  types,
+}: {
+  mode?: "public" | "admin";
+  /** Types proposés (tous par défaut). Un seul type : le choix du contenu est masqué. */
+  types?: readonly DirectQrType[];
+}) {
+  const offered = DIRECT_QR_TYPES.filter((t) => !types || types.includes(t.id));
+  const [type, setType] = useState<DirectQrType>(offered[0]?.id ?? "url");
   const [all, setAll] = useState<AllData>(DIRECT_QR_DEFAULTS);
   const [qrStyle, setQrStyle] = useState("");
   const [logo, setLogo] = useState<string | null>(null);
@@ -62,6 +78,8 @@ export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: 
     setAll((a) => ({ ...a, [key]: { ...a[key], ...patch } }));
 
   const { payload, error } = encodeDirectQr(type, data);
+  // Public : seul le lien est gratuit. Admin : tout est libre (c'est l'outil de l'équipe).
+  const locked = mode === "public" && !isFreeDirectType(type);
   const meta = DIRECT_QR_TYPES.find((t) => t.id === type)!;
 
   useEffect(() => () => void (logo && URL.revokeObjectURL(logo)), [logo]);
@@ -69,10 +87,11 @@ export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: 
   return (
     <div>
       {/* 1. Type de contenu */}
+      {offered.length > 1 && (
       <section>
         <h2 className="text-base font-semibold text-ink/90">Contenu du QR code</h2>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="radiogroup">
-          {DIRECT_QR_TYPES.map((t) => {
+          {offered.map((t) => {
             const Icon = ICONS[t.id];
             const on = t.id === type;
             return (
@@ -88,14 +107,26 @@ export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: 
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="truncate">{t.label}</span>
+                {mode === "public" && (
+                  <span
+                    className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${
+                      isFreeDirectType(t.id)
+                        ? on ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-700"
+                        : on ? "bg-white/20 text-white" : "bg-cream-deep text-sage"
+                    }`}
+                  >
+                    {isFreeDirectType(t.id) ? "Gratuit" : null}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </section>
+      )}
 
       {/* 2. Formulaire propre au type */}
-      <section className="surface mt-6 p-6 sm:p-8">
+      <section className={`surface p-6 sm:p-8 ${offered.length > 1 ? "mt-6" : ""}`}>
         <p className="text-sm text-sage">{meta.hint}</p>
         <div className="mt-5">
           <Fields type={type} data={data} update={update} />
@@ -117,13 +148,25 @@ export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: 
         </div>
         {payload ? (
           <>
-            <QrDesigner
-              value={qrStyle}
-              onChange={setQrStyle}
-              data={payload}
-              logoUrl={logo}
-              downloadName={`qr-${type}`}
-            />
+            <div className="relative">
+              <div
+                className={locked ? "pointer-events-none select-none [&_.surface-soft]:blur-[7px]" : undefined}
+                aria-hidden={locked || undefined}
+              >
+                <QrDesigner
+                  value={qrStyle}
+                  onChange={setQrStyle}
+                  data={payload}
+                  logoUrl={logo}
+                  downloadName={locked ? undefined : `qr-${type}`}
+                />
+              </div>
+              {locked && (
+                <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white md:left-[calc(130px-4.5rem)]">
+                  <Lock className="h-3.5 w-3.5" /> Aperçu verrouillé
+                </span>
+              )}
+            </div>
             {payload.length > DENSE_PAYLOAD && (
               <p className="mt-4 flex items-start gap-1.5 text-xs text-amber-700">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -137,20 +180,27 @@ export default function DirectQrGenerator({ paidHref = "/creer" }: { paidHref?: 
             {error ?? "Complétez le formulaire pour générer le QR code."}
           </p>
         )}
-        <p className="mt-5 text-xs leading-5 text-sage">
-          QR code gratuit : il fonctionne sans connexion à Moncode, mais il ne peut plus être modifié une fois imprimé.
-          Pour un contenu modifiable, ou pour publier une page, une image, une vidéo ou un PDF,{" "}
-          <Link href={paidHref} className="font-semibold text-forest hover:text-forest-dark">
-            choisissez un service Moncode
-          </Link>
-          .
-        </p>
+        {locked ? (
+          payload && (
+            <OrderPanel
+              type={type}
+              payload={payload}
+              title={meta.label}
+              qrStyle={qrStyle}
+              logo={logo}
+            />
+          )
+        ) : (
+          <p className="mt-5 text-xs leading-5 text-sage">
+            Le QR code fonctionne sans connexion à Moncode, mais il ne peut plus être modifié une fois imprimé.
+          </p>
+        )}
       </section>
     </div>
   );
 }
 
-function hasInput(data: object): boolean {
+export function hasInput(data: object): boolean {
   return Object.values(data).some((v) => typeof v === "string" && v.trim() !== "");
 }
 
@@ -160,7 +210,7 @@ function hasInput(data: object): boolean {
 
 type Update = <K extends DirectQrType>(key: K, patch: Partial<DirectQrData[K]>) => void;
 
-function Fields({ type, data, update }: { type: DirectQrType; data: AllData[DirectQrType]; update: Update }) {
+export function Fields({ type, data, update }: { type: DirectQrType; data: AllData[DirectQrType]; update: Update }) {
   switch (type) {
     case "url": {
       const d = data as DirectQrData["url"];
@@ -322,6 +372,9 @@ function GeoFields({ d, update }: { d: DirectQrData["geo"]; update: Update }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Rechercher une adresse" full>
+        <AddressSearch onPick={(p) => update("geo", { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) })} />
+      </Field>
       <Field label="Coller un lien Google Maps (facultatif)" full>
         <input
           className="field"
@@ -367,7 +420,7 @@ function Field({ label, full, children }: { label: string; full?: boolean; child
    Logo facultatif et contenu brut
 ------------------------------------------------------------------ */
 
-function LogoPicker({ value, onChange }: { value: string | null; onChange: (url: string | null) => void }) {
+export function LogoPicker({ value, onChange }: { value: string | null; onChange: (url: string | null) => void }) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <div className="flex items-center gap-2">
@@ -420,5 +473,75 @@ function PayloadPreview({ payload }: { payload: string }) {
         </button>
       </div>
     </details>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Commande d'un QR direct payant : devis, puis paiement en ligne (FedaPay)
+------------------------------------------------------------------ */
+
+export function OrderPanel({
+  payload,
+  title,
+  qrStyle,
+  logo,
+}: {
+  type: DirectQrType;
+  payload: string;
+  title: string;
+  qrStyle: string;
+  logo: string | null;
+}) {
+  const router = useRouter();
+  const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const found = validateCustomer(customer);
+    setErrors(found);
+    if (Object.keys(found).length) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("serviceType", "direct");
+      body.append("title", title);
+      body.append("directPayload", payload);
+      body.append("customerName", customer.name.trim());
+      body.append("customerPhone", customer.phone.trim());
+      if (customer.email.trim()) body.append("customerEmail", customer.email.trim());
+      if (qrStyle) body.append("qrStyle", qrStyle);
+      if (logo) body.append("logo", await (await fetch(logo)).blob(), "logo");
+      const order = await createOrder(body);
+      if (!(await payOrder(order))) router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-cream-deep p-5 sm:p-6" noValidate>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-base font-semibold text-ink/90">Obtenir ce QR code</h3>
+        <p className="text-sm font-semibold text-forest">{fcfa(DIRECT_QR_PRICE)} · paiement unique</p>
+      </div>
+      <p className="mt-1 text-sm text-sage">
+        Remplissez ces quelques champs puis payez en ligne : le QR code est débloqué tout de suite, en PNG
+        et SVG, avec votre facture.
+      </p>
+      <div className="mt-5">
+        <CustomerFields value={customer} onChange={setCustomer} errors={errors} />
+      </div>
+      {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
+      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full sm:w-auto">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+        {busy ? "Redirection vers le paiement…" : `Payer ${fcfa(DIRECT_QR_PRICE)}`}
+      </button>
+      <FedapayBadge className="mt-3 flex" />
+    </form>
   );
 }
