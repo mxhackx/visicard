@@ -81,6 +81,12 @@ services:
       - key: FEDAPAY_WEBHOOK_SECRET
         sync: false
 
+      # Notifications e-mail des demandes visiteurs (facultatif)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
       # Supabase Storage (facultatif). Laisser vide pour utiliser le disque ci-dessus.
       - key: SUPABASE_URL
         sync: false

@@ -1,9 +1,11 @@
 "use client";
 
+import AccountNav from "./account-nav";
+import Overview from "./overview";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FileText, Images, KeyRound, Loader2, LogOut, PanelsTopLeft, Plus, QrCode, ScanLine } from "lucide-react";
+import { ArrowRight, FileText, Images, Loader2, LogOut, PanelsTopLeft, Plus, QrCode, ScanLine, Settings2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { fetchMyOrders, type AccountOrder } from "@/lib/account";
 import { STATUS_LABELS, fcfa, formatDate } from "@/lib/orders";
@@ -57,9 +59,6 @@ export default function AccountOrders() {
           {authUser?.email && <p className="mt-1 text-sm text-sage">{authUser.email}</p>}
         </div>
         <div className="flex gap-2">
-          <Link href="/compte/cles-api" className="btn btn-outline btn-sm">
-            <KeyRound className="h-4 w-4" /> Clés API
-          </Link>
           <button type="button" onClick={logout} className="btn btn-outline btn-sm">
             <LogOut className="h-4 w-4" /> Déconnexion
           </button>
@@ -68,6 +67,9 @@ export default function AccountOrders() {
           </Link>
         </div>
       </div>
+
+      <div className="mt-6"><AccountNav /></div>
+      <Overview />
 
       {authRole === "admin" && (
         <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-sage">
@@ -126,6 +128,11 @@ export default function AccountOrders() {
                     </span>
                     <ArrowRight className="hidden h-4 w-4 shrink-0 text-sage sm:block" />
                   </Link>
+                  {o.slug && o.serviceType !== "direct" && o.status === "paid" && (
+                    <Link href={`/compte/qr/${o.slug}`} className="ml-1 mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-forest hover:underline">
+                      <Settings2 className="h-3.5 w-3.5" /> Statistiques, catalogue et réservations
+                    </Link>
+                  )}
                 </li>
               );
             })}

@@ -71,6 +71,16 @@ export const EXAMPLES: Partial<Record<LayoutId, ExampleContent>> = {
     tones: ["#00796b", "#2dd4bf"],
     menuLabels: ["Tarifs consultations"],
   },
+  carte: {
+    restaurantName: "Moncode",
+    tagline: "Votre carte de visite numérique.",
+    address: "Cotonou, Bénin",
+    phoneNumber: "+22999389202",
+    additionalInfo: "Votre fonction ou métier\ncontact@moncode.app\nDisponible sur rendez-vous",
+    schedule: week("09:00", "18:00"),
+    tones: ["#c81d25", "#17171a"],
+    menuLabels: ["Plaquette"],
+  },
   chantier: {
     restaurantName: "Moncode",
     tagline: "Vos produits, vos prix et vos coordonnées, en une page.",

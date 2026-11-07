@@ -411,6 +411,7 @@ export class OrdersService {
       return {
         scans: o.serviceType === 'direct' ? null : { total: totalBy.get(String(o.cardId)) ?? 0, last7: recentBy.get(String(o.cardId)) ?? 0 },
         reference: o.reference,
+        slug: card?.slug ?? null,
         serviceType: o.serviceType,
         serviceLabel: SERVICE_LABELS[o.serviceType as ServiceType] ?? 'QR code',
         status: o.status,

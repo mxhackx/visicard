@@ -1,5 +1,5 @@
 import {
-  Beer, BedDouble, Briefcase, Hammer, Scissors, ShoppingBag, Stethoscope, UtensilsCrossed,
+  Beer, BedDouble, Briefcase, Hammer, IdCard, Scissors, ShoppingBag, Stethoscope, UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 import type { LayoutId } from "./palette";
@@ -108,6 +108,17 @@ export const SECTORS: Sector[] = [
       infoTemplate: "Livraison sur chantier\nCiment et sable\nFer à béton\nPeinture et enduits\nOutillage et plomberie",
       menuLabel: "Photos du catalogue", menuHint: "Pages du catalogue ou liste de prix.",
       placeLabel: "Photos du magasin", placeHint: "Rayons, stock, camion de livraison.", scheduleHint: "Heures d’ouverture du magasin.",
+    },
+  },
+  {
+    id: "pro", label: "Profil professionnel", icon: IdCard, layout: "carte",
+    copy: {
+      nameLabel: "Votre nom", namePlaceholder: "Moncode", addressPlaceholder: "Cotonou, Bénin",
+      infoLabel: "Votre métier et vos liens", infoHint: "La 1re ligne est votre fonction. Les suivantes s'affichent comme des lignes d'information (e-mail, site…).",
+      infoPlaceholder: "Consultant en marketing digital\ncontact@exemple.com",
+      infoTemplate: "Votre fonction ou métier\ncontact@exemple.com\nDisponible sur rendez-vous",
+      menuLabel: "Documents (facultatif)", menuHint: "Plaquette, tarifs, portfolio.",
+      placeLabel: "Photo de profil", placeHint: "Un visage ou un logo : la 1re photo sert d'avatar.", scheduleHint: "Quand êtes-vous joignable ?",
     },
   },
   {

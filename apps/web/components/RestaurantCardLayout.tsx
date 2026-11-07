@@ -7,6 +7,7 @@ import CoverTheme from "@/components/card-themes/cover-theme";
 import MinimalTheme from "@/components/card-themes/minimal-theme";
 import AvantGardeTheme from "@/components/card-themes/avant-garde-theme";
 import SaasTheme from "@/components/card-themes/saas-theme";
+import CarteTheme from "@/components/card-themes/carte-theme";
 import MaquisTheme from "@/components/card-themes/maquis-theme";
 import BeauteTheme from "@/components/card-themes/beaute-theme";
 import BoutiqueTheme from "@/components/card-themes/boutique-theme";
@@ -35,6 +36,7 @@ const THEMES = {
   hotel: HotelTheme,
   clinique: CliniqueTheme,
   chantier: ChantierTheme,
+  carte: CarteTheme,
 } as const;
 
 /** Page digitale : applique la palette, puis délègue à la disposition choisie. */

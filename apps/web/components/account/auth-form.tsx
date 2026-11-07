@@ -15,10 +15,13 @@ export default function AuthForm({
   initialMode = "register",
   onDone,
   className = "",
+  nested = false,
 }: {
   initialMode?: Mode;
   onDone?: () => void;
   className?: string;
+  /** Rendu à l’intérieur d’un autre formulaire : pas de <form> imbriqué (invalide en HTML). */
+  nested?: boolean;
 }) {
   const { loginSession } = useFile();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -28,8 +31,8 @@ export default function AuthForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
     setError(null);
     if (mode === "register" && name.trim().length < 2) return setError("Indiquez votre nom.");
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError("Adresse e-mail invalide.");
@@ -51,8 +54,8 @@ export default function AuthForm({
     }
   };
 
-  return (
-    <form onSubmit={submit} noValidate className={className}>
+  const content = (
+    <>
       <div className="inline-flex rounded-xl border border-line bg-white p-1" role="tablist" aria-label="Compte">
         {(
           [
@@ -105,10 +108,28 @@ export default function AuthForm({
 
       {error && <p role="alert" className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
-      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full">
+      <button type={nested ? "button" : "submit"} onClick={nested ? () => void submit() : undefined} disabled={busy} className="btn btn-primary mt-5 w-full">
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {mode === "register" ? "Créer mon compte et continuer" : "Me connecter"}
       </button>
+    </>
+  );
+
+  return nested ? (
+    <div
+      className={className}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+          e.preventDefault();
+          void submit();
+        }
+      }}
+    >
+      {content}
+    </div>
+  ) : (
+    <form onSubmit={submit} noValidate className={className}>
+      {content}
     </form>
   );
 }

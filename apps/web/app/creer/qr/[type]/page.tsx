@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Header from "@/components/header";
@@ -14,7 +15,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ type: string }> }): Promise<Metadata> {
   const { type } = await params;
   const meta = DIRECT_QR_TYPES.find((t) => t.id === type);
-  return { title: meta ? `QR code ${meta.label}` : "QR code", description: meta?.hint };
+  return pageMetadata({
+    title: meta ? `QR code ${meta.label}` : "QR code",
+    description: meta ? `Créez un QR code ${meta.label} : ${meta.hint.toLowerCase()}. Aperçu en direct sur téléphone, iPad et Mac, téléchargement PNG et SVG.` : "Créez votre QR code Moncode.",
+    path: `/creer/qr/${type}`,
+  });
 }
 
 export default async function QrTypePage({ params }: { params: Promise<{ type: string }> }) {

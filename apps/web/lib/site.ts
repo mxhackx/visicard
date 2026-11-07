@@ -15,9 +15,9 @@ export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://
 
 export const SITE = {
   name: CONTACT.brand,
-  title: "Moncode — Menu digital, page, image, vidéo ou PDF derrière un QR code",
+  title: "Moncode — QR code, menu digital et pages pour votre commerce",
   description:
-    "Créez le QR code de votre restaurant, hôtel ou boutique au Bénin : menu digital, page d’établissement, image, vidéo ou PDF. Paiement en ligne par Mobile Money ou carte, actif dès le paiement.",
+    "Créez votre QR code en quelques minutes : menu digital, page d’établissement, PDF, vidéo, Wi-Fi ou carte de visite. Au Bénin, paiement Mobile Money ou carte.",
   locale: "fr_BJ",
   keywords: [
     "QR code",
@@ -29,13 +29,21 @@ export const SITE = {
     "QR code PDF",
     "QR code vidéo",
     "carte digitale restaurant",
+    "générateur de QR code gratuit",
+    "QR code Wi-Fi",
+    "QR code carte de visite",
+    "QR code Afrique de l’Ouest",
+    "Moncode",
   ],
+  /** Dernière mise à jour du contenu public (sitemap). */
+  updated: "2026-11-06",
 };
 
 /** Chemins publics à référencer (le reste est privé : admin, commandes, étapes de création). */
 export const PUBLIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
   { path: "/creer", priority: 0.9, changeFrequency: "monthly" as const },
+  { path: "/creer/qr", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/qr-gratuit", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/manuel", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/developpeurs", priority: 0.5, changeFrequency: "monthly" as const },

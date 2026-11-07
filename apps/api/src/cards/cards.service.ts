@@ -1,3 +1,4 @@
+import { publicCatalog } from './catalog';
 import {
   Injectable,
   NotFoundException,
@@ -118,6 +119,15 @@ export class CardsService {
    * Stocke un fichier brut (image / vidéo / PDF) en local ou sur Supabase.
    * Le nom est nettoyé et suffixé par un timestamp pour éviter les collisions.
    */
+  /** Image de produit envoyée par le propriétaire : JPEG, PNG ou WebP, 3 Mo maximum. */
+  async storeOwnerImage(file: Express.Multer.File | undefined, slug: string): Promise<{ url: string }> {
+    if (!file) throw new BadRequestException('Aucune image reçue.');
+    if (!/^image\/(jpeg|png|webp)$/.test(file.mimetype)) throw new BadRequestException('Format accepté : JPEG, PNG ou WebP.');
+    if (file.size > 3 * 1024 * 1024) throw new BadRequestException('Image trop lourde (3 Mo maximum).');
+    const stored = await this.storeRawFile(file, `${slug}-produit`);
+    return { url: stored.url };
+  }
+
   private async storeRawFile(
     file: Express.Multer.File,
     prefix: string,
@@ -333,7 +343,7 @@ export class CardsService {
   }
 
   /** Enregistre un scan d'une carte publiée (les brouillons et cartes refusées ne comptent pas). */
-  async recordScan(slug: string, userAgent?: string): Promise<void> {
+  async recordScan(slug: string, userAgent?: string, geo?: { country: string | null; city: string | null }): Promise<void> {
     const card = await this.prisma.card.findUnique({ where: { slug }, select: { id: true, status: true } });
     if (!card || card.status !== 'active') return;
     const ua = (userAgent ?? '').toLowerCase();
@@ -345,7 +355,7 @@ export class CardsService {
         : /windows|macintosh|linux|cros/.test(ua)
           ? 'desktop'
           : 'other';
-    await this.prisma.cardScan.create({ data: { cardId: card.id, device } });
+    await this.prisma.cardScan.create({ data: { cardId: card.id, device, country: geo?.country ?? null, city: geo?.city ?? null } });
   }
 
   /** QR code (data URL PNG) d'une carte, dans le style enregistré. */
@@ -581,6 +591,8 @@ export class CardsService {
       cardUrl: `${appUrl}/c/${card.slug}`,
       createdAt: card.createdAt,
       status: card.status,
+      catalog: publicCatalog(card.catalog),
+      requestMode: card.requestMode ?? 'none',
     };
   }
   async getAllCards() {

@@ -2,15 +2,14 @@ import type { Metadata } from "next";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import CreateFlow from "@/components/create-flow";
+import { pageMetadata } from "@/lib/seo";
 import { isServiceType } from "@/lib/services";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Créer un QR code : menu digital, page, image, vidéo ou PDF",
-  description:
-    "Choisissez votre service, préparez le contenu et recevez votre devis en ligne, sans compte. Page digitale 20 000 FCFA, image, vidéo ou PDF 5 000 FCFA, paiement sur WhatsApp.",
-  alternates: { canonical: "/creer" },
-  openGraph: { url: "/creer", title: "Créer un QR code avec Moncode" },
-};
+  description: "Choisissez votre service, préparez le contenu et payez en ligne par Mobile Money ou carte. Page digitale 20 000 FCFA, image, vidéo ou PDF 5 000 FCFA.",
+  path: "/creer",
+});
 
 export default async function CreerPage({
   searchParams,

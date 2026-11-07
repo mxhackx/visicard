@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import TypeArt from "@/components/qr/type-art";
 import { DIRECT_QR_TYPES } from "@/lib/qr-payloads";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "QR code Wi-Fi, carte de visite, appel, SMS : choisissez le type",
   description: "Wi-Fi, carte de visite, téléphone, SMS, e-mail, texte, événement ou position GPS : choisissez le contenu de votre QR code.",
-  alternates: { canonical: "/creer/qr" },
-};
+  path: "/creer/qr",
+});
 
 const PAID = DIRECT_QR_TYPES.filter((t) => t.id !== "url");
 
 export default function ChooseQrType() {
   return (
     <main className="min-h-screen">
+      <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["Créer un QR code", "/creer"], ["Types de QR code", "/creer/qr"]])} />
       <Header />
       <div className="header-spacer"></div>
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">

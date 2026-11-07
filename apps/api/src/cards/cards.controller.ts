@@ -1,3 +1,4 @@
+import { resolveGeo } from './geo';
 import {
   HttpCode,
   Req,
@@ -379,8 +380,13 @@ export class CardsController {
   @Post(':slug/scan')
   @HttpCode(204)
   @Throttle({ short: { limit: 30, ttl: 60_000 } })
-  async recordScan(@Param('slug') slug: string, @Headers('user-agent') userAgent?: string) {
-    await this.cardsService.recordScan(slug, userAgent);
+  async recordScan(
+    @Param('slug') slug: string,
+    @Req() req: Request,
+    @Body() body?: { tz?: string; lang?: string },
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    await this.cardsService.recordScan(slug, userAgent, resolveGeo(req.headers, body?.tz, body?.lang));
   }
 
   @Get(':slug')

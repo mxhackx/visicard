@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 
 type Input = Record<string, unknown>;
 const str = (v: unknown, max = 1000) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-const wifiEsc = (v: string) => v.replace(/([\;,":])/g, '\\$1');
+const wifiEsc = (v: string) => v.replace(/([\\;,":])/g, '\\$1');
 
 /** Construit le contenu d'un QR code selon son type (mêmes formats que le site). */
 export function buildPayload(type: string, input: Input): string {

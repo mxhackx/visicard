@@ -6,6 +6,8 @@ import MediaCardView from "../../../components/media-card-view";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import type { Catalog, RequestMode } from "@/lib/business";
+import BusinessSections from "@/components/card-page/business-sections";
 
 interface CardData {
   slug: string;
@@ -29,6 +31,8 @@ interface CardData {
   snapchatUrl?: string | null;
   additionalInfo?: string | null;
   schedule?: Record<string, ScheduleDay>;
+  catalog?: Catalog;
+  requestMode?: RequestMode;
   themeId?: string | null;
   cardLayout?: string | null;
   qrStyle?: string | null;
@@ -182,6 +186,15 @@ export default function CardViewPage() {
           tagline={card.title || undefined}
           themeId={card.themeId || undefined}
         />
+        <BusinessSections
+          slug={card.slug}
+          name={card.restaurantName || card.title || "Moncode"}
+          phone={card.phoneNumber || undefined}
+          address={card.address || undefined}
+          website={card.locationUrl || undefined}
+          catalog={card.catalog}
+          requestMode={card.requestMode ?? "none"}
+        />
       </main>
     </div>
   );
@@ -196,5 +209,17 @@ function recordScan(apiUrl: string, slug: string) {
   } catch {
     // Stockage indisponible (navigation privée stricte) : on compte quand même.
   }
-  fetch(`${apiUrl}/cards/${encodeURIComponent(slug)}/scan`, { method: "POST", keepalive: true }).catch(() => {});
+  let tz = "";
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    /* fuseau indisponible */
+  }
+  // Fuseau et langue : localisation approximative (pays), jamais d'adresse IP conservée.
+  fetch(`${apiUrl}/cards/${encodeURIComponent(slug)}/scan`, {
+    method: "POST",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tz, lang: navigator.language }),
+  }).catch(() => {});
 }

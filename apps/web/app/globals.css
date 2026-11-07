@@ -344,10 +344,12 @@
 
   /* Header et footer : blanc légèrement grisé, texte foncé, liseré fin. */
   .chrome-surface {
-    background-color: rgba(255, 255, 255, 0.86);
-    -webkit-backdrop-filter: saturate(1.6) blur(14px);
-    backdrop-filter: saturate(1.6) blur(14px);
+    /* Fond opaque et couche de composition dédiée : le flou d'arrière-plan faisait « disparaître »
+       l'en-tête fixe pendant le défilement (Chrome, au-dessus des éléments animés en 3D). */
+    background-color: #ffffff;
     color: var(--color-ink);
+    transform: translateZ(0);
+    isolation: isolate;
   }
 
   /* Pied de page : noir de marque, filet rouge en tête. */

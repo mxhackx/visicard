@@ -19,7 +19,13 @@ export const metadata: Metadata = {
   authors: [{ name: SITE.name, url: SITE_URL }],
   creator: SITE.name,
   publisher: SITE.name,
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+  category: "technology",
+  alternates: { canonical: "/", languages: { fr: "/", "x-default": "/" } },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } : undefined,
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   openGraph: {
     type: "website",
     locale: SITE.locale,

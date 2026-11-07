@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,7 +14,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ layout: string }> }): Promise<Metadata> {
   const { layout } = await params;
   const option = LAYOUT_OPTIONS.find((o) => o.id === layout);
-  return { title: option ? `Exemple de page ${option.name}` : "Exemple de page" };
+  return pageMetadata({
+    title: option ? `Exemple de page digitale ${option.name}` : "Exemple de page digitale",
+    description: option ? `Découvrez le modèle « ${option.name} » : ${option.desc}. Une page digitale Moncode accessible en un scan de QR code.` : "Découvrez un modèle de page digitale Moncode.",
+    path: `/exemples/${layout}`,
+  });
 }
 
 export default async function ExampleRoute({ params }: { params: Promise<{ layout: string }> }) {

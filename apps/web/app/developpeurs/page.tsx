@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, KeyRound } from "lucide-react";
+import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { API_URL } from "@/lib/api-url";
 
-export const metadata: Metadata = {
-  title: "API développeurs",
+export const metadata: Metadata = pageMetadata({
+  title: "API développeurs : générer des QR codes",
   description: "Générez des QR codes (PNG ou SVG) depuis votre application avec l’API Moncode : clé d’API, quotas clairs, exemples prêts à copier.",
-  alternates: { canonical: "/developpeurs" },
-};
+  path: "/developpeurs",
+});
 
 const BASE = API_URL.startsWith("http://localhost") ? "https://api.moncode.app" : API_URL;
 
@@ -41,6 +43,7 @@ function Code({ children }: { children: string }) {
 export default function DeveloppeursPage() {
   return (
     <main className="min-h-screen">
+      <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["API développeurs", "/developpeurs"]])} />
       <Header />
       <div className="header-spacer"></div>
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">

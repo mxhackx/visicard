@@ -19,6 +19,7 @@
     "strict": true,
     "strictPropertyInitialization": false
   },
+  "exclude": ["node_modules", "dist", "test/unit"],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs",

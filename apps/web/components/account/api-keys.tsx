@@ -1,5 +1,6 @@
 "use client";
 
+import AccountNav from "./account-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -91,6 +92,8 @@ export default function ApiKeys() {
           <Link href="/compte" className="btn btn-outline btn-sm">Mon espace</Link>
         </div>
       </div>
+
+      <div className="mt-6"><AccountNav /></div>
 
       {data && (
         <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-sage">

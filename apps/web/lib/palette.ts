@@ -25,7 +25,7 @@ export interface Palette {
 
 export type LayoutId =
   | "classic" | "maps" | "minimal" | "premium" | "saas" | "exoticas"
-  | "maquis" | "beaute" | "boutique" | "hotel" | "clinique" | "chantier";
+  | "maquis" | "beaute" | "boutique" | "hotel" | "clinique" | "chantier" | "carte";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -98,6 +98,7 @@ export const LAYOUT_DEFAULTS: Record<LayoutId, Palette> = {
   hotel: { brand: "#23403a", accent: "#a88a5a", surface: "#e7ebe6", text: "#1e2422" },
   clinique: { brand: "#00796b", accent: "#2dd4bf", surface: "#ffffff", text: "#102a2a" },
   chantier: { brand: "#ff6b00", accent: "#ff6b00", surface: "#e4e4df", text: "#2c3036" },
+  carte: { brand: "#c81d25", accent: "#17171a", surface: "#ffffff", text: "#17171a" },
 };
 
 /** Anciens thèmes nommés → palettes équivalentes (cartes déjà publiées). */

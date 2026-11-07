@@ -21,6 +21,7 @@ const SHORT: Record<string, string> = {
   hotel: "Hôtel",
   clinique: "Clinique",
   chantier: "Quincaillerie",
+  carte: "Carte de visite",
 };
 
 export default function ExamplesSection() {

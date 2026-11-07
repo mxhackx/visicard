@@ -26,7 +26,7 @@ export default function AccountGate({ children }: { children: ReactNode }) {
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
         Une minute suffit. Vous retrouverez votre QR code, vos factures et vos modifications dans votre espace.
       </p>
-      <AuthForm className="mt-5 max-w-md" />
+      <AuthForm nested className="mt-5 max-w-md" />
     </div>
   );
 }

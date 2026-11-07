@@ -13,6 +13,7 @@ export interface SessionResult {
 
 export interface AccountOrder {
   reference: string;
+  slug: string | null;
   serviceType: "page" | "media" | "document" | "direct";
   serviceLabel: string;
   status: OrderStatus;

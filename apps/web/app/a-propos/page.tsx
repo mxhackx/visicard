@@ -2,22 +2,17 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, Minus } from "lucide-react";
+import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import ContactSection from "@/components/contact-section";
 import Footer from "@/components/footer";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "À propos",
-  description:
-    "Moncode publie une page digitale, une image/vidéo ou un PDF derrière un QR code unique : une équipe qui installe, forme et reste joignable.",
-  openGraph: {
-    title: "À propos de Moncode",
-    description:
-      "Nous publions le contenu, pas votre métier : page digitale, média ou PDF, QR code unique, accompagnement humain.",
-    url: "/a-propos",
-  },
-  alternates: { canonical: "/a-propos" },
-};
+  description: "Moncode publie une page digitale, une image/vidéo ou un PDF derrière un QR code unique : une équipe qui installe, forme et reste joignable.",
+  path: "/a-propos",
+});
 
 const weHandle = [
   "La mise en ligne de votre page, de votre média ou de votre document, avec vous",
@@ -51,6 +46,7 @@ const faq = [
 export default function AboutPage() {
   return (
     <main className="min-h-screen">
+      <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["À propos", "/a-propos"]])} />
       <Header />
       <div className="header-spacer"></div>
 

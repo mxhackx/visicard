@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, Printer } from "lucide-react";
+import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
+import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import TypeArt from "@/components/qr/type-art";
 import { DIRECT_QR_TYPES } from "@/lib/qr-payloads";
 
-export const metadata: Metadata = {
-  title: "Manuel d’utilisation",
-  description:
-    "Comment créer, payer, télécharger, modifier et imprimer votre QR code : lien gratuit, Wi-Fi, carte de visite, page digitale, image, vidéo ou PDF.",
-  alternates: { canonical: "/manuel" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Manuel d’utilisation : créer et imprimer votre QR code",
+  description: "Comment créer, payer, télécharger, modifier et imprimer votre QR code : lien gratuit, Wi-Fi, carte de visite, page digitale, image, vidéo ou PDF.",
+  path: "/manuel",
+});
 
 const TOC = [
   ["demarrer", "Démarrer"],
@@ -20,6 +21,7 @@ const TOC = [
   ["page", "Page digitale"],
   ["media", "Image, vidéo, PDF"],
   ["compte", "Compte et paiement"],
+  ["gerer", "Gérer votre activité"],
   ["modifier", "Modifier un QR code"],
   ["imprimer", "Imprimer et tester"],
   ["faq", "Questions fréquentes"],
@@ -30,6 +32,8 @@ const FAQ = [
   ["Pourquoi un compte est-il demandé ?", "Pour les contenus mis en ligne (page, image, vidéo, PDF). Votre compte vous permet de retrouver votre QR code, vos factures et vos modifications depuis n’importe quel appareil."],
   ["Faut-il un compte pour un lien gratuit ou un QR direct ?", "Non. Le lien gratuit se télécharge sans compte. Les QR directs (Wi-Fi, carte de visite, appel…) se commandent sans compte."],
   ["Comment payer ?", "Par Mobile Money (MTN, Moov) ou carte, sur la page de paiement sécurisée FedaPay. Si le paiement en ligne rencontre un problème, écrivez-nous sur WhatsApp : nous vous aidons."],
+  ["Comment savoir qu’un client m’a écrit ou réservé ?", "Une pastille rouge apparaît sur « Demandes » dans votre espace, avec le nombre de demandes à traiter. Vous pouvez aussi recevoir un e-mail à chaque nouvelle demande si l’équipe Moncode l’a activé."],
+  ["Les statistiques sont-elles précises ?", "Elles comptent chaque ouverture de page, une fois par visite. La localisation est approximative (pays, parfois ville) et aucune adresse IP n’est conservée. Les QR codes directs (Wi-Fi, appel…) ne passent pas par Moncode et n’ont donc pas de statistiques."],
   ["Mon QR code direct peut-il être modifié ?", "Non : son contenu est écrit dans le QR code lui-même. Pour changer, commandez-en un nouveau."],
   ["Mon téléphone ne lit pas le QR code, que faire ?", "Vérifiez que le motif est foncé sur fond clair, imprimé assez grand (3 cm minimum) et net. Ouvrez l’appareil photo ou une application de scan à jour."],
 ] as const;
@@ -37,6 +41,7 @@ const FAQ = [
 export default function ManuelPage() {
   return (
     <main className="min-h-screen">
+      <JsonLd data={[breadcrumbJsonLd([["Accueil", "/"], ["Manuel d’utilisation", "/manuel"]]), faqJsonLd(FAQ.map(([q, a]) => [q, a] as [string, string]))]} />
       <Header />
       <div className="header-spacer"></div>
 
@@ -145,6 +150,20 @@ export default function ManuelPage() {
                 <Link href="/connexion?mode=register&next=%2Fcompte" className="btn btn-outline btn-sm">Créer mon compte</Link>
                 <Link href="/connexion?next=%2Fcompte" className="btn btn-outline btn-sm">J’ai déjà un compte</Link>
               </div>
+            </Block>
+
+            <Block id="gerer" title="Gérer votre activité (sans devis)">
+              <p className="text-sm leading-6 text-ink/80">Depuis « Mon compte », ouvrez un QR code de type page digitale puis « Gérer » : tout se modifie en direct, gratuitement.</p>
+              <List
+                items={[
+                  "Statistiques : nombre de scans, heures de consultation, appareils et pays des visiteurs. L’onglet « Performances » compare tous vos QR codes.",
+                  "Promotion : un bandeau en haut de la page, qui disparaît tout seul à la date de fin.",
+                  "Catalogue : jusqu’à 60 produits ou services avec prix et photo, à changer quand vous voulez.",
+                  "Réservations, commandes ou messages : le visiteur vous écrit après le scan. Retrouvez-les dans « Demandes » et répondez par appel ou WhatsApp.",
+                  "Plusieurs établissements : créez-les dans « Établissements », puis rattachez chaque QR code au bon.",
+                  "Carte de visite numérique : choisissez le secteur « Profil professionnel » pour un profil avec appel, WhatsApp et contact à enregistrer.",
+                ]}
+              />
             </Block>
 
             <Block id="modifier" title="Modifier un QR code">
