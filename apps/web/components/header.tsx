@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFile } from "@/app/context/FileContext";
 import Logo from "@/components/logo";
 
@@ -19,13 +19,47 @@ const noopSubscribe = () => () => {};
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  // En défilement, l'en-tête s'efface : il revient en haut de page, au survol du bord haut (ordinateur)
+  // ou en remontant la page du doigt (tactile).
+  const [scrolled, setScrolled] = useState(false);
+  const [peek, setPeek] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    let raf = 0;
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        setScrolled(y > 80);
+        if (touch) {
+          if (y < lastY.current - 2 && y > 80) setPeek(true);
+          else if (y > lastY.current + 2) setPeek(false);
+        }
+        lastY.current = y;
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+  const hidden = scrolled && !peek && !isOpen;
   const { authToken, authRole } = useFile();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const account = mounted && authToken && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line/80 shadow-[0_1px_0_rgba(23,23,26,0.02),0_8px_28px_rgba(23,23,26,0.05)]">
+    <>
+    {/* Bande invisible au bord haut de l'écran : l'approcher avec la souris fait revenir l'en-tête. */}
+    <div aria-hidden="true" className="fixed inset-x-0 top-0 z-40 hidden h-3 lg:block" onMouseEnter={() => setPeek(true)} />
+    <header
+      onMouseLeave={() => setPeek(false)}
+      className={`fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line/80 shadow-[0_1px_0_rgba(23,23,26,0.02),0_8px_28px_rgba(23,23,26,0.05)] transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
           <Logo variant="dark" />
@@ -90,5 +124,6 @@ export default function Header() {
         </div>
       )}
     </header>
+    </>
   );
 }
