@@ -16,10 +16,12 @@ import ExamplesSection from "../components/examples-section";
 import PricingSection from "../components/pricing-section";
 import ContactSection from "../components/contact-section";
 import Footer from "../components/footer";
+import IntroAnimation from "../components/intro-animation";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
+      <IntroAnimation />
       <Header />
 
       {/* Le hero occupe tout l'écran, en-tête compris : pas d'espaceur ici. */}

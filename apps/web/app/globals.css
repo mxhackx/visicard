@@ -704,3 +704,60 @@
   .hero-copy ul + div { margin-top: 1.4rem; gap: 0.75rem; }
   .hero-copy ul + div + p { margin-top: 0.9rem; }
 }
+
+/* ---------- Animation de première visite ---------- */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  cursor: pointer;
+  /* Disparaît seule, même sans JavaScript. */
+  animation: intro-out 0.5s ease 2.1s forwards;
+}
+.intro-seen #intro { display: none; }
+.intro-stage { display: flex; flex-direction: column; align-items: center; }
+.intro-mark { position: relative; padding: 14px; animation: intro-pop 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.intro-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--color-forest);
+  animation: intro-brackets 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+.intro-tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.intro-tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
+.intro-bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+.intro-br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+.intro-scan {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 14px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--color-forest);
+  box-shadow: 0 0 18px 4px rgba(227, 5, 29, 0.45);
+  opacity: 0;
+  animation: intro-scan 0.9s ease-in-out 0.55s both;
+}
+.intro-word { margin-top: 18px; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; color: var(--color-ink); animation: intro-rise 0.6s ease 0.8s both; }
+.intro-sub { margin-top: 4px; font-size: 0.65rem; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: var(--color-sage); animation: intro-rise 0.6s ease 1s both; }
+
+@keyframes intro-pop { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-brackets { from { opacity: 0; transform: scale(1.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-scan {
+  0% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(96px); }
+}
+@keyframes intro-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes intro-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #intro { display: none; }
+}
