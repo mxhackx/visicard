@@ -9,16 +9,17 @@ services:
     name: moncode-api
     runtime: node
     region: frankfurt # même région que la base
-    # « starter » : toujours allumé. Le plan « free » s'endort après 15 min d'inactivité (démarrage lent).
-    plan: starter
+    # Gratuit. L'API s'endort après 15 min sans requête et met ~30 s à se réveiller.
+    # Pour la garder toujours allumée : plan: starter (payant).
+    plan: free
     rootDir: apps/api
     # Le dépôt est un monorepo npm : on installe depuis la racine, puis on bâtit l'API
     # (le script `build` génère aussi le client Prisma). `--include=dev` : NODE_ENV=production
     # ferait sinon sauter les outils de build (nest, prisma, ts-node).
-    buildCommand: npm install --include=dev --prefix=../.. && npm run build
-    # Avant chaque démarrage : crée/met à jour les tables, puis réaligne le compte admin
-    # sur ADMIN_EMAIL / ADMIN_PASSWORD (le seed est idempotent).
-    preDeployCommand: npm run db:push && npm run seed
+    # Le plan gratuit n'a pas de « preDeployCommand » : la mise à jour des tables (db:push) et le
+    # réalignement du compte admin sur ADMIN_EMAIL / ADMIN_PASSWORD (seed, idempotent) se font
+    # donc à la fin du build.
+    buildCommand: npm install --include=dev --prefix=../.. && npm run build && npm run db:push && npm run seed
     startCommand: npm run start:prod
     healthCheckPath: /
     autoDeploy: true
