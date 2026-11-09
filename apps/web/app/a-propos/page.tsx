@@ -158,7 +158,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <ContactSection />
+      <ContactSection withForm={false} />
       <Footer />
     </main>
   );

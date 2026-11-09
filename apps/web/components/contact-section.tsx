@@ -25,7 +25,7 @@ const emptyDraft: Draft = {
 
 const kinds = ["Restaurant", "Commerce", "Cabinet / service", "Hôtel", "Groupe ou enseigne"];
 
-export default function ContactSection({ headingLevel = "h2" }: { headingLevel?: "h1" | "h2" } = {}) {
+export default function ContactSection({ headingLevel = "h2", withForm = true }: { headingLevel?: "h1" | "h2"; withForm?: boolean } = {}) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
   const [ready, setReady] = useState(false);
@@ -65,11 +65,17 @@ ${draft.message}`;
       <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
           as={headingLevel}
-          title="Parlons de votre établissement"
-          subtitle="Une question, un groupe à équiper, un devis ? Décrivez votre situation, nous revenons vers vous avec une proposition concrète."
+          title={withForm ? "Parlons de votre établissement" : "Nous contacter"}
+          subtitle={
+            withForm
+              ? "Une question, un groupe à équiper, un devis ? Décrivez votre situation, nous revenons vers vous avec une proposition concrète."
+              : "Une question ? Écrivez-nous sur WhatsApp ou par e-mail : nous répondons du lundi au vendredi."
+          }
         />
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className={`mt-12 grid gap-6 ${withForm ? "lg:grid-cols-[1.15fr_0.85fr]" : "mx-auto max-w-xl"}`}>
+          {withForm && (
+            <>
           {/* Formulaire */}
           <div className="glass p-6 sm:p-8" data-reveal>
             {ready ? (
@@ -168,6 +174,8 @@ ${draft.message}`;
               </form>
             )}
           </div>
+            </>
+          )}
 
           {/* Coordonnées : canaux + adresse + carte, dans une seule box */}
           <aside
