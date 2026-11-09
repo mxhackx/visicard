@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from "@prisma/client";
 
@@ -23,6 +23,16 @@ export class PrismaService
 
     const pool = new Pool({
       connectionString,
+      // Peu de connexions : le pooler Supabase en limite le nombre, et l'API gratuite a peu de mémoire.
+      max: Number(process.env.DB_POOL_MAX) || 5,
+      idleTimeoutMillis: 20_000,
+      connectionTimeoutMillis: 15_000,
+      keepAlive: true,
+    });
+    // Le pooler coupe les connexions inactives : sans écouteur, cet évènement « error » faisait
+    // tomber tout le processus (502 en série). Le pool rouvre simplement une connexion au besoin.
+    pool.on('error', (error) => {
+      new Logger('Database').warn(`Connexion inactive fermée : ${error.message}`);
     });
 
     const adapter = new PrismaPg(pool);

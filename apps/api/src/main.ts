@@ -7,6 +7,11 @@ import helmet from 'helmet';
 import { join } from 'node:path';
 import { UploadErrorsFilter } from './common/upload-errors.filter';
 
+// Une promesse rejetée sans traitement (envoi d'e-mail, tâche de fond…) ne doit pas arrêter l'API.
+process.on('unhandledRejection', (reason) => {
+  console.error('Promesse rejetée non gérée :', reason);
+});
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // Corps brut conservé : nécessaire pour vérifier la signature du webhook FedaPay.
