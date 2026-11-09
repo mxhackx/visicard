@@ -15,7 +15,8 @@ import { APP_GUARD } from '@nestjs/core';
     ThrottlerModule.forRoot([{
       name: 'short',
       ttl: 60000,
-      limit: 5,
+      // Les routes sensibles (connexion, inscription, demandes…) fixent leur propre limite plus basse.
+      limit: 30,
     }, {
       name: 'default',
       ttl: 60000,

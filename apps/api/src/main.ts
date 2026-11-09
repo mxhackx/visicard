@@ -18,6 +18,10 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  // Derrière le proxy de Render, `req.ip` serait l'adresse du proxy pour tout le monde : toutes les
+  // personnes partageraient alors le même quota. On lit l'adresse réelle (en-tête X-Forwarded-For).
+  app.set('trust proxy', 1);
+
   const allowedOrigins = [
   process.env.APP_URL,
   'http://localhost:3000', 
