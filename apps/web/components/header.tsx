@@ -64,7 +64,9 @@ export default function Header() {
           <Logo variant="dark" />
         </Link>
 
-        <nav aria-label="Sections du site" className="hidden items-center gap-8 lg:flex">
+        {/* Liens et bouton regroupés à droite : les liens sont proches du bouton. */}
+        <div className="hidden items-center gap-10 lg:flex">
+        <nav aria-label="Sections du site" className="flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -76,7 +78,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-5 lg:flex">
+        <div className="flex items-center gap-5">
           {account && (
             <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
               {account.label}
@@ -85,6 +87,7 @@ export default function Header() {
           <Link href="/creer" className="btn btn-primary btn-sm">
             Créer un QR code
           </Link>
+        </div>
         </div>
 
         <button
