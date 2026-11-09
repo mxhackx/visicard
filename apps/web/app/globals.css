@@ -342,21 +342,10 @@
     color: #fff;
   }
 
-  /* Header et footer : blanc légèrement grisé, texte foncé, liseré fin. */
-  .chrome-surface {
-    /* Fond opaque et couche de composition dédiée : le flou d'arrière-plan faisait « disparaître »
-       l'en-tête fixe pendant le défilement (Chrome, au-dessus des éléments animés en 3D). */
-    background-color: #ffffff;
-    color: var(--color-ink);
-    transform: translateZ(0);
-    isolation: isolate;
-  }
-
-  /* Pied de page : noir de marque, filet rouge en tête. */
+  /* Pied de page : noir de marque, uni. */
   .footer-surface {
     background-color: #17171a;
     color: #fff;
-    border-top: 3px solid var(--color-forest);
   }
 
 

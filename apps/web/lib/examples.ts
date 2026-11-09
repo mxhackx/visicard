@@ -76,7 +76,7 @@ export const EXAMPLES: Partial<Record<LayoutId, ExampleContent>> = {
     tagline: "Votre carte de visite numérique.",
     address: "Cotonou, Bénin",
     phoneNumber: "+22999389202",
-    additionalInfo: "Votre fonction ou métier\ncontact@moncode.app\nDisponible sur rendez-vous",
+    additionalInfo: "Votre fonction ou métier\ncontact@moncode.bj\nDisponible sur rendez-vous",
     schedule: week("09:00", "18:00"),
     tones: ["#c81d25", "#17171a"],
     menuLabels: ["Plaquette"],

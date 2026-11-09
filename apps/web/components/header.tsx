@@ -58,7 +58,7 @@ export default function Header() {
     <div aria-hidden="true" className="fixed inset-x-0 top-0 z-40 hidden h-3 lg:block" onMouseEnter={() => setPeek(true)} />
     <header
       onMouseLeave={() => setPeek(false)}
-      className={`fixed inset-x-0 top-0 z-50 chrome-surface border-b border-line/80 shadow-[0_1px_0_rgba(23,23,26,0.02),0_8px_28px_rgba(23,23,26,0.05)] transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}
+      className={`fixed inset-x-0 top-0 z-50 isolate border-b text-ink will-change-transform transition-[transform,background-color,border-color] duration-300 ease-out ${scrolled ? "border-line bg-[#fdf9f9]" : "border-transparent bg-transparent"} ${hidden ? "-translate-y-full" : "translate-y-0"}`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">

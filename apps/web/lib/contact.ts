@@ -1,7 +1,7 @@
 // Coordonnées centralisées : un seul endroit à modifier pour tout le site.
 export const CONTACT = {
   brand: "Moncode",
-  email: "contact@moncode.app",
+  email: "contact@moncode.bj",
   whatsappNumber: "22999389202", // format wa.me : indicatif + numéro, sans espaces ni +
   whatsappDisplay: "+229 99 38 92 02",
   hours: "Lundi — vendredi, 9h — 18h",

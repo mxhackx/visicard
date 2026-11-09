@@ -13,12 +13,12 @@ const features = [
   {
     icon: QrCode,
     title: "Un QR code stable",
-    description: "Le code imprimé ne change pas quand vous mettez le contenu à jour.",
+    description: "Pour une page, une image, une vidéo ou un PDF, le code imprimé reste le même quand vous mettez le contenu à jour.",
   },
   {
     icon: UserRound,
     title: "Espace client",
-    description: "Créez un compte et retrouvez tous vos QR codes, leurs liens et leurs fichiers.",
+    description: "Avec un compte, retrouvez vos QR codes, leurs statistiques, vos factures et les demandes de vos clients.",
   },
   {
     icon: RefreshCw,
