@@ -95,6 +95,15 @@ export class AuthController {
     return result;
   }
   
+  /** Connexion ou inscription avec Google (jeton d'identité fourni par le bouton Google du site). */
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('google')
+  async google(@Body() body: { credential?: string }, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.loginWithGoogle(body?.credential ?? '');
+    this.applySessionCookies(res, result);
+    return result;
+  }
+
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token');

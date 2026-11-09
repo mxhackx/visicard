@@ -55,6 +55,9 @@ export const registerAccount = (name: string, email: string, password: string) =
 export const loginAccount = (email: string, password: string) =>
   call<SessionResult>("/auth/login", json({ email, password }));
 
+export const loginWithGoogle = (credential: string) =>
+  call<SessionResult>("/auth/google", json({ credential }));
+
 export const fetchMyOrders = (token: string) =>
   call<AccountOrder[]>("/orders/mine", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
 

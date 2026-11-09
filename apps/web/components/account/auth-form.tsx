@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import GoogleButton from "./google-button";
 import { Loader2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { loginAccount, registerAccount } from "@/lib/account";
@@ -56,6 +57,7 @@ export default function AuthForm({
 
   const content = (
     <>
+      <GoogleButton onDone={onDone} onError={setError} />
       <div className="inline-flex rounded-xl border border-line bg-white p-1" role="tablist" aria-label="Compte">
         {(
           [

@@ -1,8 +1,10 @@
-import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '../database/prisma.service';
 import { hashPassword, verifyPassword } from './mot-de-passe';
 import { createLocalToken, readLocalToken } from './jetons-locaux';
+import { verifyGoogleCredential } from './google';
+import { randomBytes } from 'node:crypto';
 
 export interface AuthSessionUser {
   id: string;
@@ -210,6 +212,31 @@ export class AuthService {
       },
       redirect,
     };
+  }
+
+  /**
+   * Connexion avec Google : le jeton est confirmé par Google, puis le compte est retrouvé par son
+   * adresse e-mail (vérifiée) ou créé. Un compte créé ainsi n'a pas de mot de passe utilisable.
+   */
+  async loginWithGoogle(credential: string): Promise<AuthResult> {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) throw new ServiceUnavailableException('La connexion avec Google n’est pas encore activée.');
+    const profile = await verifyGoogleCredential(credential, clientId);
+
+    let account = await this.findLocalAccount(profile.email);
+    if (!account) {
+      account = await this.prisma.adminUser.create({
+        data: {
+          email: profile.email,
+          name: profile.name,
+          passwordHash: await hashPassword(randomBytes(32).toString('hex')),
+          role: 'user',
+        },
+      });
+      this.logger.log(`Nouveau compte client (Google) : ${profile.email}`);
+    }
+    const session = this.issueLocalSession(account);
+    return { ...session, redirect: account.role === 'admin' ? '/admin' : '/compte' };
   }
 
   async loginAdmin(password: string): Promise<AuthResult> {
