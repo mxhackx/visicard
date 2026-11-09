@@ -192,7 +192,7 @@ export default function DirectQrGenerator({
           )
         ) : (
           <p className="mt-5 text-xs leading-5 text-sage">
-            Le QR code fonctionne sans connexion à Moncode, mais il ne peut plus être modifié une fois imprimé.
+            Le contenu est inscrit dans le QR code : il fonctionne sans passer par Moncode, mais ne peut plus être modifié une fois imprimé.
           </p>
         )}
       </section>

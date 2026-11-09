@@ -11,7 +11,7 @@ const offers = [
     price: "5 000",
     priceNote: "FCFA · par QR code",
     items: [
-      "Le téléphone agit sans connexion",
+      "Tout est inscrit dans le QR code : aucune page à charger",
       "Enregistre un contact, rejoint un Wi-Fi, lance un appel",
       "Style et logo personnalisés",
       "PNG et SVG + facture",

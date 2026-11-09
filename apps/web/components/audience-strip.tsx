@@ -27,33 +27,10 @@ const audiences: { icon: typeof ShoppingBag; label: string; use: string; tags: T
   { icon: HeartHandshake, label: "Associations", use: "Présentation, campagne, appel aux dons", tags: ["Page", "Image / vidéo"], photo: "/illustrations/secteur-association.svg" },
 ];
 
-const stats = [
-  { value: "12", label: "types de QR code" },
-  { value: "1", label: "QR code par contenu" },
-  { value: "0", label: "application à installer" },
-  { value: "24 h", label: "pour une réponse (jours ouvrés)" },
-];
-
 /** Pour qui : un usage concret par métier, plutôt qu'une simple rangée d'icônes. */
 export default function AudienceStrip() {
   return (
     <section className="relative">
-      {/* Bande de chiffres, à cheval sur le hero */}
-      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <dl
-          className="surface -mt-8 grid grid-cols-2 divide-line overflow-hidden rounded-2xl sm:grid-cols-4 sm:divide-x"
-          data-reveal
-        >
-          {stats.map((stat) => (
-            <div key={stat.label} className="px-5 py-5 text-center">
-              <dt className="sr-only">{stat.label}</dt>
-              <dd className="text-2xl font-semibold text-forest sm:text-3xl">{stat.value}</dd>
-              <dd className="mt-1 text-sm text-sage">{stat.label}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-20 lg:pb-24 sm:px-6 lg:px-8">
         <SectionHeading
           title="Pour tous les établissements"

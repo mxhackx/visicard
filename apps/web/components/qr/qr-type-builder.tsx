@@ -114,7 +114,7 @@ export default function QrTypeBuilder({ type, free = false }: { type: DirectQrTy
                 <div className="mt-5">
                   <StyledQr data={payload} style={qrStyle} logoUrl={logo} downloadName="qr-lien" hideQr />
                   <p className="mt-3 text-center text-xs leading-5 text-sage">
-                    Le QR code fonctionne sans connexion à Moncode, mais il ne peut plus être modifié une fois imprimé.
+                    Le contenu est inscrit dans le QR code : il fonctionne sans passer par Moncode, mais ne peut plus être modifié une fois imprimé.
                   </p>
                 </div>
               ) : (

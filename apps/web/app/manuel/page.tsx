@@ -94,7 +94,7 @@ export default function ManuelPage() {
             </Block>
 
             <Block id="qr-direct" title="QR codes directs">
-              <p>Le téléphone agit tout de suite, même sans connexion. Choisissez le type, voyez l’aperçu, puis commandez.</p>
+              <p>Le contenu est inscrit dans le QR code : le téléphone agit dès le scan, sans passer par Moncode. Choisissez le type, voyez l’aperçu, puis commandez.</p>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {DIRECT_QR_TYPES.filter((t) => t.id !== "url").map((t) => (
                   <li key={t.id}>

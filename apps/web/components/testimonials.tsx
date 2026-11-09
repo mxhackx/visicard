@@ -6,7 +6,7 @@ const reviews = [
     quote:
       "Nous voulons qu’un commerçant puisse mettre son menu, ses horaires ou son catalogue derrière un QR code en quelques minutes, sans compétence technique et à un prix qu’il comprend.",
     name: "Carmel TINHOUINTIN",
-    role: "PDG, Moncode",
+    role: "Développeur web, Moncode",
     initials: "CT",
   },
   {

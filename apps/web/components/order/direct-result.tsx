@@ -53,7 +53,7 @@ export default function DirectResult({ payload, style, slug, reference, invoiceN
     <div className="mt-8 grid items-center gap-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10">
       <div className="surface mx-auto flex w-full max-w-sm flex-col items-center p-6 text-center">
         <StyledQr data={payload} style={style} size={260} downloadName={`moncode-${slug}`} className="w-full max-w-[280px]" />
-        <p className="mt-4 text-xs leading-5 text-sage">Ce QR code fonctionne seul, sans connexion à Moncode.</p>
+        <p className="mt-4 text-xs leading-5 text-sage">Ce QR code fonctionne seul : il ne passe pas par Moncode.</p>
       </div>
 
       <div className="min-w-0">

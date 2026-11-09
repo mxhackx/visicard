@@ -48,7 +48,7 @@ export default function ContentPreview({
       ) : serviceType === "direct" ? (
         <div className="rounded-xl border border-line bg-cream-deep p-5">
           <p className="text-sm font-semibold text-ink/90">{p.title || "QR code direct"}</p>
-          <p className="mt-1 text-xs text-sage">Contenu écrit dans le QR code, lisible sans connexion.</p>
+          <p className="mt-1 text-xs text-sage">Contenu écrit dans le QR code : aucune page Moncode n’est nécessaire.</p>
           <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all font-mono text-xs text-ink/75">
             {p.contentUrl}
           </pre>

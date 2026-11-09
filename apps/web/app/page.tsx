@@ -22,8 +22,7 @@ export default function Home() {
     <main className="min-h-screen">
       <Header />
 
-      {/* Spacer pour le header fixe */}
-      <div className="header-spacer"></div>
+      {/* Le hero occupe tout l'écran, en-tête compris : pas d'espaceur ici. */}
 
       <Hero />
       <AudienceStrip />
