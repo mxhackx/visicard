@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import InformationsStep from "@/components/page-builder/informations-step";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Votre page digitale : informations" };
-
-export default function CreerPageInformations() {
-  return <InformationsStep mode="client" />;
+/** Ancienne adresse : la page digitale se crée sur /creer?type=page. */
+export default function Old() {
+  permanentRedirect("/creer?type=page&etape=informations");
 }

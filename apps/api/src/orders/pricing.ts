@@ -11,8 +11,11 @@ export const SERVICE_LABELS: Record<ServiceType, string> = {
   direct: 'QR code direct',
 };
 
+/** Premium : un seul prix, un an, tous les contenus. */
+export const PREMIUM_PRICE = 5000;
+
 export const CREATION_PRICES: Record<ServiceType, number> = {
-  page: 20000,
+  page: 5000,
   media: 5000,
   document: 5000,
   direct: 5000,
@@ -37,7 +40,10 @@ export function isServiceType(value: unknown): value is ServiceType {
   return value === 'page' || value === 'media' || value === 'document' || value === 'direct';
 }
 
-export function itemsFor(kind: 'creation' | 'modification', service: ServiceType): OrderItem[] {
+export function itemsFor(kind: 'creation' | 'modification', service: ServiceType, includedInPremium = false): OrderItem[] {
+  if (kind === 'creation' && includedInPremium) {
+    return [{ label: `${SERVICE_LABELS[service]} : création, hébergement et QR code (inclus dans Premium)`, quantity: 1, unitPrice: 0 }];
+  }
   if (kind === 'creation') {
     return [
       { label: `${SERVICE_LABELS[service]} : création, hébergement et QR code`, quantity: 1, unitPrice: CREATION_PRICES[service] },

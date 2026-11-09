@@ -761,3 +761,16 @@
 @media (prefers-reduced-motion: reduce) {
   #intro { display: none; }
 }
+
+/* Titre de page / de section : une seule taille pour tout le site (hors hero de l'accueil). */
+@layer components{
+.page-title{font-size:1.875rem;line-height:1.15;font-weight:600;letter-spacing:-0.02em;color:rgb(23 23 26 / .9)}
+@media (min-width:640px){.page-title{font-size:2.5rem}}
+}
+
+/* Premium : dégradé or, repris sur les pastilles, la barre des styles et la fenêtre d'offre. */
+@layer components{
+.premium-gold{background:linear-gradient(135deg,#f9e29c 0%,#e8b43c 45%,#b9791a 100%);color:#3b2300}
+.premium-pill{display:inline-flex;align-items:center;gap:.25rem;border-radius:9999px;padding:.125rem .5rem;font-size:.6875rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:linear-gradient(135deg,#f9e29c 0%,#e8b43c 45%,#b9791a 100%);color:#3b2300;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .45)}
+.premium-bar{border-radius:1rem;padding:1px;background:linear-gradient(135deg,#f9e29c,#e8b43c,#b9791a)}
+}

@@ -8,7 +8,7 @@ import AdminShell from "./AdminShell";
 /** Le générateur gratuit, dans le cadre de l'administration. */
 export default function AdminDirectQr() {
   return (
-    <AdminShell active="new" title="QR code simple" hint="Tous les contenus sont libres pour l’équipe. Les clients ont le lien gratuit sur /qr-gratuit, le reste à 5 000 FCFA">
+    <AdminShell active="new" title="QR code simple" hint="Tous les contenus sont libres pour l’équipe. Les clients ont le lien gratuit sur /creer, le reste à 5 000 FCFA">
       {() => (
         <div className="mx-auto max-w-5xl">
           <Link href="/admin/nouveau" className="inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">

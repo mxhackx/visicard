@@ -107,7 +107,7 @@ export default function ModificationForm({ reference }: { reference: string }) {
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
-      <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">Modifier le contenu</h1>
+      <h1 className="page-title">Modifier le contenu</h1>
       <p className="mt-3 text-base leading-7 text-sage">
         Changez ce qui doit l’être : un nouveau devis de {fcfa(MODIFICATION_PRICE[order.serviceType])} est émis, et les
         changements sont mis en ligne dès son paiement. Le QR code imprimé ne change pas.

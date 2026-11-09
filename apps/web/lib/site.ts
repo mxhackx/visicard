@@ -43,8 +43,6 @@ export const SITE = {
 export const PUBLIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
   { path: "/creer", priority: 0.9, changeFrequency: "monthly" as const },
-  { path: "/creer/qr", priority: 0.8, changeFrequency: "monthly" as const },
-  { path: "/qr-gratuit", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/manuel", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/developpeurs", priority: 0.5, changeFrequency: "monthly" as const },
   { path: "/a-propos", priority: 0.6, changeFrequency: "monthly" as const },
@@ -87,7 +85,7 @@ export function organizationJsonLd() {
         provider: { "@id": `${SITE_URL}/#organisation` },
         areaServed: "BJ",
         offers: [
-          { "@type": "Offer", name: "Page digitale (menu, établissement)", price: "20000", priceCurrency: "XOF" },
+          { "@type": "Offer", name: "Page digitale (menu, établissement)", price: "5000", priceCurrency: "XOF" },
           { "@type": "Offer", name: "QR code image ou vidéo", price: "5000", priceCurrency: "XOF" },
           { "@type": "Offer", name: "QR code document PDF", price: "5000", priceCurrency: "XOF" },
         ],

@@ -9,7 +9,7 @@ import AccountNav from "./account-nav";
 
 /** Compare les QR codes du compte : scans, tendance, demandes reçues ; filtre par établissement. */
 export default function Performances() {
-  const token = useAccountToken("/compte/performances");
+  const token = useAccountToken();
   const [cards, setCards] = useState<MyCard[] | null>(null);
   const [ests, setEsts] = useState<Establishment[]>([]);
   const [filter, setFilter] = useState<string>("all");
@@ -33,7 +33,7 @@ export default function Performances() {
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:py-16">
-      <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">Performances</h1>
+      <h1 className="page-title">Performances</h1>
       <p className="mt-2 text-sm text-sage">Comparez vos QR codes : ouvertures de page, tendance et demandes reçues.</p>
       <div className="mt-6"><AccountNav /></div>
 

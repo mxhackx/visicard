@@ -8,7 +8,6 @@ import { useFile } from "@/app/context/FileContext";
 import RestaurantCardLayout from "@/components/RestaurantCardLayout";
 import AdminShell from "@/components/admin/AdminShell";
 import Header from "@/components/header";
-import Stepper from "@/components/order/stepper";
 import PaletteEditor from "@/components/page-builder/palette-editor";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { LAYOUT_OPTIONS } from "@/lib/layouts";
@@ -16,8 +15,6 @@ import { BUILDER_FLOWS, type BuilderMode } from "@/lib/builder-flows";
 import { paletteFor, isCustomThemeId, LAYOUT_DEFAULTS, samePalette, type LayoutId, type Palette } from "@/lib/palette";
 
 
-const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
-const CLIENT_STEPS = ["Informations", "Apparence", "Paiement"] as const;
 
 export default function ApparenceStep({ mode }: { mode: BuilderMode }) {
   if (mode === "admin") {
@@ -77,11 +74,8 @@ function ApparenceBody({ mode }: { mode: BuilderMode }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">Apparence de la page</h1>
+          <h1 className="page-title">Apparence de la page</h1>
           <p className="mt-1 text-sm text-sage">Choisissez une disposition, puis ses couleurs. L’aperçu se met à jour en direct.</p>
-        </div>
-        <div className="w-full max-w-xl">
-          <Stepper current={1} steps={mode === "admin" ? ADMIN_STEPS : CLIENT_STEPS} />
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import AccountNav from "./account-nav";
 
 /** Un compte, plusieurs établissements : chacun regroupe ses propres QR codes. */
 export default function Establishments() {
-  const token = useAccountToken("/compte/etablissements");
+  const token = useAccountToken();
   const [rows, setRows] = useState<Establishment[] | null>(null);
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
@@ -68,7 +68,7 @@ export default function Establishments() {
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
-      <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">Établissements</h1>
+      <h1 className="page-title">Établissements</h1>
       <p className="mt-2 text-sm text-sage">Gérez plusieurs restaurants, boutiques ou agences depuis un seul compte. Rattachez ensuite chaque QR code à son établissement.</p>
       <div className="mt-6"><AccountNav /></div>
 

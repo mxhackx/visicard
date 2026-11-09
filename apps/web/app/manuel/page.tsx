@@ -1,3 +1,4 @@
+import AuthButton from "@/components/account/auth-button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, Printer } from "lucide-react";
@@ -47,7 +48,7 @@ export default function ManuelPage() {
 
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <p className="eyebrow">Manuel d’utilisation</p>
-        <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-ink sm:text-4xl lg:text-5xl">
+        <h1 className="page-title mt-3 max-w-3xl">
           Votre QR code, pas à pas
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-sage">
@@ -90,7 +91,7 @@ export default function ManuelPage() {
                 ]}
               />
               <p className="text-sm text-sage">Un lien encodé de cette façon ne peut plus être modifié une fois imprimé.</p>
-              <Cta href="/qr-gratuit" label="Générer un lien gratuit" />
+              <Cta href="/creer" label="Générer un lien gratuit" />
             </Block>
 
             <Block id="qr-direct" title="QR codes directs">
@@ -98,7 +99,7 @@ export default function ManuelPage() {
               <ul className="grid gap-3 sm:grid-cols-2">
                 {DIRECT_QR_TYPES.filter((t) => t.id !== "url").map((t) => (
                   <li key={t.id}>
-                    <Link href={`/creer/qr/${t.id}`} className="surface surface-hover flex items-center gap-4 p-4 transition hover:-translate-y-0.5">
+                    <Link href={`/creer?type=${t.id}`} className="surface surface-hover flex items-center gap-4 p-4 transition hover:-translate-y-0.5">
                       <TypeArt type={t.id} className="h-12 w-12 shrink-0" />
                       <span>
                         <span className="block font-semibold text-ink">{t.label}</span>
@@ -122,7 +123,7 @@ export default function ManuelPage() {
                   ["Paiement", "Créez votre compte si besoin, payez : votre page et votre QR code sont activés."],
                 ]}
               />
-              <Cta href="/creer?service=page" label="Créer ma page" />
+              <Cta href="/creer?type=page" label="Créer ma page" />
             </Block>
 
             <Block id="media" title="Image, vidéo, PDF">
@@ -147,8 +148,8 @@ export default function ManuelPage() {
                 ]}
               />
               <div className="flex flex-wrap gap-3">
-                <Link href="/connexion?mode=register&next=%2Fcompte" className="btn btn-outline btn-sm">Créer mon compte</Link>
-                <Link href="/connexion?next=%2Fcompte" className="btn btn-outline btn-sm">J’ai déjà un compte</Link>
+                <AuthButton mode="register" label="Créer mon compte" />
+                <AuthButton mode="login" label="J’ai déjà un compte" />
               </div>
             </Block>
 
@@ -220,7 +221,7 @@ export default function ManuelPage() {
 function Block({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="anchor space-y-4 text-[15px] leading-7 text-ink/80">
-      <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink">{title}</h2>
+      <h2 className="page-title">{title}</h2>
       {children}
     </section>
   );

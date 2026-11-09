@@ -1,12 +1,11 @@
 "use client";
 
-import AccountNav from "./account-nav";
-import Overview from "./overview";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FileText, Images, Loader2, LogOut, PanelsTopLeft, Plus, QrCode, ScanLine, Settings2 } from "lucide-react";
+import { ArrowRight, FileText, Images, Loader2, LogOut, PanelsTopLeft, Plus, QrCode, ScanLine } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
+import { useDialogs } from "./auth-dialog";
 import { fetchMyOrders, type AccountOrder } from "@/lib/account";
 import { STATUS_LABELS, fcfa, formatDate } from "@/lib/orders";
 
@@ -22,7 +21,8 @@ const BADGE: Record<AccountOrder["status"], string> = {
 /** Espace client : toutes les commandes du compte, avec accès direct à chaque QR code. */
 export default function AccountOrders() {
   const router = useRouter();
-  const { authToken, authRole, authUser, logoutSession } = useFile();
+  const { openAuth } = useDialogs();
+  const { authToken, authUser, logoutSession } = useFile();
   const [orders, setOrders] = useState<AccountOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,28 +34,41 @@ export default function AccountOrders() {
   useEffect(() => {
     if (!ready) return;
     if (!authToken) {
-      router.replace("/connexion?next=%2Fcompte");
+      openAuth({ mode: "login" });
       return;
     }
     let alive = true;
     fetchMyOrders(authToken)
-      .then((list) => alive && setOrders(list))
+      .then((list) => alive && setOrders(list.filter((o) => o.serviceType !== "direct")))
       .catch((err) => alive && setError(err instanceof Error ? err.message : "Chargement impossible."));
     return () => {
       alive = false;
     };
-  }, [ready, authToken, router]);
+  }, [ready, authToken, openAuth]);
 
   const logout = () => {
     logoutSession();
     router.replace("/");
   };
 
+  // Sans compte, « Mon espace » ne montre rien : seulement la fenêtre de connexion.
+  if (!authToken) {
+    return (
+      <section className="mx-auto flex min-h-[50svh] max-w-md flex-col items-center justify-center px-4 text-center">
+        <h1 className="text-lg font-semibold text-ink/90">Connexion requise</h1>
+        <p className="mt-1 text-sm text-sage">Connectez-vous pour retrouver vos QR codes.</p>
+        <button type="button" onClick={() => openAuth({ mode: "login" })} className="btn btn-primary mt-5">
+          Me connecter
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">Mon espace</h1>
+          <h1 className="page-title">Mon espace</h1>
           {authUser?.email && (
             <p className="mt-1 flex items-center gap-2 text-sm text-sage">
               {authUser.picture && /^https:\/\//.test(authUser.picture) && (
@@ -76,18 +89,6 @@ export default function AccountOrders() {
         </div>
       </div>
 
-      <div className="mt-6"><AccountNav /></div>
-      <Overview />
-
-      {authRole === "admin" && (
-        <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-sage">
-          Vous êtes connecté en tant qu’administrateur.{" "}
-          <Link href="/admin" className="font-semibold text-forest underline-offset-4 hover:underline">
-            Ouvrir l’administration
-          </Link>
-        </p>
-      )}
-
       <div className="mt-8">
         {error ? (
           <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
@@ -100,7 +101,7 @@ export default function AccountOrders() {
             <QrCode className="mx-auto h-8 w-8 text-forest" />
             <h2 className="mt-4 text-lg font-semibold text-ink">Aucun QR code pour le moment</h2>
             <p className="mx-auto mt-1 max-w-sm text-sm text-sage">
-              Créez votre première page, image, vidéo ou PDF : il apparaîtra ici avec son QR code et sa facture.
+              Créez votre première page, image, vidéo ou PDF : il apparaîtra ici avec son QR code.
             </p>
             <Link href="/creer" className="btn btn-primary mt-6">
               Créer un QR code <ArrowRight className="h-4 w-4" />
@@ -136,11 +137,6 @@ export default function AccountOrders() {
                     </span>
                     <ArrowRight className="hidden h-4 w-4 shrink-0 text-sage sm:block" />
                   </Link>
-                  {o.slug && o.serviceType !== "direct" && o.status === "paid" && (
-                    <Link href={`/compte/qr/${o.slug}`} className="ml-1 mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-forest hover:underline">
-                      <Settings2 className="h-3.5 w-3.5" /> Statistiques, catalogue et réservations
-                    </Link>
-                  )}
                 </li>
               );
             })}

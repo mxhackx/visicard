@@ -32,7 +32,7 @@ export default async function ExampleRoute({ params }: { params: Promise<{ layou
         <span className="truncate">Exemple · style {option.name} · contenu fictif</span>
         <span className="flex shrink-0 gap-2">
           <Link href="/#exemples" className="rounded-full px-3 py-1 text-white/80 hover:text-white">Retour</Link>
-          <Link href="/creer?service=page" className="rounded-full bg-white px-3 py-1 font-semibold text-ink">Créer ma page</Link>
+          <Link href="/creer?type=page" className="rounded-full bg-white px-3 py-1 font-semibold text-ink">Créer ma page</Link>
         </span>
       </div>
       <ExamplePage layout={option.id} />

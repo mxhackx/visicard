@@ -58,10 +58,10 @@ export class FedapayService {
     amount: number;
     description: string;
     callbackUrl: string;
-    customer: { name: string; phone: string; email?: string | null };
+    customer: { name: string; phone?: string; email?: string | null };
   }): Promise<FedapayCheckout> {
     const [firstname, ...rest] = input.customer.name.trim().split(/\s+/);
-    const phone = input.customer.phone.replace(/\D/g, '').replace(/^229/, '');
+    const phone = (input.customer.phone ?? '').replace(/\D/g, '').replace(/^229/, '');
 
     const created = await this.call<Record<string, { id: number }>>('POST', '/transactions', {
       description: input.description,
@@ -76,7 +76,7 @@ export class FedapayService {
               firstname: firstname || 'Client',
               lastname: rest.join(' ') || 'Moncode',
               email: input.customer.email,
-              phone_number: { number: phone, country: 'bj' },
+              ...(phone ? { phone_number: { number: phone, country: 'bj' } } : {}),
             },
           }
         : {}),

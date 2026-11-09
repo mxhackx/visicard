@@ -7,6 +7,7 @@ import WhatsAppButton from "@/components/whatsapp-button";
 import ScrollProgress from "@/components/scroll-progress";
 import RevealObserver from "@/components/reveal-observer";
 import GoogleOneTap from "@/components/account/google-one-tap";
+import { DialogsProvider } from "@/components/account/auth-dialog";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -65,19 +66,21 @@ const jsonLd = JSON.stringify(organizationJsonLd()).replace(/</g, "\\u003c");
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={cn("h-full antialiased font-sans", inter.variable)}>
+    <html lang="fr" className={cn("h-full antialiased font-sans", inter.variable)} suppressHydrationWarning>
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
-        {/* Visite déjà faite : l'animation d'accueil est masquée avant le premier affichage (pas de clignotement). */}
-        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('moncode-intro'))document.documentElement.classList.add('intro-seen')}catch(e){}" }} />
+        {/* Déjà vue pendant cette session (ajouter ?intro à l'adresse pour la revoir) : l'animation d'accueil est masquée avant le premier affichage (pas de clignotement). */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('moncode-intro')&&!/[?&]intro\\b/.test(location.search))document.documentElement.classList.add('intro-seen')}catch(e){}" }} />
       </head>
       <body className="flex min-h-full flex-col text-ink">
         <FileProvider>
-          <ScrollProgress />
-          <RevealObserver />
-          <GoogleOneTap />
-          {children}
-          <WhatsAppButton />
+          <DialogsProvider>
+            <ScrollProgress />
+            <RevealObserver />
+            <GoogleOneTap />
+            {children}
+            <WhatsAppButton />
+          </DialogsProvider>
         </FileProvider>
       </body>
     </html>

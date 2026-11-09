@@ -163,7 +163,7 @@ export default function OrderView({
           <p className="text-sm font-medium text-sage">
             {order.kind === "modification" ? "Modification" : order.serviceLabel} · {order.reference}
           </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
+          <h1 className="page-title mt-1">
             {paid
               ? order.kind === "modification"
                 ? "Modification en ligne."
@@ -368,7 +368,7 @@ function PaymentPanel({ order, onRefresh, onPay }: { order: Order; onRefresh: ()
     <div className="surface p-6">
       <h2 className="text-base font-semibold text-ink/90">Paiement</h2>
       <p className="mt-2 text-sm leading-6 text-sage">
-        Réglez {fcfa(order.amount)} par Mobile Money ou carte. Votre QR code est activé et votre facture émise dès la confirmation.
+        Réglez {fcfa(order.amount)} par Mobile Money ou carte, via FedaPay. Votre QR code est activé et votre facture émise dès la confirmation.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
         <button
@@ -383,7 +383,7 @@ function PaymentPanel({ order, onRefresh, onPay }: { order: Order; onRefresh: ()
               setPayError(
                 err instanceof Error && !/503|indisponible/i.test(err.message)
                   ? err.message
-                  : "Le paiement en ligne est momentanément indisponible. Écrivez-nous sur WhatsApp : nous vous aidons à finaliser.",
+                  : "Le paiement FedaPay est momentanément indisponible. Réessayez dans un instant.",
               );
               setPaying(false);
             }
@@ -410,7 +410,7 @@ function PaymentPanel({ order, onRefresh, onPay }: { order: Order; onRefresh: ()
         J’ai payé : actualiser
       </button>
       <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
-        <MessageCircle className="h-4 w-4" /> Une question sur le paiement ? Écrivez-nous
+        <MessageCircle className="h-4 w-4" /> Une question ? Écrivez-nous
       </a>
       <p className="mt-3 text-xs text-sage">
         Référence : <span className="font-semibold text-ink/80">{order.reference}</span>
@@ -571,7 +571,7 @@ function AdminOrderPanel({ order, adminToken, onDone }: { order: Order; adminTok
         <div>
           <dt className="text-sage">Paiement</dt>
           <dd className="font-medium text-ink/90">
-            {order.lastPayment ? `${providerLabel(order.lastPayment.provider)} · ${order.lastPayment.status}` : "À régler sur WhatsApp"}
+            {order.lastPayment ? `${providerLabel(order.lastPayment.provider)} · ${order.lastPayment.status}` : "À régler par FedaPay"}
           </dd>
         </div>
       </dl>

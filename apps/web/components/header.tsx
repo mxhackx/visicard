@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFile } from "@/app/context/FileContext";
 import Logo from "@/components/logo";
+import { useDialogs } from "@/components/account/auth-dialog";
 
 const navLinks = [
   { href: "/#fonctionnement", label: "Fonctionnement" },
@@ -60,6 +61,7 @@ export default function Header() {
     };
   }, [isOpen]);
   const { authToken, authRole, authUser } = useFile();
+  const { openAuth } = useDialogs();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const signedIn = mounted && Boolean(authToken);
@@ -106,9 +108,9 @@ export default function Header() {
               </Link>
             ))}
           {!signedIn && (
-            <Link href="/connexion" className="btn btn-outline btn-sm">
+            <button type="button" onClick={() => openAuth({ mode: "login" })} className="btn btn-outline btn-sm">
               Se connecter
-            </Link>
+            </button>
           )}
           <Link href="/creer" className="btn btn-primary btn-sm">
             Créer un QR code
@@ -185,9 +187,9 @@ export default function Header() {
 
         <div className="shrink-0 space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           {!signedIn && (
-            <Link href="/connexion" onClick={() => setIsOpen(false)} className="btn btn-outline w-full">
+            <button type="button" onClick={() => { setIsOpen(false); openAuth({ mode: "login" }); }} className="btn btn-outline w-full">
               Se connecter
-            </Link>
+            </button>
           )}
           <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary w-full">
             Créer un QR code

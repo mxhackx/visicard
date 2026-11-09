@@ -56,7 +56,7 @@ export default function AboutPage() {
           <div className="mt-8 grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           <div>
           <p className="eyebrow">À propos</p>
-          <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl lg:text-5xl">
+          <h1 className="page-title mt-3 max-w-2xl">
             Nous publions le contenu, pas votre métier
           </h1>
 
@@ -101,7 +101,7 @@ export default function AboutPage() {
       <section>
         <div className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-24">
           <div className="surface p-6 sm:p-8" data-reveal>
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-ink/90">
+            <h2 className="page-title">
               Ce que nous prenons en charge
             </h2>
             <ul className="mt-6 space-y-3 border-t border-line pt-6">
@@ -115,7 +115,7 @@ export default function AboutPage() {
           </div>
 
           <div className="surface p-6 sm:p-8" data-reveal style={{ "--d": "100ms" } as React.CSSProperties}>
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-ink/90">
+            <h2 className="page-title">
               Ce qui reste chez vous
             </h2>
             <ul className="mt-6 space-y-3 border-t border-line pt-6">
@@ -134,7 +134,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
 
           <p className="eyebrow">Questions fréquentes</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
+          <h2 className="page-title mt-3">
             Questions fréquentes
           </h2>
           <dl className="mt-8 divide-y divide-line border-y border-line">

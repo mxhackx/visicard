@@ -189,7 +189,7 @@ export async function refreshOrder(reference: string, key: string): Promise<Orde
 /**
  * Parcours « un seul bouton » : mémorise la commande puis envoie le client sur la page de
  * paiement FedaPay. Renvoie `false` si le paiement en ligne n'est pas disponible : l'appelant
- * ouvre alors la page de commande (paiement sur WhatsApp).
+ * ouvre alors la page de commande, où le paiement FedaPay peut être relancé.
  */
 export async function payOrder(order: CreatedOrder): Promise<boolean> {
   rememberOrderKey(order.reference, order.accessToken);

@@ -22,7 +22,7 @@ type Tab = "stats" | "catalogue" | "reglages";
 
 /** Page de gestion d'un QR code : statistiques, catalogue et promotions, réglages (sans devis de modification). */
 export default function QrManager({ slug }: { slug: string }) {
-  const token = useAccountToken(`/compte/qr/${slug}`);
+  const token = useAccountToken();
   const [tab, setTab] = useState<Tab>("stats");
   const [days, setDays] = useState(30);
   const [stats, setStats] = useState<Analytics | null>(null);
@@ -82,7 +82,7 @@ export default function QrManager({ slug }: { slug: string }) {
     <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
       <p className="text-sm font-medium text-sage">Gestion du QR code</p>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">{live?.title ?? stats?.title ?? "…"}</h1>
+        <h1 className="page-title">{live?.title ?? stats?.title ?? "…"}</h1>
         <div className="flex flex-wrap gap-2">
           {live?.orderReference && <Link href={`/commande/${live.orderReference}`} className="btn btn-outline btn-sm"><QrCode className="h-4 w-4" /> QR code et facture</Link>}
           <Link href={`/c/${slug}`} target="_blank" className="btn btn-outline btn-sm"><ExternalLink className="h-4 w-4" /> Voir la page</Link>

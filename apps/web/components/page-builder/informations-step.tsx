@@ -21,7 +21,6 @@ import {
 import { useFile } from "@/app/context/FileContext";
 import AdminShell from "@/components/admin/AdminShell";
 import Header from "@/components/header";
-import Stepper from "@/components/order/stepper";
 import { SECTORS, sectorById } from "@/lib/sectors";
 import AddressSearch from "@/components/address-search";
 import { mapsLink, reversePlace } from "@/lib/geocode";
@@ -62,8 +61,6 @@ const SOCIALS = [
 ] as const;
 
 
-const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
-const CLIENT_STEPS = ["Informations", "Apparence", "Paiement"] as const;
 
 type TextField =
   | "restaurantName"
@@ -250,15 +247,12 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className=" text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">
+          <h1 className="page-title">
             Informations de l’établissement
           </h1>
           <p className="mt-1 text-sm text-sage">
             Ce que les clients verront en scannant le QR code. Seuls les champs marqués d’un point sont obligatoires.
           </p>
-        </div>
-        <div className="w-full max-w-xl">
-          <Stepper current={0} steps={mode === "admin" ? ADMIN_STEPS : CLIENT_STEPS} />
         </div>
       </div>
 

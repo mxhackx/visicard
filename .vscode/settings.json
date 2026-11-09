@@ -1,0 +1,17 @@
+{
+  // VS Code ne surveille plus les dossiers lourds et générés : il laisse assez d'observateurs
+  // de fichiers (inotify) à `next dev` et `nest start --watch`.
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/apps/api/uploads/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true
+  }
+}

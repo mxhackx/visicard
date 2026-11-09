@@ -10,7 +10,7 @@ const liens = [
   { href: "/#tarifs", label: "Tarifs" },
   { href: "/manuel", label: "Manuel d’utilisation" },
   { href: "/a-propos", label: "À propos" },
-  { href: "/qr-gratuit", label: "QR code gratuit (lien)" },
+  { href: "/creer", label: "QR code gratuit (lien)" },
   { href: "/developpeurs", label: "API développeurs" },
   { href: "/contact", label: "Contact" },
 ];

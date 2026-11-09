@@ -48,7 +48,7 @@ export default function DeveloppeursPage() {
       <div className="header-spacer"></div>
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
         <p className="eyebrow">Développeurs</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-ink sm:text-4xl">API Moncode</h1>
+        <h1 className="page-title mt-2">API Moncode</h1>
         <p className="mt-3 max-w-2xl text-base leading-7 text-sage">
           Générez des QR codes (PNG ou SVG) depuis votre site ou votre application. Une requête HTTP, une image en retour.
         </p>
@@ -57,7 +57,7 @@ export default function DeveloppeursPage() {
           <a href="#exemples" className="btn btn-outline">Voir les exemples <ArrowRight className="h-4 w-4" /></a>
         </div>
 
-        <h2 className="mt-14 text-xl font-semibold text-ink">Quotas</h2>
+        <h2 className="page-title mt-14">Quotas</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
             ["1 000", "requêtes par mois et par clé"],
@@ -75,13 +75,13 @@ export default function DeveloppeursPage() {
           Besoin de plus ? <Link href="/contact" className="font-semibold text-forest hover:underline">Contactez-nous</Link>.
         </p>
 
-        <h2 id="auth" className="anchor mt-14 text-xl font-semibold text-ink">Authentification</h2>
+        <h2 id="auth" className="page-title mt-14">Authentification</h2>
         <p className="mt-2 text-[15px] leading-7 text-sage">
           Créez une clé dans <Link href="/compte/cles-api" className="font-semibold text-forest hover:underline">votre espace</Link> et envoyez-la dans l’en-tête <code>X-API-Key</code> (ou <code>Authorization: Bearer …</code>).
           La clé n’est montrée qu’une fois : gardez-la côté serveur, jamais dans une page publique.
         </p>
 
-        <h2 id="exemples" className="anchor mt-14 text-xl font-semibold text-ink">Générer un QR code</h2>
+        <h2 id="exemples" className="page-title mt-14">Générer un QR code</h2>
         <p className="mt-2 text-[15px] leading-7 text-sage"><code>POST {BASE}/v1/qr</code> (ou <code>GET</code> avec les mêmes paramètres dans l’URL)</p>
         <Code>{`curl -X POST ${BASE}/v1/qr \\
   -H "X-API-Key: mck_live_votre_cle" \\
@@ -118,12 +118,12 @@ const { dataUrl } = await res.json(); // "data:image/png;base64,…"`}</Code>
           </table>
         </div>
 
-        <h2 className="mt-14 text-xl font-semibold text-ink">Consulter votre consommation</h2>
+        <h2 className="page-title mt-14">Consulter votre consommation</h2>
         <p className="mt-2 text-[15px] leading-7 text-sage"><code>GET {BASE}/v1/usage</code> renvoie le quota du mois ; chaque réponse contient aussi <code>X-Quota-Remaining</code>.</p>
         <Code>{`{ "key": "Mon application", "unlimited": false, "perMinute": 30,
   "perMonth": 1000, "usedThisMonth": 12, "remainingThisMonth": 988 }`}</Code>
 
-        <h2 className="mt-14 text-xl font-semibold text-ink">Erreurs</h2>
+        <h2 className="page-title mt-14">Erreurs</h2>
         <ul className="mt-3 space-y-2 text-[15px] leading-7 text-sage">
           <li><code>400</code> paramètre manquant ou invalide (le message l’explique).</li>
           <li><code>401</code> clé absente, invalide ou révoquée.</li>

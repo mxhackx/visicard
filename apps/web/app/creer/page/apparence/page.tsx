@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import ApparenceStep from "@/components/page-builder/apparence-step";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Votre page digitale : apparence" };
-
-export default function CreerPageApparence() {
-  return <ApparenceStep mode="client" />;
+/** Ancienne adresse : la page digitale se crée sur /creer?type=page. */
+export default function Old() {
+  permanentRedirect("/creer?type=page&etape=apparence");
 }

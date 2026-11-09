@@ -6,8 +6,8 @@ import { LogoMark } from "@/components/logo";
 const KEY = "moncode-intro";
 
 /**
- * Petite animation à la toute première visite : le sigle apparaît, un trait le « scanne », puis le rideau s'efface.
- * Une seule fois par navigateur (un script du <head> la masque dès le premier affichage aux visites suivantes),
+ * Petite animation à l'ouverture du site : le sigle apparaît, un trait le « scanne », puis le rideau s'efface.
+ * Une fois par session de navigation, et à volonté avec « ?intro » dans l'adresse (un script du <head> la masque sinon),
  * ignorée avec « réduire les animations », et passable d'un clic. Sans JavaScript, le CSS la fait disparaître seul.
  */
 export default function IntroAnimation() {
@@ -15,7 +15,7 @@ export default function IntroAnimation() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(KEY, "1");
+      sessionStorage.setItem(KEY, "1");
     } catch {
       /* stockage indisponible : l'animation pourra se rejouer, sans conséquence */
     }

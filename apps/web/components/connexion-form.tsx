@@ -106,7 +106,7 @@ export default function ConnexionForm({ next }: { next: string }) {
           <p className="mt-16 text-[12.5px] font-semibold uppercase tracking-[0.2em] text-white/50">
             Administration Moncode
           </p>
-          <h1 className="mt-4 max-w-sm text-4xl font-semibold leading-[1.1] tracking-[-0.02em]">
+          <h1 className="page-title mt-4 max-w-sm text-white">
             Toute l’activité, au même endroit.
           </h1>
           <p className="mt-5 max-w-sm text-sm leading-6 text-white/70">
@@ -152,7 +152,7 @@ export default function ConnexionForm({ next }: { next: string }) {
         <div className="relative flex flex-1 items-center justify-center px-5 py-8 sm:px-8">
           <div className="glass w-full max-w-[480px] p-6 sm:p-9">
             <p className="eyebrow">Espace administrateur</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
+            <h2 className="page-title mt-3">
               Connexion
             </h2>
             <p className="mt-3 text-sm leading-6 text-sage">

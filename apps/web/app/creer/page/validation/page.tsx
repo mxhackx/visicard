@@ -1,17 +1,6 @@
-import type { Metadata } from "next";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import PageCheckout from "@/components/order/page-checkout";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Votre page digitale : devis" };
-
-export default function CreerPageValidation() {
-  return (
-    <main className="min-h-screen">
-      <Header />
-      <div className="header-spacer"></div>
-      <PageCheckout />
-      <Footer />
-    </main>
-  );
+/** Ancienne adresse : la page digitale se crée sur /creer?type=page. */
+export default function Old() {
+  permanentRedirect("/creer?type=page&etape=paiement");
 }

@@ -10,6 +10,7 @@ import {
   Check,
   Contact,
   Copy,
+  Crown,
   ImagePlus,
   Link2,
   LocateFixed,
@@ -22,16 +23,15 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import FedapayBadge from "@/components/fedapay-badge";
+import AccountGate from "@/components/account/account-gate";
 import QrDesigner from "./qr-designer";
 import AddressSearch from "@/components/address-search";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
-import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
+import { createOrder, payOrder, validateCustomer } from "@/lib/orders";
 import { coordsFromUrl } from "@/lib/page-design";
 import {
   DENSE_PAYLOAD,
   DIRECT_QR_DEFAULTS,
-  DIRECT_QR_PRICE,
   DIRECT_QR_TYPES,
   encodeDirectQr,
   isFreeDirectType,
@@ -55,7 +55,7 @@ export type AllData = { [K in DirectQrType]: DirectQrData[K] };
 
 /**
  * Générateur gratuit de QR codes directs (lien, texte, vCard, appel, SMS, e-mail,
- * Wi-Fi, événement, GPS), utilisé sur la page publique /qr-gratuit et dans l'admin.
+ * Wi-Fi, événement, GPS), utilisé sur la page publique /creer et dans l'admin.
  * Tout se passe dans le navigateur : rien n'est enregistré ni envoyé à l'API
  * (un mot de passe Wi-Fi ne quitte pas la page).
  */
@@ -420,8 +420,15 @@ function Field({ label, full, children }: { label: string; full?: boolean; child
    Logo facultatif et contenu brut
 ------------------------------------------------------------------ */
 
-export function LogoPicker({ value, onChange }: { value: string | null; onChange: (url: string | null) => void }) {
+export function LogoPicker({ value, onChange, locked = false, onPremium }: { value: string | null; onChange: (url: string | null) => void; locked?: boolean; onPremium?: () => void }) {
   const input = useRef<HTMLInputElement>(null);
+  if (locked) {
+    return (
+      <button type="button" onClick={onPremium} className="btn btn-outline btn-sm">
+        <ImagePlus className="h-4 w-4 opacity-60 blur-[1px]" /> Ajouter un logo <span className="premium-pill"><Crown className="h-3 w-3" /> Premium</span>
+      </button>
+    );
+  }
   return (
     <div className="flex items-center gap-2">
       <input
@@ -524,14 +531,14 @@ export function OrderPanel({
   };
 
   return (
+    <AccountGate>
     <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-cream-deep p-5 sm:p-6" noValidate>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold text-ink/90">Obtenir ce QR code</h3>
-        <p className="text-sm font-semibold text-forest">{fcfa(DIRECT_QR_PRICE)} · paiement unique</p>
+        <h3 className="text-base font-semibold text-ink/90">Créer ce QR code</h3>
+        <p className="text-sm font-semibold text-forest">Inclus dans Premium</p>
       </div>
       <p className="mt-1 text-sm text-sage">
-        Remplissez ces quelques champs puis payez en ligne : le QR code est débloqué tout de suite, en PNG
-        et SVG, avec votre facture.
+        Remplissez ces quelques champs : le QR code est créé tout de suite, en PNG et SVG.
       </p>
       <div className="mt-5">
         <CustomerFields value={customer} onChange={setCustomer} errors={errors} />
@@ -539,9 +546,9 @@ export function OrderPanel({
       {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
       <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full sm:w-auto">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {busy ? "Redirection vers le paiement…" : `Payer ${fcfa(DIRECT_QR_PRICE)}`}
+        {busy ? "Création en cours…" : "Créer mon QR code"}
       </button>
-      <FedapayBadge className="mt-3 flex" />
     </form>
+    </AccountGate>
   );
 }

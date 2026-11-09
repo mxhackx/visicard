@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -11,6 +13,7 @@ import { Order, Payment, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
 import { FedapayService } from './payments/fedapay.service';
+import { PremiumService } from './premium.service';
 import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
 
@@ -40,6 +43,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly cards: CardsService,
     private readonly fedapay: FedapayService,
+    private readonly premium: PremiumService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -52,28 +56,36 @@ export class OrdersService {
     files: UploadedCardFiles,
     metadata: CardMetadata,
     userId?: string | null,
+    role?: string,
   ) {
     if (!isServiceType(serviceType)) throw new BadRequestException('Service inconnu.');
     const buyer = this.validateCustomer(customer);
     assertOrderContent(serviceType, metadata, files);
 
-    // Un contenu mis en ligne exige un compte : c'est lui qui retrouve ensuite ses QR codes.
-    if (serviceType !== 'direct' && !userId) {
-      throw new UnauthorizedException('Connectez-vous ou créez un compte pour mettre votre QR code en ligne.');
+    // Premium : un compte est exigé pour tout achat, c'est lui qui retrouve ensuite ses QR codes et ses factures.
+    if (!userId) {
+      throw new UnauthorizedException('Connectez-vous ou créez un compte pour passer en Premium.');
+    }
+    // Rien ne se crée sans Premium actif (5 000 FCFA, payés par FedaPay avant tout).
+    if (!(await this.premium.isActive({ id: userId, role }))) {
+      throw new HttpException('Passez en Premium (5 000 FCFA) pour créer ce QR code.', HttpStatus.PAYMENT_REQUIRED);
     }
     const created = await this.cards.createCard(files, { ...metadata, serviceType, clientName: buyer.name }, userId ?? null, {
       status: 'draft',
     });
     try {
       const card = await this.prisma.card.findUniqueOrThrow({ where: { slug: created.slug } });
-      return await this.insertOrder({
+      const placed = await this.insertOrder({
         kind: 'creation',
         serviceType,
         cardId: card.id,
         buyer,
         userId: userId ?? null,
-        items: itemsFor('creation', serviceType),
+        // Déjà payé avec Premium : la commande est à 0 et le QR code est activé tout de suite.
+        items: itemsFor('creation', serviceType, true),
       });
+      await this.markPaid(placed.id);
+      return placed;
     } catch (err) {
       // Pas de carte brouillon orpheline (ni ses fichiers) si le devis n'a pas pu être créé.
       await this.cards.deleteCardBySlug(created.slug, { id: 'system', role: 'admin' }).catch(() => undefined);
@@ -138,7 +150,7 @@ export class OrdersService {
         pendingChanges: input.pendingChanges ?? Prisma.JsonNull,
       },
     });
-    return { reference: order.reference, accessToken, amount: order.amount, quoteNumber };
+    return { id: order.id, reference: order.reference, accessToken, amount: order.amount, quoteNumber };
   }
 
   /* ------------------------------------------------------------------ */

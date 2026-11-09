@@ -4,7 +4,7 @@
  * sans connexion : enregistrer un contact, rejoindre un Wi-Fi, lancer un appel…
  *
  * Contrepartie : un QR direct n'est ni modifiable après impression, ni compté
- * dans les statistiques de scans. Gratuit, ouvert à tous (/qr-gratuit).
+ * dans les statistiques de scans. Gratuit, ouvert à tous (/creer).
  */
 
 export type DirectQrType = "url" | "text" | "vcard" | "tel" | "sms" | "email" | "wifi" | "event" | "geo";

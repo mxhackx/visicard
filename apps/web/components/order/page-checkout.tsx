@@ -10,7 +10,6 @@ import { paletteFor } from "@/lib/palette";
 import { useFile } from "@/app/context/FileContext";
 import { SERVICES } from "@/lib/services";
 import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
-import Stepper from "@/components/order/stepper";
 import AccountGate, { useIsSignedIn } from "@/components/account/account-gate";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
 
@@ -34,7 +33,7 @@ export default function PageCheckout() {
 
   // Arrivée directe sans contenu préparé : retour à la première étape.
   useEffect(() => {
-    if (!restaurantInfo.restaurantName.trim()) router.replace("/creer/page/informations");
+    if (!restaurantInfo.restaurantName.trim()) router.replace("/creer?type=page&etape=informations");
   }, [restaurantInfo.restaurantName, router]);
 
   const logoPreview = restaurantInfo.logoPreview;
@@ -86,18 +85,14 @@ export default function PageCheckout() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
       <Link
-        href="/creer/page/apparence"
+        href="/creer?type=page&etape=apparence"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-sage transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
         Apparence
       </Link>
 
-      <div className="mt-6 max-w-3xl">
-        <Stepper current={2} steps={["Informations", "Apparence", "Paiement"]} />
-      </div>
-
-      <h1 className="mt-10 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
+      <h1 className="page-title mt-10">
         Votre page est prête. Dernière étape.
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-7 text-sage">
@@ -129,7 +124,7 @@ export default function PageCheckout() {
               <Fact icon={Palette} label="Thème" value={customization.themeId.startsWith("custom#") ? "Couleurs personnalisées" : "Couleurs d’origine"} />
             </dl>
             <Link
-              href="/creer/page/informations"
+              href="/creer?type=page&etape=informations"
               className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-forest hover:text-forest-dark"
             >
               <MapPin className="h-4 w-4" />
@@ -168,7 +163,7 @@ export default function PageCheckout() {
             <div className="brand-surface px-6 py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Total à payer</p>
               <p className="mt-2 text-3xl font-semibold">{fcfa(Number(offer.price.replace(/\s/g, "")))}</p>
-              <p className="mt-1 text-sm text-white/75">Paiement unique, sans abonnement</p>
+              <p className="mt-1 text-sm text-white/75">5 000 FCFA, tout inclus</p>
             </div>
             <div className="p-6">
               <ul className="space-y-2.5">

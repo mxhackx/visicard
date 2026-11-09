@@ -18,13 +18,13 @@ export const BUILDER_FLOWS: Record<BuilderMode, BuilderFlow> = {
     loginHref: "/admin/connexion",
     informations: {
       back: "/creer",
-      backLabel: "Choix du service",
-      next: "/creer/page/apparence",
+      backLabel: "Choix du contenu",
+      next: "/creer?type=page&etape=apparence",
       step: "Étape 1 sur 3",
     },
     apparence: {
-      back: "/creer/page/informations",
-      next: "/creer/page/validation",
+      back: "/creer?type=page&etape=informations",
+      next: "/creer?type=page&etape=paiement",
       nextLabel: "Suivant : paiement",
       step: "Étape 2 sur 3",
     },

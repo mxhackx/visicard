@@ -155,14 +155,33 @@ model AdminUser {
   /// Photo de profil (Google), mise à jour à chaque connexion Google.
   pictureUrl   String?  @map("picture_url")
   role         String   @default("user")
+  /// Fin de l'abonnement Premium (un an après le paiement) ; vide = pas Premium.
+  premiumUntil DateTime? @map("premium_until")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   cards        Card[]
   apiKeys      ApiKey[]
   establishments Establishment[]
+  premiumPurchases PremiumPurchase[]
 
   @@map("admin_users")
+}
+
+/// Paiement FedaPay de l'abonnement Premium (un an). Le statut est relu chez FedaPay, jamais reçu du navigateur.
+model PremiumPurchase {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  status      String    @default("pending")
+  providerRef String    @unique @map("provider_ref")
+  paidAt      DateTime? @map("paid_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("premium_purchases")
 }
 
 /// Scans enregistrés par carte (table déjà présente en base).

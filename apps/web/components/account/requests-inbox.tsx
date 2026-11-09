@@ -12,7 +12,7 @@ const nf = new Intl.NumberFormat("fr-FR");
 
 /** Boîte de réception : réservations, commandes et messages reçus après un scan. */
 export default function RequestsInbox() {
-  const token = useAccountToken("/compte/demandes");
+  const token = useAccountToken();
   const [rows, setRows] = useState<VisitorRequest[] | null>(null);
   const [filter, setFilter] = useState<"new" | "done" | "all">("new");
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function RequestsInbox() {
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
-      <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">Demandes</h1>
+      <h1 className="page-title">Demandes</h1>
       <p className="mt-2 text-sm text-sage">Réservations, commandes et messages envoyés par vos visiteurs après un scan. Activez-les depuis la page de chaque QR code.</p>
       <div className="mt-6"><AccountNav /></div>
 

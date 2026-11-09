@@ -20,7 +20,7 @@ export const SERVICES: ServiceOffer[] = [
     index: "01",
     name: "Page digitale",
     shortName: "Page",
-    price: "20 000",
+    price: "5 000",
     priceNote: "FCFA · un seul QR code",
     tagline: "Votre page en ligne, accessible en un scan.",
     description:
@@ -32,7 +32,7 @@ export const SERVICES: ServiceOffer[] = [
       "QR code prêt à imprimer",
     ],
     cta: "Créer ma page",
-    href: "/creer?service=page",
+    href: "/creer?type=page",
   },
   {
     id: "media",
@@ -51,7 +51,7 @@ export const SERVICES: ServiceOffer[] = [
       "Lien et fichier QR téléchargeables",
     ],
     cta: "Créer mon QR média",
-    href: "/creer?service=media",
+    href: "/creer?type=media",
   },
   {
     id: "document",
@@ -70,7 +70,7 @@ export const SERVICES: ServiceOffer[] = [
       "Lien et fichier QR téléchargeables",
     ],
     cta: "Créer mon QR document",
-    href: "/creer?service=document",
+    href: "/creer?type=document",
   },
 ];
 

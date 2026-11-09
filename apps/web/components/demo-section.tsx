@@ -34,7 +34,7 @@ export default function DemoSection() {
             <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-            <span className="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-sage">moncode.app/qr-gratuit</span>
+            <span className="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-sage">moncode.app/creer</span>
           </div>
           <video
             ref={video}
@@ -51,7 +51,7 @@ export default function DemoSection() {
         </div>
 
         <div className="mt-8 flex justify-center">
-          <Link href="/qr-gratuit" className="btn btn-primary">
+          <Link href="/creer" className="btn btn-primary">
             Essayer maintenant <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

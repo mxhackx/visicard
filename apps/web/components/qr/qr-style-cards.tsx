@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, RotateCcw, ScanLine, AlertTriangle } from "lucide-react";
+import { Check, Crown, RotateCcw, ScanLine, AlertTriangle } from "lucide-react";
 import {
   DEFAULT_QR_STYLE,
   QR_CORNERS,
@@ -16,8 +16,11 @@ import {
   type QrStyle,
 } from "@/lib/qr-style";
 
+
 const BRAND = { fg: "#c81d25", bg: "#ffffff" };
-const PALETTES = [BRAND, ...QR_PALETTES];
+/** Gratuit : le noir d'origine et le rouge Moncode. Toutes les autres palettes sont Premium. */
+const FREE_PALETTES = [QR_PALETTES[0], BRAND];
+const PREMIUM_PALETTES = QR_PALETTES.slice(1);
 
 /** Trois lignes de trois modules : de quoi reconnaître la forme choisie. */
 const CELLS = [
@@ -61,21 +64,26 @@ function CornerShape({ outer, inner, fg }: { outer: QrCorners; inner: QrCornerDo
   );
 }
 
-function Card({ on, label, onClick, children }: { on: boolean; label: string; onClick: () => void; children: React.ReactNode }) {
+function Card({ on, label, onClick, premium, locked, children }: { on: boolean; label: string; onClick: () => void; premium?: boolean; locked?: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={on}
       onClick={onClick}
-      className={`relative flex flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center transition active:scale-[0.97] ${
+      className={`group relative flex flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center transition active:scale-[0.97] ${
         on ? "border-forest ring-2 ring-forest/30" : "border-line hover:border-ink/30"
       }`}
     >
-      <span className="block h-12 w-12">{children}</span>
-      <span className="text-xs font-medium leading-4 text-ink/80">{label}</span>
+      <span className={`block h-12 w-12 transition ${locked ? "opacity-60 blur-[2px] group-hover:blur-[1px]" : ""}`}>{children}</span>
+      <span className={`text-xs font-medium leading-4 text-ink/80`}>{label}</span>
+      {premium && (
+        <span className="premium-gold absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full" aria-hidden="true">
+          <Crown className="h-2.5 w-2.5" />
+        </span>
+      )}
       {on && (
-        <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-forest text-white">
+        <span className={`absolute top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-forest text-white ${premium ? "left-1.5" : "right-1.5"}`}>
           <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
         </span>
       )}
@@ -83,17 +91,64 @@ function Card({ on, label, onClick, children }: { on: boolean; label: string; on
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({ title, premium, children }: { title: string; premium?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sage">{title}</p>
+      <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-sage">
+        {title}
+        {premium && <span className="premium-pill"><Crown className="h-3 w-3" /> Premium</span>}
+      </p>
       {children}
     </div>
   );
 }
 
+function PaletteButton({ p, on, onClick, premium, locked }: { p: { fg: string; bg: string }; on: boolean; onClick: () => void; premium?: boolean; locked?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      aria-label={`Motif ${p.fg} sur fond ${p.bg}`}
+      onClick={onClick}
+      className={`relative flex aspect-square items-center justify-center rounded-xl border transition active:scale-95 ${
+        on ? "border-forest ring-2 ring-forest/30" : "border-line hover:border-ink/30"
+      }`}
+      style={{ backgroundColor: p.bg }}
+    >
+      {premium && (
+        <span className="premium-gold absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full" aria-hidden="true">
+          <Crown className="h-2.5 w-2.5" />
+        </span>
+      )}
+      {on && (
+        <span className={`absolute top-1 flex h-4 w-4 items-center justify-center rounded-full bg-forest text-white ${premium ? "left-1" : "right-1"}`}>
+          <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
+        </span>
+      )}
+      <svg viewBox="0 0 24 24" className={`h-7 w-7 ${locked ? "opacity-60 blur-[1.5px]" : ""}`} aria-hidden="true">
+        <rect x="2" y="2" width="8" height="8" rx="2" fill={p.fg} />
+        <rect x="14" y="2" width="8" height="8" rx="2" fill={p.fg} />
+        <rect x="2" y="14" width="8" height="8" rx="2" fill={p.fg} />
+        <rect x="14" y="14" width="4" height="4" rx="1" fill={p.fg} />
+      </svg>
+    </button>
+  );
+}
+
 /** Options du QR code présentées en cartes illustrées : formes, coins et couleurs. */
-export default function QrStyleCards({ value, onChange }: { value: string; onChange: (qrStyle: string) => void }) {
+export default function QrStyleCards({
+  value,
+  onChange,
+  lockPremium = false,
+  onPremium,
+}: {
+  value: string;
+  onChange: (qrStyle: string) => void;
+  /** Version gratuite : les styles premium ouvrent l'offre au lieu de s'appliquer. */
+  lockPremium?: boolean;
+  onPremium?: (label: string) => void;
+}) {
   const style = parseQrStyle(value);
   const set = (next: Partial<QrStyle>) => onChange(serializeQrStyle({ ...style, ...next }));
   const readability = qrReadability(style);
@@ -103,28 +158,18 @@ export default function QrStyleCards({ value, onChange }: { value: string; onCha
     <div className="space-y-6">
       <Group title="Couleurs">
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-7" role="radiogroup">
-          {PALETTES.map((p) => {
-            const on = p.fg === style.fg && p.bg === style.bg;
+          {[...FREE_PALETTES, ...PREMIUM_PALETTES].map((p, i) => {
+            const premium = i >= FREE_PALETTES.length;
+            const locked = premium && lockPremium;
             return (
-              <button
+              <PaletteButton
                 key={`${p.fg}${p.bg}`}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                aria-label={`Motif ${p.fg} sur fond ${p.bg}`}
-                onClick={() => set(p)}
-                className={`relative flex aspect-square items-center justify-center rounded-xl border transition active:scale-95 ${
-                  on ? "border-forest ring-2 ring-forest/30" : "border-line hover:border-ink/30"
-                }`}
-                style={{ backgroundColor: p.bg }}
-              >
-                <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
-                  <rect x="2" y="2" width="8" height="8" rx="2" fill={p.fg} />
-                  <rect x="14" y="2" width="8" height="8" rx="2" fill={p.fg} />
-                  <rect x="2" y="14" width="8" height="8" rx="2" fill={p.fg} />
-                  <rect x="14" y="14" width="4" height="4" rx="1" fill={p.fg} />
-                </svg>
-              </button>
+                p={p}
+                premium={premium}
+                locked={locked}
+                on={!locked && p.fg === style.fg && p.bg === style.bg}
+                onClick={() => (locked ? onPremium?.("Palette de couleurs") : set(p))}
+              />
             );
           })}
         </div>
@@ -132,22 +177,44 @@ export default function QrStyleCards({ value, onChange }: { value: string; onCha
 
       <Group title="Forme des points">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" role="radiogroup">
-          {QR_DOTS.map((o) => (
-            <Card key={o.id} on={style.dots === o.id} label={o.label} onClick={() => set({ dots: o.id })}>
-              <DotShape shape={o.id} fg={style.fg} />
-            </Card>
-          ))}
+          {QR_DOTS.map((o, i) => {
+            const premium = i >= QR_DOTS.length - 4;
+            const locked = premium && lockPremium;
+            return (
+              <Card
+                key={o.id}
+                premium={premium}
+                locked={locked}
+                on={!locked && style.dots === o.id}
+                label={o.label}
+                onClick={() => (locked ? onPremium?.(o.label) : set({ dots: o.id }))}
+              >
+                <DotShape shape={o.id} fg={style.fg} />
+              </Card>
+            );
+          })}
         </div>
       </Group>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Group title="Coins">
           <div className="grid grid-cols-3 gap-2" role="radiogroup">
-            {QR_CORNERS.map((o) => (
-              <Card key={o.id} on={style.corners === o.id} label={o.label} onClick={() => set({ corners: o.id })}>
-                <CornerShape outer={o.id} inner={style.cornerDots} fg={style.fg} />
-              </Card>
-            ))}
+            {QR_CORNERS.map((o) => {
+              const premium = o.id === "dot";
+              const locked = premium && lockPremium;
+              return (
+                <Card
+                  key={o.id}
+                  premium={premium}
+                  locked={locked}
+                  on={!locked && style.corners === o.id}
+                  label={o.label}
+                  onClick={() => (locked ? onPremium?.("Coins ronds") : set({ corners: o.id }))}
+                >
+                  <CornerShape outer={o.id} inner={style.cornerDots} fg={style.fg} />
+                </Card>
+              );
+            })}
           </div>
         </Group>
         <Group title="Centre des coins">
@@ -161,14 +228,16 @@ export default function QrStyleCards({ value, onChange }: { value: string; onCha
         </Group>
       </div>
 
-      <Group title="Couleurs personnalisées">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Group title="Couleurs personnalisées" premium>
+        <div onClick={lockPremium ? () => onPremium?.("Couleurs personnalisées") : undefined} className={`relative grid gap-3 sm:grid-cols-2 ${lockPremium ? "cursor-pointer opacity-60 blur-[1.5px]" : ""}`} aria-hidden={lockPremium || undefined}>
           {([["fg", "Motif"], ["bg", "Fond"]] as const).map(([key, label]) => (
             <label key={key} className="flex items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5">
               <input
                 type="color"
                 value={style[key]}
                 onChange={(e) => set({ [key]: e.target.value } as Partial<QrStyle>)}
+                disabled={lockPremium}
+                tabIndex={lockPremium ? -1 : undefined}
                 className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-line bg-transparent p-0.5"
                 aria-label={`Couleur du ${label.toLowerCase()}`}
               />
@@ -179,6 +248,11 @@ export default function QrStyleCards({ value, onChange }: { value: string; onCha
             </label>
           ))}
         </div>
+        {lockPremium && (
+          <button type="button" onClick={() => onPremium?.("Couleurs personnalisées")} className="premium-pill mt-2" aria-label="Débloquer les couleurs personnalisées avec Premium">
+            <Crown className="h-3 w-3" /> Débloquer avec Premium
+          </button>
+        )}
       </Group>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

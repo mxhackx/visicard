@@ -6,10 +6,12 @@ import { OrdersController, PaymentsWebhookController } from './orders.controller
 import { OrdersService } from './orders.service';
 import { AdminStatsController } from './stats.controller';
 import { FedapayService } from './payments/fedapay.service';
+import { PremiumService } from './premium.service';
+import { PremiumController } from './premium.controller';
 
 @Module({
   imports: [PrismaModule, AuthModule, CardsModule],
-  controllers: [OrdersController, PaymentsWebhookController, AdminStatsController],
-  providers: [OrdersService, FedapayService],
+  controllers: [OrdersController, PaymentsWebhookController, AdminStatsController, PremiumController],
+  providers: [OrdersService, FedapayService, PremiumService],
 })
 export class OrdersModule {}

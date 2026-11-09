@@ -5,13 +5,11 @@ import Link from "next/link";
 import { ArrowLeft, Check, CheckCircle2, Copy, ExternalLink, Loader2, QrCode, Smartphone } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import { useAdminFetch } from "@/components/admin/use-admin-fetch";
-import Stepper from "@/components/order/stepper";
 import QrDesigner from "@/components/qr/qr-designer";
 import StyledQr from "@/components/qr/styled-qr";
 import { useFile } from "@/app/context/FileContext";
 import { paletteFor } from "@/lib/palette";
 
-const ADMIN_STEPS = ["Informations", "Apparence", "QR code"] as const;
 
 interface Created {
   slug: string;
@@ -97,11 +95,8 @@ function QrBody({ adminToken }: { adminToken: string }) {
           <Link href="/admin/nouveau/apparence" className="inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
             <ArrowLeft className="h-4 w-4" /> Apparence
           </Link>
-          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">Le QR code</h1>
+          <h1 className="page-title mt-3">Le QR code</h1>
           <p className="mt-1 text-sm text-sage">Le motif imprimé sur les tables. Il reste modifiable depuis la fiche de la page.</p>
-        </div>
-        <div className="w-full max-w-xl">
-          <Stepper current={2} steps={ADMIN_STEPS} />
         </div>
       </div>
 
@@ -162,7 +157,7 @@ function Success({ created, copied, onCopy, onDone }: { created: Created; copied
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
             <CheckCircle2 className="h-4 w-4" /> Page publiée
           </span>
-          <h1 className="mt-4 text-2xl font-semibold tracking-[-0.02em] text-ink/90">Le QR code est actif</h1>
+          <h1 className="page-title mt-4">Le QR code est actif</h1>
           <p className="mt-2 text-sm leading-6 text-sage">Téléchargez-le pour l’impression (PNG haute définition ou SVG vectoriel). Scannez-le une fois pour vérifier avant d’imprimer.</p>
           <div className="mt-5 flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm">
             <span className="min-w-0 flex-1 truncate text-ink/80">{created.cardUrl}</span>

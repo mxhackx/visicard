@@ -25,9 +25,9 @@ const ADMIN_ROUTE: Record<ServiceType, string> = {
 };
 
 const CLIENT_START: Record<ServiceType, string> = {
-  page: "/creer/page/informations",
-  media: "/creer?service=media",
-  document: "/creer?service=document",
+  page: "/creer?type=page&etape=informations",
+  media: "/creer?type=media",
+  document: "/creer?type=document",
 };
 
 interface Step {
@@ -40,22 +40,22 @@ interface Step {
 /** Le parcours client, étape par étape, avec l'adresse de chaque écran. */
 const JOURNEYS: Record<ServiceType, Step[]> = {
   page: [
-    { label: "Choix du service", route: "/creer?service=page", href: "/creer?service=page", who: "Client" },
-    { label: "Informations et photos", route: "/creer/page/informations", href: "/creer/page/informations", who: "Client" },
-    { label: "Apparence (thème)", route: "/creer/page/apparence", href: "/creer/page/apparence", who: "Client" },
-    { label: "Coordonnées et devis", route: "/creer/page/validation", href: "/creer/page/validation", who: "Client" },
+    { label: "Choix du service", route: "/creer?type=page", href: "/creer?type=page", who: "Client" },
+    { label: "Informations et photos", route: "/creer?type=page&etape=informations", href: "/creer?type=page&etape=informations", who: "Client" },
+    { label: "Apparence (thème)", route: "/creer?type=page&etape=apparence", href: "/creer?type=page&etape=apparence", who: "Client" },
+    { label: "Coordonnées et devis", route: "/creer?type=page&etape=paiement", href: "/creer?type=page&etape=paiement", who: "Client" },
     { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
     { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
   ],
   media: [
-    { label: "Fichier et coordonnées", route: "/creer?service=media", href: "/creer?service=media", who: "Client" },
+    { label: "Fichier et coordonnées", route: "/creer?type=media", href: "/creer?type=media", who: "Client" },
     { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
     { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
   ],
   document: [
-    { label: "PDF et coordonnées", route: "/creer?service=document", href: "/creer?service=document", who: "Client" },
+    { label: "PDF et coordonnées", route: "/creer?type=document", href: "/creer?type=document", who: "Client" },
     { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
     { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },
@@ -125,7 +125,7 @@ function HubBody({ adminToken }: { adminToken: string }) {
             <span className="block text-lg font-semibold text-ink/90">QR code simple</span>
             <span className="mt-1 block text-sm leading-6 text-sage">
               Lien web, texte, carte de visite (vCard), appel, SMS, e-mail, Wi-Fi, événement ou coordonnées GPS,
-              écrits dans le QR lui-même. Tous contenus libres pour l’équipe ; les clients paient 5 000 FCFA (hors lien) sur /qr-gratuit.
+              écrits dans le QR lui-même. Tous contenus libres pour l’équipe ; les clients paient 5 000 FCFA (hors lien) sur /creer.
             </span>
           </span>
           <span className="btn btn-primary btn-sm shrink-0 justify-between gap-2">

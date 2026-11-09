@@ -3,9 +3,9 @@
 import AccountNav from "./account-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { AlertCircle, BookOpen, Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
+import { useDialogs } from "./auth-dialog";
 import { createKey, listKeys, revokeKey, type DevKeysResponse, type NewKey } from "@/lib/developers";
 
 const fmt = (v: string | null) => (v ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(v)) : "jamais");
@@ -13,7 +13,7 @@ const nf = new Intl.NumberFormat("fr-FR");
 
 /** Gestion des clés d'API : création (clé montrée une seule fois), consommation du mois, révocation. */
 export default function ApiKeys() {
-  const router = useRouter();
+  const { openAuth } = useDialogs();
   const { authToken } = useFile();
   const [ready, setReady] = useState(false);
   const [data, setData] = useState<DevKeysResponse | null>(null);
@@ -38,12 +38,12 @@ export default function ApiKeys() {
   useEffect(() => {
     if (!ready) return;
     if (!authToken) {
-      router.replace("/connexion?next=%2Fcompte%2Fcles-api");
+      openAuth({ mode: "login" });
       return;
     }
     const id = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(id);
-  }, [ready, authToken, router, load]);
+  }, [ready, authToken, openAuth, load]);
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
@@ -82,7 +82,7 @@ export default function ApiKeys() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-sage">Espace développeur</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.02em] text-ink">Clés d’API</h1>
+          <h1 className="page-title mt-1">Clés d’API</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-sage">
             Générez des QR codes depuis vos applications. Chaque clé a son quota mensuel ; elle n’est affichée qu’une fois à sa création.
           </p>

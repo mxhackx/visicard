@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import SectionHeading from "@/components/section-heading";
-import PhonePreview from "@/components/phone-preview";
+import DevicePreview from "@/components/page-builder/device-preview";
 import ExamplePage from "@/components/example-page";
 import { LAYOUT_OPTIONS } from "@/lib/layouts";
 import { EXAMPLES, EXAMPLE_IDS } from "@/lib/examples";
@@ -26,18 +26,15 @@ const SHORT: Record<string, string> = {
 
 export default function ExamplesSection() {
   const [layout, setLayout] = useState<LayoutId>(TABS[0].layout);
-  const [touchX, setTouchX] = useState<number | null>(null);
-  const index = TABS.findIndex((t) => t.layout === layout);
   const option = LAYOUT_OPTIONS.find((o) => o.id === layout)!;
   const example = EXAMPLES[layout]!;
-  const go = (delta: number) => setLayout(TABS[(index + delta + TABS.length) % TABS.length].layout);
   const items = example.additionalInfo.split("\n").filter(Boolean);
 
   return (
     <section id="exemples" className="anchor">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
-          title="Une page faite pour votre métier"
+          title="Une page faite pour votre activité"
           subtitle="Choisissez votre activité : la page est prête à être remplie avec vos informations, vos photos et vos horaires."
         />
 
@@ -61,7 +58,7 @@ export default function ExamplesSection() {
           })}
         </div>
 
-        <div className="mt-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-20">
+        <div className="mt-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14">
           <div className="min-w-0 order-2 lg:order-1">
             <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-forest">{option.sector}</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink sm:text-3xl">{example.restaurantName}</h3>
@@ -80,7 +77,7 @@ export default function ExamplesSection() {
             </ul>
 
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Link href="/creer?service=page" className="btn btn-primary">
+              <Link href="/creer?type=page" className="btn btn-primary">
                 Créer ma page <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href={`/exemples/${layout}`} className="text-center text-sm font-semibold text-forest underline-offset-4 hover:underline">
@@ -89,22 +86,12 @@ export default function ExamplesSection() {
             </div>
           </div>
 
-          <div className="order-1 mx-auto min-w-0 max-w-full lg:order-2">
-            <PhonePreview
-              width={268}
-              height={500}
-              onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
-              onTouchEnd={(e) => {
-                if (touchX === null) return;
-                const dx = e.changedTouches[0].clientX - touchX;
-                setTouchX(null);
-                if (Math.abs(dx) > 90) go(dx < 0 ? 1 : -1);
-              }}
-            >
+          <div className="order-1 min-w-0 overflow-x-clip lg:order-2">
+            <DevicePreview device="laptop">
               <div key={layout} className="example-enter">
                 <ExamplePage layout={layout} />
               </div>
-            </PhonePreview>
+            </DevicePreview>
           </div>
         </div>
       </div>

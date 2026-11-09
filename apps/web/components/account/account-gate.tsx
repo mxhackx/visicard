@@ -1,9 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
-import AuthForm from "./auth-form";
+import { PREMIUM_PRICE, usePremium } from "@/lib/premium";
+import { useDialogs } from "./auth-dialog";
 
 /** Vrai quand un client (ou l'équipe) est connecté : le paiement peut alors continuer. */
 export function useIsSignedIn(): boolean {
@@ -12,21 +14,46 @@ export function useIsSignedIn(): boolean {
 }
 
 /**
- * Barrière du parcours : un contenu mis en ligne (page, image, vidéo, PDF) exige un compte,
- * pour que le client retrouve ensuite son QR code, sa facture et ses modifications.
- * La page reste affichée : rien de ce qui a été saisi n'est perdu.
+ * Barrière du parcours : il faut un compte, puis Premium (5 000 FCFA par FedaPay), avant de créer.
+ * Les deux étapes se font dans une fenêtre : la page et ce qui a été saisi restent en place.
  */
 export default function AccountGate({ children }: { children: ReactNode }) {
   const signedIn = useIsSignedIn();
+  const premium = usePremium();
+  const path = usePathname();
+  const { openAuth, openPremium } = useDialogs();
+
+  if (signedIn && !premium.ready) {
+    return (
+      <div className="surface flex items-center justify-center gap-2 p-8 text-sm text-sage" role="status">
+        <Loader2 className="h-4 w-4 animate-spin" /> Vérification de votre compte…
+      </div>
+    );
+  }
+  if (signedIn && !premium.active) {
+    return (
+      <div className="surface p-6 text-center sm:p-8">
+        <h2 className="text-lg font-semibold text-ink/90">Passez en Premium pour continuer</h2>
+        <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-sage">
+          {PREMIUM_PRICE} FCFA, payés par FedaPay. Votre contenu reste ici, rien n’est perdu.
+        </p>
+        <button type="button" onClick={() => openPremium({ label: "Passer en Premium", suite: path || "/creer" })} className="btn btn-primary mt-5">
+          Payer {PREMIUM_PRICE} FCFA
+        </button>
+      </div>
+    );
+  }
   if (signedIn) return <>{children}</>;
   return (
-    <div className="surface p-6 sm:p-8">
-      <h2 className="text-lg font-semibold text-ink/90">Créez votre compte pour mettre votre QR code en ligne</h2>
-      <p className="mt-1 flex items-start gap-2 text-sm leading-6 text-sage">
+    <div className="surface p-6 text-center sm:p-8">
+      <h2 className="text-lg font-semibold text-ink/90">Créez votre compte pour continuer</h2>
+      <p className="mx-auto mt-1 flex max-w-sm items-start justify-center gap-2 text-sm leading-6 text-sage">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
-        Une minute suffit. Vous retrouverez votre QR code, vos factures et vos modifications dans votre espace.
+        Une minute suffit. Vous retrouverez vos QR codes dans votre espace.
       </p>
-      <AuthForm nested className="mt-5 max-w-md" />
+      <button type="button" onClick={() => openAuth({ mode: "register" })} className="btn btn-primary mt-5">
+        Créer mon compte ou me connecter
+      </button>
     </div>
   );
 }

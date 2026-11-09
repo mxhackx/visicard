@@ -18,6 +18,7 @@ import type { Request } from 'express';
 import 'multer';
 import { OrdersService, type OrderAccess } from './orders.service';
 import { FedapayService } from './payments/fedapay.service';
+import { PremiumService } from './premium.service';
 import { AuthService } from '../auth/auth.service';
 import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from '../cards/card-files';
 import type { CardMetadata, UploadedCardFiles } from '../cards/cards.service';
@@ -97,6 +98,7 @@ export class OrdersController {
       toUploaded(files),
       contentFrom(body),
       user?.id ?? null,
+      user?.role,
     );
   }
 
@@ -216,6 +218,7 @@ export class PaymentsWebhookController {
   constructor(
     private readonly orders: OrdersService,
     private readonly fedapay: FedapayService,
+    private readonly premium: PremiumService,
   ) {}
 
   @Post('fedapay/webhook')
@@ -229,7 +232,7 @@ export class PaymentsWebhookController {
       throw new UnauthorizedException('Signature FedaPay invalide.');
     }
     // Le statut est relu chez FedaPay : le contenu du webhook ne suffit pas à valider un paiement.
-    await this.orders.handleFedapayEvent(body?.entity?.id);
+    if (!(await this.premium.handleEvent(body?.entity?.id))) await this.orders.handleFedapayEvent(body?.entity?.id);
     return { received: true };
   }
 }

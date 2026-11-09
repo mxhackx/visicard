@@ -4,7 +4,7 @@ import HeroDashboard from "@/components/hero-dashboard";
 
 const POINTS = [
   "Wi-Fi, carte de visite, menu, PDF : un QR pour chaque besoin",
-  "Une page digitale prête pour votre métier",
+  "Une page digitale prête pour votre activité",
   "Modifiable à tout moment, sans réimprimer",
 ];
 
@@ -13,8 +13,9 @@ export default function Hero() {
     <section id="top" className="relative flex min-h-[100svh] items-center overflow-hidden pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(60%_55%_at_78%_28%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)] text-ink">
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-16">
         <div data-reveal className="hero-copy">
-          <h1 className="max-w-xl text-[2.5rem] font-bold leading-[1.08] tracking-[-0.03em] text-ink sm:text-5xl lg:text-[3.6rem]">
-            Créez votre QR code <span className="text-forest">en quelques minutes</span>
+          <h1 className="text-[2.2rem] font-bold leading-[1.08] tracking-[-0.03em] text-ink min-[400px]:text-[2.5rem] sm:text-5xl lg:text-[3.1rem] xl:text-[3.4rem]">
+            <span className="block whitespace-nowrap">Créez votre QR code</span>
+            <span className="block whitespace-nowrap text-forest">en quelques secondes</span>
           </h1>
 
           <ul className="mt-7 space-y-3">
@@ -25,17 +26,11 @@ export default function Hero() {
             ))}
           </ul>
 
-          <div className="mt-9 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-            <Link href="/qr-gratuit" className="btn btn-outline px-6 py-4 text-base">
-              Créer un QR code gratuit
-            </Link>
-            <Link href="/creer" className="btn btn-primary px-8 py-4 text-base">
-              Créer un QR code <ArrowRight className="h-4 w-4" />
+          <div className="mt-9">
+            <Link href="/creer" className="btn btn-primary w-full px-12 py-[1.15rem] text-lg sm:max-w-[34rem]">
+              Créer mon QR code <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-sage">
-            <span className="h-1.5 w-1.5 rounded-full bg-forest" /> Sans abonnement · paiement en ligne sécurisé
-          </p>
         </div>
 
         {/* Sur téléphone, le hero tient dans un seul écran : la maquette arrive à partir de la taille tablette. */}
