@@ -10,14 +10,13 @@ import {
   Images,
   Loader2,
   PanelsTopLeft,
+  QrCode,
   UploadCloud,
   X,
 } from "lucide-react";
 import { createOrder, fcfa, payOrder, validateCustomer } from "@/lib/orders";
 import { useFile } from "@/app/context/FileContext";
 import AccountGate, { useIsSignedIn } from "@/components/account/account-gate";
-import PhonePreview from "@/components/phone-preview";
-import ExamplePage from "@/components/example-page";
 import FedapayBadge from "@/components/fedapay-badge";
 import QrDesigner from "@/components/qr/qr-designer";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
@@ -30,18 +29,12 @@ const icons = {
 } satisfies Record<ServiceType, typeof PanelsTopLeft>;
 
 
-const pagePath = [
-  "Vous remplissez la présentation, les photos, les horaires et les contacts.",
-  "Vous choisissez un thème : l’aperçu se met à jour en direct.",
-  "Vous payez en ligne par Mobile Money ou carte (FedaPay) : le QR code s’active dès la confirmation.",
-];
-
 export default function CreateFlow({ initialService }: { initialService: ServiceType | null }) {
   const router = useRouter();
 
   const signedIn = useIsSignedIn();
   const { authUser } = useFile();
-  const [service, setService] = useState<ServiceType | null>(initialService ?? "page");
+  const [service, setService] = useState<ServiceType | null>(initialService && initialService !== "page" ? initialService : null);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -81,7 +74,16 @@ export default function CreateFlow({ initialService }: { initialService: Service
   const accept =
     service === "document" ? "application/pdf" : service === "media" ? "image/*,video/*" : undefined;
 
+  // Une page digitale se construit dans son propre éditeur : on y va directement.
+  useEffect(() => {
+    if (initialService === "page") router.replace("/creer/page/informations");
+  }, [initialService, router]);
+
   const pickService = (nextService: ServiceType) => {
+    if (nextService === "page") {
+      router.push("/creer/page/informations");
+      return;
+    }
     setService(nextService);
     setError(null);
     selectFile(null);
@@ -165,60 +167,15 @@ export default function CreateFlow({ initialService }: { initialService: Service
 
       <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-2xl">
-          <p className="eyebrow">Créer un QR code</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl lg:text-5xl">
-            Quel contenu voulez-vous mettre derrière le code ?
+          <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-4xl">
+            Que mettre derrière votre QR code ?
           </h1>
-          <p className="mt-5 text-base leading-7 text-sage">
-            Choisissez un service : un QR code correspond à un seul contenu. Vous remplissez
-            quelques champs, vous payez en ligne, et votre QR code est prêt.
+          <p className="mt-3 text-base leading-7 text-sage">
+            Choisissez un type, remplissez quelques champs, puis payez en ligne.
           </p>
         </div>
 
-        <ol className="mt-8 grid gap-3 text-sm sm:grid-cols-3" aria-label="Les étapes">
-          {[
-            ["1", "Choisissez", "ce que le QR code doit faire"],
-            ["2", "Remplissez", "deux ou trois informations"],
-            ["3", "Payez et téléchargez", "votre QR code est prêt"],
-          ].map(([n, t, d]) => (
-            <li key={n} className="flex items-start gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-line">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{n}</span>
-              <span>
-                <span className="block font-semibold text-ink">{t}</span>
-                <span className="block text-xs text-sage">{d}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 text-xs text-sage">
-          Contenu mis en ligne (page, image, vidéo, PDF) : un compte est demandé au moment de payer.{" "}
-          <Link href="/connexion?next=%2Fcompte" className="font-semibold text-forest underline-offset-4 hover:underline">
-            J’ai déjà un compte
-          </Link>
-          {" · "}
-          <Link href="/manuel" className="font-semibold text-forest underline-offset-4 hover:underline">
-            Manuel d’utilisation
-          </Link>
-        </p>
-
-        <Link
-          href="/creer/qr"
-          className="group mt-10 flex items-center justify-between gap-4 rounded-2xl border border-forest/30 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(227,5,29,0.08)] transition hover:-translate-y-0.5 hover:border-forest hover:shadow-[0_16px_40px_rgba(227,5,29,0.14)] active:scale-[0.99] sm:px-7 sm:py-6"
-        >
-          <span>
-            <span className="block text-base font-semibold text-ink sm:text-lg">
-              Juste un lien, un Wi-Fi, une carte de visite ou un numéro ?
-            </span>
-            <span className="mt-1 block text-sm leading-6 text-sage">
-              Un lien est gratuit. Wi-Fi, vCard, appel ou SMS : le tarif s’affiche à la fin.
-            </span>
-          </span>
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest text-white transition-transform group-hover:translate-x-0.5">
-            <ArrowRight className="h-5 w-5" />
-          </span>
-        </Link>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {SERVICES.map((offer) => {
             const Icon = icons[offer.id];
             const active = service === offer.id;
@@ -252,65 +209,23 @@ export default function CreateFlow({ initialService }: { initialService: Service
               </button>
             );
           })}
+          <Link
+            href="/creer/qr"
+            className="group surface flex flex-col gap-3 rounded-lg border p-5 text-left text-ink transition-all duration-300 hover:-translate-y-0.5 hover:border-ambre/60"
+          >
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/70 bg-leaf text-ambre-deep">
+              <QrCode className="h-4 w-4" />
+            </span>
+            <span className="text-sm font-semibold">Autres QR codes</span>
+            <span className="text-xs leading-5 text-sage">Lien gratuit, Wi-Fi, carte de visite, appel, SMS…</span>
+          </Link>
         </div>
 
-
-        {service === "page" && selectedOffer && (
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="surface p-6 sm:p-8">
-              <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">
-                Service {selectedOffer.index}
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink/90">
-                {selectedOffer.name}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-sage">{selectedOffer.description}</p>
-
-              <ol className="mt-7 space-y-5 border-t border-line pt-6">
-                {pagePath.map((step, index) => (
-                  <li key={step} className="flex gap-4">
-                    <span className="text-lg font-semibold leading-none text-forest">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <p className="text-sm leading-6 text-ink">{step}</p>
-                  </li>
-                ))}
-              </ol>
-
-              <button
-                type="button"
-                onClick={() => router.push("/creer/page/informations")}
-                className="btn btn-primary mt-8 w-full sm:w-auto"
-              >
-                Commencer ma page
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="order-first lg:order-none">
-              <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">Exemple de page</p>
-              <PhonePreview width={250} height={440}>
-                <ExamplePage layout="maquis" />
-              </PhonePreview>
-              <ul className="mt-6 space-y-2">
-                {selectedOffer.features.map((feature) => (
-                  <li key={feature} className="flex gap-3 text-sm leading-6 text-sage">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
 
         {(service === "media" || service === "document") && selectedOffer && (
           <form onSubmit={handleSubmit} className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="surface p-6 sm:p-8">
-              <p className="text-[11.5px] font-semibold uppercase tracking-[0.16em] text-sage">
-                Service {selectedOffer.index}
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink/90">
+              <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink/90">
                 {selectedOffer.name}
               </h2>
 
