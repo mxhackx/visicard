@@ -43,8 +43,13 @@ export default function MediaCardView({ card }: { card: MediaCardData }) {
 
       <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-6">
-
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">{title}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="min-w-0 text-2xl font-semibold tracking-[-0.02em] text-ink/90 sm:text-3xl">{title}</h1>
+            <Link href="/creer" className="btn btn-primary btn-sm shrink-0">
+              Créer le mien
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
           {card.fileName && (
             <p className="mt-2 truncate text-xs text-sage">{card.fileName}</p>
           )}
@@ -146,21 +151,6 @@ export default function MediaCardView({ card }: { card: MediaCardData }) {
         )}
       </main>
 
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-8 text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            Un QR code <span className="font-semibold text-ink">Moncode</span> — contenu hébergé et
-            maintenu pour vous.
-          </p>
-          <Link
-            href="/creer"
-            className="inline-flex items-center gap-1.5 font-semibold text-ink underline-offset-4 hover:underline"
-          >
-            Créer le mien
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }

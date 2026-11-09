@@ -345,7 +345,7 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable.');
     if (order.status === 'cancelled') throw new ConflictException('Commande annulée.');
-    if (order.status === 'paid') return order;
+    if (order.status === 'paid') return this.adminSummary(order);
     const payment = await this.prisma.payment.create({
       data: {
         orderId,
@@ -356,14 +356,30 @@ export class OrdersService {
         status: 'succeeded',
       },
     });
-    return this.markPaid(orderId, payment.id);
+    return this.adminSummary(await this.markPaid(orderId, payment.id));
+  }
+
+  /**
+   * Réponse des actions d'administration : sans les champs internes, et surtout sans `BigInt`
+   * (`cardId`), que JSON ne sait pas écrire — l'action réussissait en base mais l'API répondait 500.
+   */
+  private adminSummary(order: Order) {
+    return {
+      id: order.id,
+      reference: order.reference,
+      status: order.status,
+      amount: order.amount,
+      invoiceNumber: order.invoiceNumber,
+      paidAt: order.paidAt,
+      cardId: order.cardId.toString(),
+    };
   }
 
   async cancel(orderId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable.');
     if (order.status === 'paid') throw new ConflictException('Une commande payée ne peut pas être annulée.');
-    return this.prisma.order.update({ where: { id: orderId }, data: { status: 'cancelled' } });
+    return this.adminSummary(await this.prisma.order.update({ where: { id: orderId }, data: { status: 'cancelled' } }));
   }
 
   /* ------------------------------------------------------------------ */
