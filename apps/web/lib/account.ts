@@ -8,7 +8,7 @@ import type { OrderStatus } from "./orders";
 export interface SessionResult {
   access_token: string;
   refresh_token: string;
-  user: { id: string; email?: string; role: "admin" | "user" };
+  user: { id: string; email?: string; name?: string | null; picture?: string | null; role: "admin" | "user" };
 }
 
 export interface AccountOrder {

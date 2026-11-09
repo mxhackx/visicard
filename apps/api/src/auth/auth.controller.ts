@@ -146,9 +146,10 @@ export class AuthController {
       throw new UnauthorizedException('Session expirée ou invalide');
     }
 
+    const extra = user.provider === 'local' ? await this.authService.profileOf(user.id) : {};
     return {
       authenticated: true,
-      user,
+      user: { ...user, ...extra },
     };
   }
 

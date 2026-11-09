@@ -46,7 +46,7 @@ export default function AuthForm({
         mode === "register"
           ? await registerAccount(name.trim(), email.trim(), password)
           : await loginAccount(email.trim(), password);
-      loginSession(session.access_token, session.user.role, { id: session.user.id, email: session.user.email }, session.refresh_token);
+      loginSession(session.access_token, session.user.role, { id: session.user.id, email: session.user.email, name: session.user.name, picture: session.user.picture }, session.refresh_token);
       onDone?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");

@@ -56,7 +56,15 @@ export default function AccountOrders() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-[-0.02em] text-ink">Mon espace</h1>
-          {authUser?.email && <p className="mt-1 text-sm text-sage">{authUser.email}</p>}
+          {authUser?.email && (
+            <p className="mt-1 flex items-center gap-2 text-sm text-sage">
+              {authUser.picture && /^https:\/\//.test(authUser.picture) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={authUser.picture} alt="" width={24} height={24} referrerPolicy="no-referrer" className="h-6 w-6 rounded-full object-cover" />
+              )}
+              {authUser.name ? `${authUser.name} · ` : ""}{authUser.email}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={logout} className="btn btn-outline btn-sm">

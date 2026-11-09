@@ -9,6 +9,9 @@ export type AuthRole = "admin" | "user" | null;
 export interface AuthUser {
   id?: string;
   email?: string;
+  name?: string | null;
+  /** Photo de profil (connexion Google). */
+  picture?: string | null;
 }
 
 export interface UserInfo {
@@ -177,7 +180,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         const storedEmail = sessionStorage.getItem("moncode_user_email");
-        return storedEmail ? { email: storedEmail } : null;
+        const picture = sessionStorage.getItem("moncode_user_picture");
+        const name = sessionStorage.getItem("moncode_user_name");
+        return storedEmail ? { email: storedEmail, picture: picture || null, name: name || null } : null;
       } catch {
         return null;
       }
@@ -223,6 +228,12 @@ export function FileProvider({ children }: { children: ReactNode }) {
       if (user?.email) {
         sessionStorage.setItem("moncode_user_email", user.email);
       }
+      if (user) {
+        if (user.picture) sessionStorage.setItem("moncode_user_picture", user.picture);
+        else sessionStorage.removeItem("moncode_user_picture");
+        if (user.name) sessionStorage.setItem("moncode_user_name", user.name);
+        else sessionStorage.removeItem("moncode_user_name");
+      }
       if (newRefreshToken) {
         sessionStorage.setItem("moncode_refresh_token", newRefreshToken);
       }
@@ -244,6 +255,8 @@ export function FileProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("moncode_role");
       sessionStorage.removeItem("moncode_admin_token");
       sessionStorage.removeItem("moncode_user_email");
+      sessionStorage.removeItem("moncode_user_picture");
+      sessionStorage.removeItem("moncode_user_name");
       sessionStorage.removeItem("genqr_admin_token");
       sessionStorage.removeItem("visitcard_admin_token");
     } catch {

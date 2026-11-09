@@ -46,10 +46,11 @@ export default function Header() {
     };
   }, []);
   const hidden = scrolled && !peek && !isOpen;
-  const { authToken, authRole } = useFile();
+  const { authToken, authRole, authUser } = useFile();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const signedIn = mounted && Boolean(authToken);
+  const picture = signedIn && /^https:\/\//.test(authUser?.picture ?? "") ? authUser!.picture! : null;
   const account = signedIn && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
 
   return (
@@ -80,11 +81,17 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-5">
-          {account && (
-            <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
-              {account.label}
-            </Link>
-          )}
+          {account &&
+            (picture ? (
+              <Link href={account.href} aria-label={account.label} title={account.label} className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-white transition hover:ring-forest">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={picture} alt="" width={36} height={36} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+              </Link>
+            ) : (
+              <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
+                {account.label}
+              </Link>
+            ))}
           {!signedIn && (
             <Link href="/connexion" className="btn btn-outline btn-sm">
               Se connecter
@@ -121,7 +128,11 @@ export default function Header() {
               </Link>
             ))}
             {account && (
-              <Link href={account.href} onClick={() => setIsOpen(false)} className="block border-b border-line py-3 text-base font-medium text-ink/80 hover:text-forest">
+              <Link href={account.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 border-b border-line py-3 text-base font-medium text-ink/80 hover:text-forest">
+                {picture && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={picture} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover" />
+                )}
                 {account.label}
               </Link>
             )}

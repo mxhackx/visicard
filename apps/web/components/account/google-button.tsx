@@ -36,7 +36,7 @@ export default function GoogleButton({ onDone, onError }: { onDone?: () => void;
         callback: async ({ credential }) => {
           try {
             const s = await loginWithGoogle(credential);
-            cb.current.loginSession(s.access_token, s.user.role, { id: s.user.id, email: s.user.email }, s.refresh_token);
+            cb.current.loginSession(s.access_token, s.user.role, { id: s.user.id, email: s.user.email, name: s.user.name, picture: s.user.picture }, s.refresh_token);
             cb.current.onDone?.();
           } catch (err) {
             cb.current.onError?.(err instanceof Error ? err.message : "Connexion Google impossible.");

@@ -14,6 +14,8 @@ export interface GoogleClaims {
 export interface GoogleProfile {
   email: string;
   name: string | null;
+  /** Photo de profil, seulement si c'est une adresse https. */
+  picture: string | null;
 }
 
 /** Vérifie les revendications d'un jeton Google : destinataire, émetteur, expiration, e-mail vérifié. */
@@ -28,7 +30,8 @@ export function checkGoogleClaims(claims: GoogleClaims, clientId: string, now = 
   }
   const email = (claims.email ?? '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new UnauthorizedException('Adresse e-mail Google invalide.');
-  return { email, name: claims.name?.trim().slice(0, 120) || null };
+  const picture = typeof claims.picture === 'string' && /^https:\/\//.test(claims.picture) && claims.picture.length <= 500 ? claims.picture : null;
+  return { email, name: claims.name?.trim().slice(0, 120) || null, picture };
 }
 
 /** Fait confirmer le jeton par Google (signature comprise) puis contrôle son contenu. */

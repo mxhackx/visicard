@@ -10,6 +10,9 @@ export interface AuthSessionUser {
   id: string;
   email?: string;
   role: 'admin' | 'user';
+  name?: string | null;
+  /** Photo de profil (comptes Google). */
+  picture?: string | null;
   /**
    * Émetteur de la session : `supabase` pour le chemin d'origine, `local` pour
    * un compte de la table `admin_users`. Absent sur les sessions plus anciennes.
@@ -87,11 +90,15 @@ export class AuthService {
     id: string;
     email: string;
     role: string;
+    name?: string | null;
+    pictureUrl?: string | null;
   }): AuthSessionUser {
     return {
       id: account.id,
       email: account.email,
       role: account.role === 'admin' ? 'admin' : 'user',
+      name: account.name ?? null,
+      picture: account.pictureUrl ?? null,
       provider: 'local',
     };
   }
@@ -100,6 +107,8 @@ export class AuthService {
     id: string;
     email: string;
     role: string;
+    name?: string | null;
+    pictureUrl?: string | null;
   }) {
     const user = this.localSessionUser(account);
     const target = { id: user.id, email: user.email ?? '', role: user.role };
@@ -224,11 +233,18 @@ export class AuthService {
     const profile = await verifyGoogleCredential(credential, clientId);
 
     let account = await this.findLocalAccount(profile.email);
-    if (!account) {
+    if (account) {
+      // Nom et photo suivent le profil Google ; le nom saisi à l'inscription n'est jamais écrasé.
+      account = await this.prisma.adminUser.update({
+        where: { id: account.id },
+        data: { pictureUrl: profile.picture, ...(account.name ? {} : { name: profile.name }) },
+      });
+    } else {
       account = await this.prisma.adminUser.create({
         data: {
           email: profile.email,
           name: profile.name,
+          pictureUrl: profile.picture,
           passwordHash: await hashPassword(randomBytes(32).toString('hex')),
           role: 'user',
         },
@@ -237,6 +253,16 @@ export class AuthService {
     }
     const session = this.issueLocalSession(account);
     return { ...session, redirect: account.role === 'admin' ? '/admin' : '/compte' };
+  }
+
+  /** Nom et photo d'un compte local (pour /auth/me : le jeton n'en contient pas). */
+  async profileOf(userId: string): Promise<{ name: string | null; picture: string | null }> {
+    try {
+      const a = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { name: true, pictureUrl: true } });
+      return { name: a?.name ?? null, picture: a?.pictureUrl ?? null };
+    } catch {
+      return { name: null, picture: null };
+    }
   }
 
   async loginAdmin(password: string): Promise<AuthResult> {

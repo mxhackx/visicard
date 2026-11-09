@@ -152,6 +152,8 @@ model AdminUser {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String?
+  /// Photo de profil (Google), mise à jour à chaque connexion Google.
+  pictureUrl   String?  @map("picture_url")
   role         String   @default("user")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
