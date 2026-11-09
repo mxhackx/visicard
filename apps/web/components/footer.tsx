@@ -19,12 +19,12 @@ export default function Footer() {
   return (
     <footer className="footer-surface relative overflow-hidden">
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-10 border-b border-white/10 py-14 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-10 border-b border-line py-14 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm" data-reveal>
             <Link href="/" aria-label="Moncode — accueil" className="inline-flex">
-              <Logo variant="light" />
+              <Logo variant="dark" />
             </Link>
-            <p className="mt-5 text-base leading-7 text-white/65">
+            <p className="mt-5 text-base leading-7 text-sage">
               Une page, une image, une vidéo ou un PDF derrière un QR code unique.
             </p>
           </div>
@@ -33,7 +33,7 @@ export default function Footer() {
             <ul className="grid grid-cols-2 gap-x-10 gap-y-3">
               {liens.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="text-[15px] text-white/70 transition-colors hover:text-white">
+                  <Link href={item.href} className="text-[15px] text-ink/70 transition-colors hover:text-forest">
                     {item.label}
                   </Link>
                 </li>
@@ -47,9 +47,9 @@ export default function Footer() {
                 href={whatsappUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-3 text-[15px] text-white/85 transition-colors hover:text-white"
+                className="inline-flex items-center gap-3 text-[15px] text-ink/85 transition-colors hover:text-forest"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-deep text-forest ring-1 ring-line">
                   <MessageCircle className="h-4 w-4" />
                 </span>
                 {CONTACT.whatsappDisplay}
@@ -58,9 +58,9 @@ export default function Footer() {
             <li>
               <a
                 href={`mailto:${CONTACT.email}`}
-                className="inline-flex items-center gap-3 text-[15px] text-white/85 transition-colors hover:text-white"
+                className="inline-flex items-center gap-3 text-[15px] text-ink/85 transition-colors hover:text-forest"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-deep text-forest ring-1 ring-line">
                   <Mail className="h-4 w-4" />
                 </span>
                 {CONTACT.email}
@@ -69,7 +69,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        <p className="py-6 text-sm text-white/50">
+        <p className="py-6 text-sm text-sage">
           © {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.
         </p>
       </div>

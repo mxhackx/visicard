@@ -49,7 +49,8 @@ export default function Header() {
   const { authToken, authRole } = useFile();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
-  const account = mounted && authToken && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
+  const signedIn = mounted && Boolean(authToken);
+  const account = signedIn && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
 
   return (
     <>
@@ -82,6 +83,11 @@ export default function Header() {
           {account && (
             <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
               {account.label}
+            </Link>
+          )}
+          {!signedIn && (
+            <Link href="/connexion" className="btn btn-outline btn-sm">
+              Se connecter
             </Link>
           )}
           <Link href="/creer" className="btn btn-primary btn-sm">
@@ -117,6 +123,11 @@ export default function Header() {
             {account && (
               <Link href={account.href} onClick={() => setIsOpen(false)} className="block border-b border-line py-3 text-base font-medium text-ink/80 hover:text-forest">
                 {account.label}
+              </Link>
+            )}
+            {!signedIn && (
+              <Link href="/connexion" onClick={() => setIsOpen(false)} className="btn btn-outline btn-sm mt-3 w-full">
+                Se connecter
               </Link>
             )}
             <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary btn-sm my-3 w-full">

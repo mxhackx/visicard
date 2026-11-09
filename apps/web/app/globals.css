@@ -342,10 +342,11 @@
     color: #fff;
   }
 
-  /* Pied de page : noir de marque, uni. */
+  /* Pied de page : blanc, filet gris en tête. */
   .footer-surface {
-    background-color: #17171a;
-    color: #fff;
+    background-color: #ffffff;
+    color: var(--color-ink);
+    border-top: 1px solid var(--color-line);
   }
 
 
