@@ -12,7 +12,7 @@ export default function Hero() {
   return (
     <section id="top" className="relative flex min-h-[100svh] items-center overflow-hidden pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(60%_55%_at_78%_28%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)] text-ink">
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-16">
-        <div data-reveal>
+        <div data-reveal className="hero-copy">
           <h1 className="max-w-xl text-[2.5rem] font-bold leading-[1.08] tracking-[-0.03em] text-ink sm:text-5xl lg:text-[3.6rem]">
             Créez votre QR code <span className="text-forest">en quelques minutes</span>
           </h1>
@@ -38,7 +38,8 @@ export default function Hero() {
           </p>
         </div>
 
-        <div data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
+        {/* Sur téléphone, le hero tient dans un seul écran : la maquette arrive à partir de la taille tablette. */}
+        <div className="hidden sm:block" data-reveal style={{ "--d": "120ms" } as React.CSSProperties}>
           <HeroDashboard />
         </div>
       </div>

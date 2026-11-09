@@ -46,6 +46,19 @@ export default function Header() {
     };
   }, []);
   const hidden = scrolled && !peek && !isOpen;
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsOpen(false);
+    window.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen]);
   const { authToken, authRole, authUser } = useFile();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
@@ -105,49 +118,83 @@ export default function Header() {
 
         <button
           type="button"
-          aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-label="Ouvrir le menu"
           aria-expanded={isOpen}
-          onClick={() => setIsOpen((v) => !v)}
+          aria-controls="menu-mobile"
+          onClick={() => setIsOpen(true)}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-forest hover:text-forest lg:hidden"
         >
-          {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          <Menu className="h-4 w-4" />
         </button>
       </div>
 
-      {isOpen && (
-        <div className="border-t border-line lg:hidden">
-          <nav aria-label="Sections du site" className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsOpen(false)}
-                className="block border-b border-line py-3 text-base font-medium text-ink/80 last:border-0 hover:text-forest"
-              >
-                {link.label}
-              </Link>
-            ))}
-            {account && (
-              <Link href={account.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 border-b border-line py-3 text-base font-medium text-ink/80 hover:text-forest">
-                {picture && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={picture} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover" />
-                )}
-                {account.label}
-              </Link>
-            )}
-            {!signedIn && (
-              <Link href="/connexion" onClick={() => setIsOpen(false)} className="btn btn-outline btn-sm mt-3 w-full">
-                Se connecter
-              </Link>
-            )}
-            <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary btn-sm my-3 w-full">
-              Créer un QR code
-            </Link>
-          </nav>
-        </div>
-      )}
     </header>
+
+    {/* Menu mobile : panneau qui glisse depuis la droite. Hors du <header>, dont la transformation
+        piégerait un élément « fixed ». */}
+    <div className={`fixed inset-0 z-[60] lg:hidden ${isOpen ? "" : "pointer-events-none"}`} aria-hidden={!isOpen}>
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Fermer le menu"
+        onClick={() => setIsOpen(false)}
+        className={`absolute inset-0 bg-ink/45 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}
+      />
+      <aside
+        id="menu-mobile"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        inert={!isOpen}
+        className={`absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col bg-white shadow-[-12px_0_40px_rgba(23,23,26,0.18)] transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
+          <span className="text-sm font-semibold text-ink/70">Menu</span>
+          <button
+            ref={closeRef}
+            type="button"
+            aria-label="Fermer le menu"
+            onClick={() => setIsOpen(false)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-forest hover:text-forest"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <nav aria-label="Sections du site" className="flex-1 overflow-y-auto px-5 py-3">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setIsOpen(false)}
+              className="block border-b border-line py-4 text-lg font-medium text-ink/85 hover:text-forest"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {account && (
+            <Link href={account.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 border-b border-line py-4 text-lg font-medium text-ink/85 hover:text-forest">
+              {picture && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={picture} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover" />
+              )}
+              {account.label}
+            </Link>
+          )}
+        </nav>
+
+        <div className="shrink-0 space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          {!signedIn && (
+            <Link href="/connexion" onClick={() => setIsOpen(false)} className="btn btn-outline w-full">
+              Se connecter
+            </Link>
+          )}
+          <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary w-full">
+            Créer un QR code
+          </Link>
+        </div>
+      </aside>
+    </div>
     </>
   );
 }
