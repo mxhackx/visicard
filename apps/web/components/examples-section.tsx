@@ -28,7 +28,6 @@ export default function ExamplesSection() {
   const [layout, setLayout] = useState<LayoutId>(TABS[0].layout);
   const [touchX, setTouchX] = useState<number | null>(null);
   const index = TABS.findIndex((t) => t.layout === layout);
-  const tab = TABS[index];
   const option = LAYOUT_OPTIONS.find((o) => o.id === layout)!;
   const example = EXAMPLES[layout]!;
   const go = (delta: number) => setLayout(TABS[(index + delta + TABS.length) % TABS.length].layout);
@@ -106,11 +105,6 @@ export default function ExamplesSection() {
                 <ExamplePage layout={layout} />
               </div>
             </PhonePreview>
-            <div className="mt-4 flex items-center justify-center gap-3 text-sm text-sage">
-              <button type="button" onClick={() => go(-1)} className="btn btn-outline btn-sm" aria-label="Métier précédent">←</button>
-              <span>{tab.label}</span>
-              <button type="button" onClick={() => go(1)} className="btn btn-outline btn-sm" aria-label="Métier suivant">→</button>
-            </div>
           </div>
         </div>
       </div>
