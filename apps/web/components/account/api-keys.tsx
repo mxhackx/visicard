@@ -84,7 +84,7 @@ export default function ApiKeys() {
           <p className="text-sm font-medium text-sage">Espace développeur</p>
           <h1 className="page-title mt-1">Clés d’API</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-sage">
-            Générez des QR codes depuis vos applications. Chaque clé a son quota mensuel ; elle n’est affichée qu’une fois à sa création.
+            Générez des QR codes depuis vos applications. La clé est gratuite et génère des liens sans frais ; les autres contenus (Wi-Fi, SMS, texte…) exigent Premium. Chaque clé a son quota mensuel et n’est affichée qu’une fois.
           </p>
         </div>
         <div className="flex gap-2">

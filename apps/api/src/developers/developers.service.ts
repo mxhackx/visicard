@@ -23,6 +23,13 @@ export class DevelopersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Les liens (`type=url`) sont gratuits ; tout autre contenu exige un compte Premium actif (ou un administrateur). */
+  async canGenerate(ctx: ApiKeyContext, type: string): Promise<boolean> {
+    if (type === 'url' || ctx.admin) return true;
+    const owner = await this.prisma.adminUser.findUnique({ where: { id: ctx.userId }, select: { premiumUntil: true } });
+    return Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
+  }
+
   async listKeys(userId: string, admin: boolean) {
     const keys = await this.prisma.apiKey.findMany({
       where: { userId },

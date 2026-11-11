@@ -20,6 +20,11 @@ function Inner() {
       suite = safeNext(sessionStorage.getItem(PREMIUM_SUITE_KEY), "/creer");
       sessionStorage.removeItem(PREMIUM_SUITE_KEY);
     } catch {}
+    // Ouvert depuis le créateur : l'autre onglet se débloque seul, celui-ci se referme.
+    if (window.opener && !window.opener.closed) {
+      window.close();
+      return;
+    }
     router.replace(suite);
   }, [back, ready, active, router]);
 

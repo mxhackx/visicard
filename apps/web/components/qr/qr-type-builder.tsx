@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, Crown, FileText, Lock, Smartphone, Video } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { AlertTriangle, FileText, Lock, Video } from "lucide-react";
 import { MediaFields, MediaOrder } from "./media-fields";
+import ContentPicker from "./content-picker";
+import Step from "./step-card";
 import { type PremiumOffer } from "./premium-modal";
 import PremiumModal from "./premium-modal";
 import { useDialogs } from "@/components/account/auth-dialog";
-import { usePremium } from "@/lib/premium";
+import { usePremium, useTrial } from "@/lib/premium";
 import StyledQr from "./styled-qr";
 import QrStyleCards from "./qr-style-cards";
 import TypeArt from "./type-art";
@@ -27,8 +28,6 @@ import {
 const DEVICES = ["phone", "tablet", "laptop"] as const;
 
 const DRAFT_KEY = "moncode_qr_draft";
-/** L'avertissement « option Premium » ne s'affiche qu'une fois par session. */
-const TRIAL_KEY = "moncode_premium_trial";
 
 /** Couleurs gratuites : le noir d'origine et le rouge Moncode. */
 const FREE_COLORS = [{ fg: DEFAULT_QR_STYLE.fg, bg: DEFAULT_QR_STYLE.bg }, { fg: "#c81d25", bg: "#ffffff" }];
@@ -86,35 +85,16 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const [logo, setLogo] = useState<string | null>(null);
   const [device, setDevice] = useState<Device>("phone");
   const [offer, setOffer] = useState<PremiumOffer | null>(null);
-  const router = useRouter();
   const premium = usePremium();
   const { openPremium } = useDialogs();
-  const [trial, setTrial] = useState(false);
+  const [trial, startTrial] = useTrial();
   const locked = !premium.active && !trial;
-  // « Essayer » débloque tout ; le paiement attend alors en bas de page, une fois le contenu prêt.
-  const needsPay = !premium.active && (!isUrl || trial || usesPremium(qrStyle, media ? null : logo));
+  // Un simple lien est gratuit : le paiement n'attend en bas que si le QR utilise une option Premium (style, couleurs, logo) ou un autre contenu.
+  const needsPay = !premium.active && (!isUrl || usesPremium(qrStyle, logo));
   const suite = isUrl ? "/creer" : `/creer?type=${type}`;
 
   // Une option Premium : on prévient, puis on débloque pour essayer. Le paiement vient à la fin.
-  const startTrial = () => {
-    setTrial(true);
-    try {
-      sessionStorage.setItem(TRIAL_KEY, "1");
-    } catch {}
-  };
   const askTry = (label: string) => setOffer({ label, href: "/creer", price: PRICE_QR, onTry: startTrial });
-  const openOffer = (o: PremiumOffer & { free?: boolean }) =>
-    premium.active || o.free || trial
-      ? router.push(o.href, { scroll: false })
-      : setOffer({ ...o, onTry: () => (startTrial(), router.push(o.href, { scroll: false })) });
-
-  // Déjà prévenu pendant cette session : plus d'avertissement, tout reste débloqué.
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem(TRIAL_KEY)) queueMicrotask(() => setTrial(true));
-    } catch {}
-  }, []);
-
   // Retour du paiement : on retrouve le contenu, le style et le logo laissés avant la connexion.
   useEffect(() => {
     try {
@@ -126,9 +106,10 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
         if (d.all) setAll(d.all);
         if (d.qrStyle) setQrStyle(d.qrStyle);
         if (d.logo) setLogo(d.logo);
-        setTrial(true);
+        startTrial();
       });
     } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const goToPayment = async () => {
@@ -166,7 +147,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
         <div className="min-w-0 space-y-6">
           <Step n={1} title="Contenu">
-            <OtherContents current={type} onPick={openOffer} premium={!locked} />
+            <ContentPicker current={type} trial={trial} onTrial={startTrial} />
             <div className="mt-6">
               {media ? (
                 <MediaFields kind={type as "media" | "document"} title={mediaTitle} onTitle={setMediaTitle} file={mediaFile} onFile={setMediaFile} />
@@ -182,7 +163,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           </Step>
 
           <Step n={2} title="Style" aside={media ? undefined : <LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
-            <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} />
+            <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} badges={!premium.active} />
           </Step>
 
           {needsPay && (
@@ -228,7 +209,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             </div>
             <div className="mt-5">
               <DevicePreview device={device}>
-                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={media ? null : logo} locked={media} media={media} />
+                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={media ? null : logo} locked={media || needsPay} media={media} />
               </DevicePreview>
             </div>
             {payload ? (
@@ -263,82 +244,6 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
 
 const PRICE_QR = "5 000";
 
-interface Tile {
-  id: string;
-  label: string;
-  href: string;
-  free?: boolean;
-  art?: DirectQrType;
-  icon?: typeof Video;
-}
-
-const TILES: Tile[] = [
-  { id: "url", label: "Lien web", href: "/creer", free: true, art: "url" },
-  ...DIRECT_QR_TYPES.filter((t) => t.id !== "url").map((t) => ({ id: t.id, label: t.label, href: `/creer?type=${t.id}`, art: t.id })),
-  { id: "media", label: "Image ou vidéo", href: "/creer?type=media", icon: Video },
-  { id: "document", label: "Document PDF", href: "/creer?type=document", icon: FileText },
-  { id: "page", label: "Page digitale", href: "/creer?type=page", icon: Smartphone },
-];
-
-/** Tous les contenus possibles, en un seul choix : le lien web est gratuit, les autres sont Premium (couronne). */
-function OtherContents({ current, onPick, premium }: { current: string; onPick: (o: PremiumOffer & { free?: boolean }) => void; premium: boolean }) {
-  return (
-    <div>
-      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-sage">Que mettre dans le QR code ?</p>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {TILES.map((t) => {
-          const on = t.id === current;
-          const dim = !t.free && !premium && !on;
-          return (
-            <li key={t.id}>
-              <button
-                type="button"
-                aria-pressed={on}
-                onClick={() => (on ? undefined : onPick({ label: t.label, href: t.href, price: PRICE_QR, free: t.free }))}
-                className={`group relative flex w-full flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center transition active:scale-[0.97] ${
-                  on ? "border-forest ring-2 ring-forest/30" : "border-line hover:-translate-y-0.5 hover:border-ink/30"
-                }`}
-              >
-                <span className={dim ? "opacity-60 blur-[1.5px] transition group-hover:blur-[0.5px]" : ""}>
-                  {t.art ? (
-                    <TypeArt type={t.art} className="h-10 w-10" />
-                  ) : t.icon ? (
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf text-ambre-deep"><t.icon className="h-5 w-5" /></span>
-                  ) : null}
-                </span>
-                <span className="text-xs font-medium leading-4 text-ink/80">{t.label}</span>
-                {!t.free && (
-                  <Crown className="premium-gold absolute right-1.5 top-1.5 h-4 w-4 rounded-full p-0.5" aria-hidden="true" />
-                )}
-                {on && (
-                  <span className={`absolute top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-forest text-white ${t.free ? "right-1.5" : "left-1.5"}`}>
-                    <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function Step({ n, title, aside, children }: { n: number; title: string; aside?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="surface p-5 sm:p-7">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-3 text-base font-semibold text-ink/90">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{n}</span>
-          {title}
-        </h2>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 /** Contenu de l'écran simulé, rendu à la vraie largeur de l'appareil (puis réduit). */
 function QrScreen({
   device,
@@ -368,7 +273,7 @@ function QrScreen({
     <div className="relative rounded-[28px] bg-white p-6 shadow-[0_24px_60px_rgba(23,23,26,0.14)] ring-1 ring-black/5">
       {/* Payant : aperçu flouté tant que la commande n'est pas payée (le QR net est livré après paiement). */}
       <div className={locked || !ready ? "blur-[9px]" : undefined} aria-hidden={locked || !ready || undefined}>
-        <StyledQr data={ready ? payload : "https://moncode.app"} style={style} logoUrl={logo} size={size} />
+        <StyledQr data={ready && !locked ? payload : "https://moncode.app"} style={style} logoUrl={logo} size={size} />
       </div>
       {(locked || !ready) && (
         <span className="absolute inset-0 flex items-center justify-center">

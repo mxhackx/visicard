@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -95,7 +95,8 @@ export default function InformationsStep({ mode }: { mode: BuilderMode }) {
   );
 }
 
-function InformationsBody({ mode }: { mode: BuilderMode }) {
+/** Les champs de la page (secteur, essentiel, photos, horaires…). `embedded` : seulement les cartes, pour le créateur unifié. */
+export function InformationsBody({ mode, embedded = false, registerValidate }: { mode: BuilderMode; embedded?: boolean; registerValidate?: (validate: () => boolean) => void }) {
   const router = useRouter();
   const flow = BUILDER_FLOWS[mode];
   const {
@@ -208,8 +209,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
   const openDays = DAYS.filter((d) => restaurantInfo.schedule[d.id]?.isOpen).length;
   const socialsCount = SOCIALS.filter((s) => restaurantInfo[s.field].trim()).length;
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const validate = (): boolean => {
     const found: Errors = {};
     const name = restaurantInfo.restaurantName.trim();
     if (!name) found.name = "Indiquez le nom de l’établissement.";
@@ -226,15 +226,22 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
     if (!hasPhotos) found.photos = "Ajoutez au moins le logo ou une photo du menu.";
     setErrors(found);
     if (["address", "location", ...SOCIALS.map((x) => x.field)].some((k) => found[k as ErrorKey])) setMoreOpen(true);
-    if (Object.keys(found).length === 0) {
-      router.push(flow.informations.next);
-      return;
-    }
+    if (Object.keys(found).length === 0) return true;
     // Amène le premier champ en erreur à l'écran.
     const order: ErrorKey[] = ["name", "address", "info", "phone", "location", "photos", ...SOCIALS.map((s) => s.field)];
     const first = order.find((k) => found[k]);
     document.getElementById(`field-${first}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return false;
   };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (validate()) router.push(flow.informations.next);
+  };
+
+  useEffect(() => {
+    registerValidate?.(validate);
+  });
 
   const checklist = [
     { label: "Nom de l’établissement", done: hasName },
@@ -243,20 +250,7 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
   ];
   const doneCount = checklist.filter((c) => c.done).length;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="page-title">
-            Informations de l’établissement
-          </h1>
-          <p className="mt-1 text-sm text-sage">
-            Ce que les clients verront en scannant le QR code. Seuls les champs marqués d’un point sont obligatoires.
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={submit} noValidate className="grid gap-6 lg:grid-cols-[1fr_340px]">
+  const sections = (
         <div className="min-w-0 space-y-6">
           {/* Secteur */}
           <section className="surface p-5 sm:p-7">
@@ -592,6 +586,24 @@ function InformationsBody({ mode }: { mode: BuilderMode }) {
             </div>
           )}
         </div>
+  );
+  if (embedded) return sections;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="page-title">
+            Informations de l’établissement
+          </h1>
+          <p className="mt-1 text-sm text-sage">
+            Ce que les clients verront en scannant le QR code. Seuls les champs marqués d’un point sont obligatoires.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={submit} noValidate className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        {sections}
 
         {/* Récapitulatif */}
         <aside className="lg:sticky lg:top-24 lg:self-start">

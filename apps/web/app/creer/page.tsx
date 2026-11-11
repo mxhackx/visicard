@@ -3,14 +3,12 @@ import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import QrTypeBuilder from "@/components/qr/qr-type-builder";
-import InformationsStep from "@/components/page-builder/informations-step";
-import ApparenceStep from "@/components/page-builder/apparence-step";
+import PageCreator from "@/components/page-builder/page-creator";
 import PremiumReturn from "@/components/premium-return";
-import PageCheckout from "@/components/order/page-checkout";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import { isDirectQrType } from "@/lib/qr-payloads";
 
-type Params = { type?: string | string[]; etape?: string | string[]; service?: string | string[] };
+type Params = { type?: string | string[]; service?: string | string[] };
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 const wantedOf = (p: Params) => first(p.type) ?? first(p.service);
@@ -32,20 +30,15 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
  *   /creer                         lien web (gratuit)
  *   /creer?type=wifi               Wi-Fi, carte de visite, téléphone, SMS, e-mail, texte, événement, GPS
  *   /creer?type=media | document   image ou vidéo | PDF
- *   /creer?type=page&etape=…       page digitale : informations → apparence → paiement
+ *   /creer?type=page               page digitale (informations, apparence, création sur la même page)
  */
 export default async function CreerPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const wanted = wantedOf(params);
-  const etape = first(params.etape);
 
   let body: React.ReactNode;
   if (wanted === "page") {
-    const inner = (children: React.ReactNode) => (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">{children}</div>
-    );
-    body =
-      etape === "paiement" ? <PageCheckout /> : etape === "apparence" ? inner(<ApparenceStep mode="client" />) : inner(<InformationsStep mode="client" />);
+    body = <PageCreator />;
   } else {
     const kind = wanted === "media" || wanted === "document" ? wanted : isDirectQrType(wanted) ? wanted : "url";
     body = <QrTypeBuilder type={kind} />;

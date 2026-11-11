@@ -164,7 +164,7 @@ export default function ConnexionForm({ next }: { next: string }) {
             </p>
 
             <GoogleButton
-              onDone={(role) => (role === "admin" ? router.replace("/admin") : setError("Accès réservé à l’administration : ce compte Google n’est pas administrateur."))}
+              onDone={({ role }) => (role === "admin" ? router.replace("/admin") : setError("Accès réservé à l’administration : ce compte Google n’est pas administrateur."))}
               onError={setError}
             />
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">

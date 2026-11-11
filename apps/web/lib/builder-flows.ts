@@ -19,12 +19,12 @@ export const BUILDER_FLOWS: Record<BuilderMode, BuilderFlow> = {
     informations: {
       back: "/creer",
       backLabel: "Choix du contenu",
-      next: "/creer?type=page&etape=apparence",
+      next: "/creer?type=page",
       step: "Étape 1 sur 3",
     },
     apparence: {
-      back: "/creer?type=page&etape=informations",
-      next: "/creer?type=page&etape=paiement",
+      back: "/creer?type=page",
+      next: "/creer?type=page",
       nextLabel: "Suivant : paiement",
       step: "Étape 2 sur 3",
     },

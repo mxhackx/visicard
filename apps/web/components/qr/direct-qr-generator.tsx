@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import AccountGate from "@/components/account/account-gate";
+import { usePremium } from "@/lib/premium";
 import QrDesigner from "./qr-designer";
 import AddressSearch from "@/components/address-search";
 import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
@@ -500,6 +501,7 @@ export function OrderPanel({
   logo: string | null;
 }) {
   const router = useRouter();
+  const premium = usePremium();
   const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
   const [error, setError] = useState<string | null>(null);
@@ -535,7 +537,7 @@ export function OrderPanel({
     <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-cream-deep p-5 sm:p-6" noValidate>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-base font-semibold text-ink/90">Créer ce QR code</h3>
-        <p className="text-sm font-semibold text-forest">Inclus dans Premium</p>
+        {!premium.admin && <p className="text-sm font-semibold text-forest">Inclus dans Premium</p>}
       </div>
       <p className="mt-1 text-sm text-sage">
         Remplissez ces quelques champs : le QR code est créé tout de suite, en PNG et SVG.

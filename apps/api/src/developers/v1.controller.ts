@@ -1,9 +1,10 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import * as QRCode from 'qrcode';
 import { ApiKeyGuard, type ApiRequest } from './api-key.guard';
 import { buildPayload } from './payloads';
+import { DevelopersService } from './developers.service';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -12,6 +13,8 @@ const HEX = /^#[0-9a-f]{6}$/i;
 @UseGuards(ApiKeyGuard)
 @SkipThrottle({ short: true, default: true })
 export class V1Controller {
+  constructor(private readonly developers: DevelopersService) {}
+
   /** Informations sur la clé utilisée et son quota du mois. */
   @Get('usage')
   usage(@Req() req: ApiRequest) {
@@ -27,18 +30,24 @@ export class V1Controller {
   }
 
   @Get('qr')
-  qrGet(@Query() query: Record<string, string>, @Res() res: Response) {
-    return this.render(query, res);
+  qrGet(@Query() query: Record<string, string>, @Req() req: ApiRequest, @Res() res: Response) {
+    return this.render(query, req, res);
   }
 
   @Post('qr')
   @HttpCode(200)
-  qrPost(@Body() body: Record<string, unknown>, @Res() res: Response) {
-    return this.render(body ?? {}, res);
+  qrPost(@Body() body: Record<string, unknown>, @Req() req: ApiRequest, @Res() res: Response) {
+    return this.render(body ?? {}, req, res);
   }
 
-  private async render(input: Record<string, unknown>, res: Response) {
-    const type = typeof input.type === 'string' && input.type ? input.type : 'text';
+  private async render(input: Record<string, unknown>, req: ApiRequest, res: Response) {
+    const type = typeof input.type === 'string' && input.type ? input.type : 'url';
+    if (!(await this.developers.canGenerate(req.apiKey!, type))) {
+      throw new HttpException(
+        { statusCode: 402, error: 'Payment Required', message: 'Les liens (type=url) sont gratuits ; les autres contenus (wifi, tel, sms, email, geo, text…) exigent un compte Premium.' },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
     const payload = buildPayload(type, input);
     const format = input.format === 'svg' ? 'svg' : 'png';
     const size = Math.min(2000, Math.max(100, Number(input.size) || 512));

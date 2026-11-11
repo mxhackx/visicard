@@ -343,3 +343,94 @@ function LayoutThumb({ id, palette: p }: { id: LayoutId; palette: Palette }) {
     </svg>
   );
 }
+
+/** Hook partagé : disposition et couleurs choisies. */
+function useAppearance() {
+  const { restaurantInfo, customization, setThemeId, setCardLayout } = useFile();
+  const layout = (LAYOUT_OPTIONS.some((l) => l.id === customization.cardLayout) ? customization.cardLayout : "classic") as LayoutId;
+  const layoutMeta = LAYOUT_OPTIONS.find((l) => l.id === layout)!;
+  const palette = paletteFor(customization.themeId, layout);
+  const paletteLabel = isCustomThemeId(customization.themeId) && !samePalette(palette, LAYOUT_DEFAULTS[layout]) ? "Couleurs personnalisées" : "Couleurs d’origine";
+  return { restaurantInfo, customization, setThemeId, setCardLayout, layout, layoutMeta, palette, paletteLabel };
+}
+
+/** Disposition et couleurs, sous forme de cartes : pour le créateur unifié (étape « Apparence »). */
+export function AppearanceSections() {
+  const { restaurantInfo, customization, setThemeId, setCardLayout, layout, palette } = useAppearance();
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle icon={PanelsTopLeft} title="Disposition" subtitle="La structure de la page après le scan." />
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Disposition">
+          {LAYOUT_OPTIONS.map((option) => {
+            const on = layout === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setCardLayout(option.id)}
+                className={`group relative flex flex-col rounded-2xl border p-2 text-left transition-all ${
+                  on ? "border-forest bg-leaf/50 ring-2 ring-ambre/30" : "border-line bg-white hover:border-ambre/60"
+                }`}
+              >
+                <LayoutThumb id={option.id} palette={on ? palette : LAYOUT_DEFAULTS[option.id]} />
+                <span className="mt-2 px-0.5 text-sm font-semibold text-ink/90">{option.name}</span>
+                <span className="px-0.5 text-xs leading-4 text-sage">{option.desc}</span>
+                {on && (
+                  <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-forest text-white shadow">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="border-t border-line pt-6">
+        <SectionTitle icon={PaletteIcon} title="Couleurs" subtitle="Partez d’une palette, puis ajustez chaque couleur." />
+        <PaletteEditor themeId={customization.themeId} layout={layout} logoUrl={restaurantInfo.logoPreview ?? undefined} onChange={setThemeId} />
+      </div>
+    </div>
+  );
+}
+
+/** Aperçu en direct de la page sur téléphone, iPad ou Mac (même cadre que les autres contenus). */
+export function PagePreview() {
+  const { restaurantInfo, customization, layout, layoutMeta, paletteLabel } = useAppearance();
+  const [device, setDevice] = useState<Device>("phone");
+  return (
+    <div className="surface p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-ink/80">
+          Aperçu · <span className="font-normal text-sage">{layoutMeta.name} · {paletteLabel}</span>
+        </p>
+        <DeviceSwitch value={device} onChange={setDevice} devices={["phone", "tablet", "laptop"]} />
+      </div>
+      <div className="mt-5">
+        <DevicePreview device={device}>
+          <RestaurantCardLayout
+            restaurantName={restaurantInfo.restaurantName}
+            address={restaurantInfo.address}
+            logoUrl={restaurantInfo.logoPreview ?? undefined}
+            locationUrl={restaurantInfo.locationUrl}
+            phoneNumber={restaurantInfo.phoneNumber}
+            facebookUrl={restaurantInfo.facebookUrl}
+            instagramUrl={restaurantInfo.instagramUrl}
+            xUrl={restaurantInfo.xUrl}
+            snapchatUrl={restaurantInfo.snapchatUrl}
+            additionalInfo={restaurantInfo.additionalInfo}
+            schedule={restaurantInfo.schedule}
+            menuImages={restaurantInfo.menuPreviews}
+            placeImages={restaurantInfo.placePreviews}
+            inPreview
+            layout={layout}
+            themeId={customization.themeId}
+          />
+        </DevicePreview>
+      </div>
+      <p className="mt-4 text-center text-xs text-sage">Les liens sont désactivés dans l’aperçu. La page publiée s’adapte à chaque écran.</p>
+    </div>
+  );
+}

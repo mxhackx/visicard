@@ -9,6 +9,8 @@ import { API_URL } from "./api-url";
 import { useFile } from "@/app/context/FileContext";
 
 export const PREMIUM_PRICE = "5 000";
+export const PREMIUM_EVENT = "moncode:premium";
+export const notifyPremiumChanged = () => window.dispatchEvent(new Event(PREMIUM_EVENT));
 
 export interface PremiumStatus {
   active: boolean;
@@ -55,6 +57,13 @@ export function usePremium() {
     }
   }, [authToken]);
 
+  // Un paiement confirmé ailleurs (autre onglet, fenêtre) : tous les écrans se relisent.
+  useEffect(() => {
+    const on = () => void refresh();
+    window.addEventListener(PREMIUM_EVENT, on);
+    return () => window.removeEventListener(PREMIUM_EVENT, on);
+  }, [refresh]);
+
   useEffect(() => {
     if (!authToken) return;
     let alive = true;
@@ -69,6 +78,7 @@ export function usePremium() {
   const signedIn = Boolean(authToken && authRole);
   return {
     signedIn,
+    admin: authRole === "admin",
     /** Réponse reçue (ou pas de session). */
     ready: !signedIn || status !== null || failed,
     active: authRole === "admin" || Boolean(status?.active),
@@ -79,3 +89,22 @@ export function usePremium() {
 
 /** Page où revenir après le paiement FedaPay (gardée le temps de la redirection). */
 export const PREMIUM_SUITE_KEY = "moncode_premium_suite";
+
+const TRIAL_KEY = "moncode_premium_trial";
+
+/** « J'essaie Premium » : l'avertissement ne s'affiche qu'une fois par session, tout reste ensuite débloqué. */
+export function useTrial(): [boolean, () => void] {
+  const [trial, setTrial] = useState(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(TRIAL_KEY)) queueMicrotask(() => setTrial(true));
+    } catch {}
+  }, []);
+  const start = useCallback(() => {
+    setTrial(true);
+    try {
+      sessionStorage.setItem(TRIAL_KEY, "1");
+    } catch {}
+  }, []);
+  return [trial, start];
+}

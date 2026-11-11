@@ -15,7 +15,8 @@ interface Dialogs {
   /** Ouvre la fenêtre de création de compte / connexion (aucune page à part). */
   openAuth: (options?: AuthOptions) => void;
   /** Ouvre la fenêtre Premium : compte d'abord si besoin, puis paiement FedaPay. */
-  openPremium: (offer: Pick<PremiumOffer, "label" | "suite">) => void;
+  /** `newTab` : le paiement s'ouvre dans un autre onglet, pour ne pas perdre la page en cours de saisie. */
+  openPremium: (offer: Pick<PremiumOffer, "label" | "suite"> & { newTab?: boolean }) => void;
 }
 
 const Ctx = createContext<Dialogs>({ openAuth: () => {}, openPremium: () => {} });
@@ -28,7 +29,11 @@ export function DialogsProvider({ children }: { children: ReactNode }) {
 
   const openAuth = useCallback((options?: AuthOptions) => setAuth(options ?? {}), []);
   const openPremium = useCallback(
-    (o: Pick<PremiumOffer, "label" | "suite">) => setOffer({ label: o.label, href: o.suite ?? "/creer", suite: o.suite, price: "5 000", direct: true }),
+    (o: Pick<PremiumOffer, "label" | "suite"> & { newTab?: boolean }) => {
+      // Ouvert tout de suite, pendant le clic (sinon le navigateur bloque la fenêtre) ; l'adresse de paiement s'y ajoute ensuite.
+      const popup = o.newTab ? window.open("", "_blank") : null;
+      setOffer({ label: o.label, href: o.suite ?? "/creer", suite: o.suite, price: "5 000", direct: true, popup });
+    },
     [],
   );
   const value = useMemo(() => ({ openAuth, openPremium }), [openAuth, openPremium]);

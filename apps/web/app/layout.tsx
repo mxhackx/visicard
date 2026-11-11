@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SITE, SITE_URL, organizationJsonLd } from "@/lib/site";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { FileProvider } from "./context/FileContext";
 import WhatsAppButton from "@/components/whatsapp-button";
@@ -70,7 +71,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
         {/* Déjà vue pendant cette session (ajouter ?intro à l'adresse pour la revoir) : l'animation d'accueil est masquée avant le premier affichage (pas de clignotement). */}
-        <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('moncode-intro')&&!/[?&]intro\\b/.test(location.search))document.documentElement.classList.add('intro-seen')}catch(e){}" }} />
+        <Script id="intro-seen" strategy="beforeInteractive">
+          {"try{if(sessionStorage.getItem('moncode-intro')&&!/[?&]intro\\b/.test(location.search))document.documentElement.classList.add('intro-seen')}catch(e){}"}
+        </Script>
       </head>
       <body className="flex min-h-full flex-col text-ink">
         <FileProvider>

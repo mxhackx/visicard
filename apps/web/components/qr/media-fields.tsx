@@ -151,7 +151,7 @@ export function MediaOrder({ kind, title, file, qrStyle }: { kind: MediaKind; ti
   return (
     <form onSubmit={submit} noValidate>
       <h3 className="text-sm font-semibold text-ink/90">Vos coordonnées</h3>
-      <p className="mt-1 text-xs text-sage">Elles figurent sur votre facture. Le QR code est inclus dans Premium.</p>
+      <p className="mt-1 text-xs text-sage">Elles figurent sur votre facture.</p>
       <div className="mt-4"><CustomerFields value={customer} onChange={setCustomer} errors={errors} /></div>
       {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700">{error}</p>}
       <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full max-w-sm justify-center py-3.5 text-base">

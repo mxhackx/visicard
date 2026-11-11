@@ -11,6 +11,7 @@ import {
   Body,
   Headers,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { Request, Response } from 'express';
@@ -149,7 +150,7 @@ export class AuthController {
     const extra = user.provider === 'local' ? await this.authService.profileOf(user.id) : {};
     return {
       authenticated: true,
-      user: { ...user, ...extra },
+      user: { ...user, ...extra, mainAdmin: this.authService.isMainAdmin(user) },
     };
   }
 
@@ -178,7 +179,30 @@ export class AuthController {
     if (!token || !(await this.authService.validateAdminToken(token))) {
       throw new UnauthorizedException('Accès réservé aux administrateurs.');
     }
+    // Seul l'administrateur principal crée d'autres administrateurs ; les autres admins créent des clients.
+    if (body?.role === 'admin') {
+      const session = await this.authService.validateToken(token);
+      if (!this.authService.isMainAdmin(session.user)) {
+        throw new ForbiddenException('Seul l’administrateur principal peut ajouter des administrateurs.');
+      }
+    }
     return this.authService.createAccountAsAdmin(body ?? {});
+  }
+
+  /** Modifie un compte (nom, e-mail, mot de passe, Premium) ; exige la confirmation de l'adresse actuelle. */
+  @Patch('accounts/:id')
+  async updateAccount(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Param('id') id: string,
+    @Body() body: { name?: string; email?: string; password?: string; premiumUntil?: string | null; confirmEmail?: string },
+  ) {
+    const token = this.sessionToken(req, authHeader);
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || session.user?.role !== 'admin') {
+      throw new UnauthorizedException('Accès réservé aux administrateurs.');
+    }
+    return this.authService.updateAccount(id, body ?? {}, session.user);
   }
 
   /** Supprime un compte (faux compte, doublon) avec garde-fous. */
@@ -205,8 +229,12 @@ export class AuthController {
     @Body() body: { role?: string },
   ) {
     const token = this.sessionToken(req, authHeader);
-    if (!token || !(await this.authService.validateAdminToken(token))) {
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || session.user?.role !== 'admin') {
       throw new UnauthorizedException('Accès réservé aux administrateurs.');
+    }
+    if (!this.authService.isMainAdmin(session.user)) {
+      throw new ForbiddenException('Seul l’administrateur principal peut nommer ou retirer des administrateurs.');
     }
 
     return this.authService.setAccountRole(id, body?.role ?? '');

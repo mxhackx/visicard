@@ -17,12 +17,12 @@ import {
   Receipt,
   ShieldAlert,
   CreditCard,
+  QrCode,
 } from "lucide-react";
 import FedapayBadge from "@/components/fedapay-badge";
 import DirectResult from "@/components/order/direct-result";
 import StyledQr from "@/components/qr/styled-qr";
 import { useOrderKey } from "@/lib/use-order-key";
-import Stepper from "@/components/order/stepper";
 import ContentPreview from "@/components/order/content-preview";
 import {
   STATUS_LABELS,
@@ -150,27 +150,25 @@ export default function OrderView({
   }
 
   const paid = order.status === "paid";
-  const step = paid ? 4 : 2;
 
   return (
     <Shell>
-      <div className="max-w-3xl">
-        <Stepper current={step} />
-      </div>
-
-      <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
+          <QrCode className="h-7 w-7" />
+        </span>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-sage">
             {order.kind === "modification" ? "Modification" : order.serviceLabel} · {order.reference}
           </p>
-          <h1 className="page-title mt-1">
+          <h1 className="page-title">
             {paid
               ? order.kind === "modification"
-                ? "Modification en ligne."
-                : "Votre QR code est actif."
+                ? "Modification en ligne"
+                : "Votre QR code est actif"
               : order.status === "cancelled"
-                ? "Commande annulée."
-                : "Il ne reste que le paiement."}
+                ? "Commande annulée"
+                : "Il ne reste que le paiement"}
           </h1>
         </div>
         <StatusBadge status={order.status} />
@@ -191,14 +189,15 @@ export default function OrderView({
         {!adminToken && <div className="mt-6 max-w-2xl"><PrivateLink reference={order.reference} orderKey={key} /></div>}
         </>
       ) : (
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <Preview order={order} />
-
-        <div className="space-y-6">
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
+        <div className="min-w-0 space-y-6">
           {order.card.status === "rejected" && <RejectedNotice order={order} />}
           {adminToken && <AdminOrderPanel order={order} adminToken={adminToken} onDone={() => load()} />}
           {paid ? (
-            <QrPanel order={order} admin={Boolean(adminToken)} />
+            <>
+              <QrPanel order={order} admin={Boolean(adminToken)} />
+              <Details order={order} />
+            </>
           ) : adminToken ? (
             <QuotePanel order={order} admin />
           ) : order.status !== "cancelled" && order.card.status !== "rejected" ? (
@@ -207,13 +206,45 @@ export default function OrderView({
               <PaymentPanel order={order} onRefresh={load} onPay={async () => { const { paymentUrl } = await startPayment(reference, key!); window.location.assign(paymentUrl); }} />
             </>
           ) : null}
+          {paid && order.kind === "creation" && !adminToken && order.serviceType !== "direct" && <ModifyCard order={order} />}
           {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
         </div>
+
+        <aside className="order-first min-w-0 lg:sticky lg:top-24 lg:order-none">
+          <Preview order={order} />
+        </aside>
       </div>
       )}
 
-      {paid && order.kind === "creation" && !adminToken && order.serviceType !== "direct" && (
-        <div className="surface mt-6 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+    </Shell>
+  );
+}
+
+function Details({ order }: { order: Order }) {
+  return (
+    <div className="surface p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-ink/90">Détails de la commande</h2>
+      <dl className="mt-4 divide-y divide-line text-sm">
+        {([
+          ["Référence", order.reference],
+          ["Contenu", order.serviceLabel],
+          ["Créée le", formatDate(order.createdAt)],
+          ["Montant", order.amount === 0 ? "Offert" : fcfa(order.amount)],
+          ...(order.invoiceNumber ? [["Facture", order.invoiceNumber]] : []),
+        ] as [string, string][]).map(([k, v]) => (
+          <div key={k} className="flex items-center justify-between gap-4 py-2.5">
+            <dt className="text-sage">{k}</dt>
+            <dd className="text-right font-medium text-ink/90">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function ModifyCard({ order }: { order: Order }) {
+  return (
+        <div className="surface flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-ink/90">Besoin de changer le contenu ?</h2>
             <p className="mt-1 text-sm text-sage">
@@ -234,8 +265,7 @@ export default function OrderView({
             Demander une modification
           </Link>
         </div>
-      )}
-    </Shell>
+      
   );
 }
 

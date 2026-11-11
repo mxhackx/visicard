@@ -25,7 +25,7 @@ const ADMIN_ROUTE: Record<ServiceType, string> = {
 };
 
 const CLIENT_START: Record<ServiceType, string> = {
-  page: "/creer?type=page&etape=informations",
+  page: "/creer?type=page",
   media: "/creer?type=media",
   document: "/creer?type=document",
 };
@@ -41,9 +41,9 @@ interface Step {
 const JOURNEYS: Record<ServiceType, Step[]> = {
   page: [
     { label: "Choix du service", route: "/creer?type=page", href: "/creer?type=page", who: "Client" },
-    { label: "Informations et photos", route: "/creer?type=page&etape=informations", href: "/creer?type=page&etape=informations", who: "Client" },
-    { label: "Apparence (thème)", route: "/creer?type=page&etape=apparence", href: "/creer?type=page&etape=apparence", who: "Client" },
-    { label: "Coordonnées et devis", route: "/creer?type=page&etape=paiement", href: "/creer?type=page&etape=paiement", who: "Client" },
+    { label: "Informations et photos", route: "/creer?type=page", href: "/creer?type=page&etape=informations", who: "Client" },
+    { label: "Apparence (thème)", route: "/creer?type=page", href: "/creer?type=page&etape=apparence", who: "Client" },
+    { label: "Coordonnées et devis", route: "/creer?type=page", href: "/creer?type=page&etape=paiement", who: "Client" },
     { label: "Aperçu et paiement sur WhatsApp", route: "/commande/[réf]", who: "Client" },
     { label: "Encaisser → QR actif, facture", route: "/admin?tab=orders", who: "Admin" },
     { label: "Modification = nouveau devis", route: "/commande/[réf]/modifier", who: "Client" },

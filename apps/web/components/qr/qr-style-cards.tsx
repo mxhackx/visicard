@@ -142,12 +142,15 @@ export default function QrStyleCards({
   onChange,
   lockPremium = false,
   onPremium,
+  badges = true,
 }: {
   value: string;
   onChange: (qrStyle: string) => void;
   /** Version gratuite : les styles premium ouvrent l'offre au lieu de s'appliquer. */
   lockPremium?: boolean;
   onPremium?: (label: string) => void;
+  /** Couronnes et étiquettes « Premium » : masquées pour l'administrateur et les comptes Premium. */
+  badges?: boolean;
 }) {
   const style = parseQrStyle(value);
   const set = (next: Partial<QrStyle>) => onChange(serializeQrStyle({ ...style, ...next }));
@@ -165,7 +168,7 @@ export default function QrStyleCards({
               <PaletteButton
                 key={`${p.fg}${p.bg}`}
                 p={p}
-                premium={premium}
+                premium={premium && badges}
                 locked={locked}
                 on={!locked && p.fg === style.fg && p.bg === style.bg}
                 onClick={() => (locked ? onPremium?.("Palette de couleurs") : set(p))}
@@ -183,7 +186,7 @@ export default function QrStyleCards({
             return (
               <Card
                 key={o.id}
-                premium={premium}
+                premium={premium && badges}
                 locked={locked}
                 on={!locked && style.dots === o.id}
                 label={o.label}
@@ -205,7 +208,7 @@ export default function QrStyleCards({
               return (
                 <Card
                   key={o.id}
-                  premium={premium}
+                  premium={premium && badges}
                   locked={locked}
                   on={!locked && style.corners === o.id}
                   label={o.label}
@@ -228,7 +231,7 @@ export default function QrStyleCards({
         </Group>
       </div>
 
-      <Group title="Couleurs personnalisées" premium>
+      <Group title="Couleurs personnalisées" premium={badges}>
         <div onClick={lockPremium ? () => onPremium?.("Couleurs personnalisées") : undefined} className={`relative grid gap-3 sm:grid-cols-2 ${lockPremium ? "cursor-pointer opacity-60 blur-[1.5px]" : ""}`} aria-hidden={lockPremium || undefined}>
           {([["fg", "Motif"], ["bg", "Fond"]] as const).map(([key, label]) => (
             <label key={key} className="flex items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5">

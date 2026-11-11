@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Crown, Loader2, X } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import AuthForm from "@/components/account/auth-form";
 import { useIsSignedIn } from "@/components/account/account-gate";
-import { PREMIUM_SUITE_KEY, startPremiumCheckout, usePremium } from "@/lib/premium";
+import { PREMIUM_SUITE_KEY, notifyPremiumChanged, startPremiumCheckout, usePremium } from "@/lib/premium";
 import FedapayBadge from "@/components/fedapay-badge";
 
 export interface PremiumOffer {
@@ -22,6 +22,8 @@ export interface PremiumOffer {
   direct?: boolean;
   /** Page où revenir après le paiement (par défaut `href`). */
   suite?: string;
+  /** Onglet déjà ouvert pour le paiement (la page en cours reste en place). */
+  popup?: Window | null;
 }
 
 const PERKS = [
@@ -42,9 +44,10 @@ function ModalBody({ offer, onClose }: { offer: PremiumOffer | null; onClose: ()
   const signedIn = useIsSignedIn();
   const premium = usePremium();
   const { authToken } = useFile();
-  const [step, setStep] = useState<"offer" | "account" | "pay">(offer?.direct ? (signedIn ? "pay" : "account") : "offer");
+  const [step, setStep] = useState<"offer" | "account" | "pay" | "wait">(offer?.direct ? (signedIn ? "pay" : "account") : "offer");
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
     if (!offer) return;
@@ -58,31 +61,62 @@ function ModalBody({ offer, onClose }: { offer: PremiumOffer | null; onClose: ()
     };
   }, [offer, onClose]);
 
-  if (!offer) return null;
-
-  const suiteTo = offer.suite ?? offer.href;
-  /** Compte (Google ou e-mail) d'abord, puis paiement FedaPay, le tout dans cette fenêtre. */
-  const start = () => {
-    if (premium.active) {
-      router.push(offer.href);
-      onClose();
-    } else setStep(signedIn ? "pay" : "account");
-  };
-  const pay = async () => {
-    if (!authToken) return;
+  const suiteTo = offer?.suite ?? offer?.href ?? "/creer";
+  /** Redirige vers la page de paiement FedaPay (le compte est déjà là). */
+  const pay = async (token: string | null | undefined) => {
+    if (!token) return;
+    setStep("pay");
     setBusy(true);
     setPayError(null);
     try {
       sessionStorage.setItem(PREMIUM_SUITE_KEY, suiteTo);
     } catch {}
     try {
-      const { paymentUrl } = await startPremiumCheckout(authToken);
+      const { paymentUrl } = await startPremiumCheckout(token);
+      const tab = offer?.popup;
+      if (tab && !tab.closed) {
+        // Paiement dans l'autre onglet : cette page reste ouverte et se débloque à la confirmation.
+        tab.location.assign(paymentUrl);
+        setBusy(false);
+        setStep("wait");
+        return;
+      }
       window.location.assign(paymentUrl);
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "Le paiement FedaPay est momentanément indisponible. Réessayez dans un instant.");
       setBusy(false);
     }
   };
+  /** Connexion d'abord (dans cette fenêtre), puis redirection directe vers le paiement. */
+  const start = () => {
+    if (!offer) return;
+    if (premium.active) {
+      router.push(offer.href);
+      onClose();
+    } else if (signedIn) void pay(authToken);
+    else setStep("account");
+  };
+  // Paiement ouvert dans un autre onglet : on attend la confirmation, puis la fenêtre se ferme toute seule.
+  useEffect(() => {
+    if (step !== "wait") return;
+    if (premium.active) {
+      notifyPremiumChanged();
+      onClose();
+      return;
+    }
+    const id = window.setInterval(() => void premium.refresh(), 3000);
+    return () => window.clearInterval(id);
+  }, [step, premium, onClose]);
+
+  // Ouverture directe, déjà connecté : on part tout de suite vers le paiement.
+  useEffect(() => {
+    if (!offer?.direct || started.current || !signedIn || !authToken || premium.active) return;
+    started.current = true;
+    void pay(authToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offer, signedIn, authToken, premium.active]);
+
+  if (!offer) return null;
 
   if (offer.onTry) {
     const tryIt = () => {
@@ -141,20 +175,32 @@ function ModalBody({ offer, onClose }: { offer: PremiumOffer | null; onClose: ()
               </button>
             )}
             <h3 className="text-lg font-semibold text-ink/90">Créez votre compte</h3>
-            <p className="mt-1 text-sm leading-6 text-sage">Avec Google ou votre e-mail. Ensuite, vous réglez {offer.price} FCFA par FedaPay.</p>
-            <AuthForm className="mt-4" onDone={() => setStep("pay")} />
+            <p className="mt-1 text-sm leading-6 text-sage">Avec Google ou votre e-mail. Vous êtes ensuite redirigé vers la page de paiement FedaPay ({offer.price} FCFA).</p>
+            <AuthForm className="mt-4" onDone={(info) => void pay(info.token)} />
+          </div>
+        ) : step === "wait" ? (
+          <div className="px-6 pb-6 pt-5 text-center">
+            <Loader2 className="mx-auto h-6 w-6 animate-spin text-forest" />
+            <h3 className="mt-3 text-lg font-semibold text-ink/90">Paiement en cours dans l’autre onglet</h3>
+            <p className="mt-1 text-sm leading-6 text-sage">Réglez {offer.price} FCFA sur FedaPay. Cette page se débloque toute seule dès la confirmation : votre contenu est conservé.</p>
+            <button type="button" onClick={onClose} className="mt-3 w-full py-2.5 text-sm font-medium text-sage transition hover:text-ink">Fermer</button>
           </div>
         ) : step === "pay" ? (
-          <div className="px-6 pb-6 pt-5">
-            <h3 className="text-lg font-semibold text-ink/90">Réglez {offer.price} FCFA par FedaPay</h3>
-            <p className="mt-1 text-sm leading-6 text-sage">Mobile Money ou carte. Tout est débloqué dès la confirmation du paiement.</p>
-            {payError && <p role="alert" className="mt-3 text-sm font-medium text-red-600">{payError}</p>}
-            <button type="button" onClick={pay} disabled={busy || !authToken} className="btn btn-primary mt-5 w-full justify-center py-3.5 text-base">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "Redirection vers FedaPay…" : `Payer ${offer.price} FCFA`}
-            </button>
-            <FedapayBadge className="mt-3 flex justify-center" />
-            <button type="button" onClick={onClose} className="mt-1 w-full py-2.5 text-sm font-medium text-sage transition hover:text-ink">Plus tard</button>
+          <div className="px-6 pb-6 pt-5 text-center">
+            {payError ? (
+              <>
+                <p role="alert" className="text-sm font-medium text-red-600">{payError}</p>
+                <button type="button" onClick={() => void pay(authToken)} className="btn btn-primary mt-5 w-full justify-center py-3.5 text-base">Réessayer</button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-forest" />
+                <h3 className="mt-3 text-lg font-semibold text-ink/90">Redirection vers la page de paiement…</h3>
+                <p className="mt-1 text-sm leading-6 text-sage">{offer.price} FCFA par Mobile Money ou carte, sur FedaPay.</p>
+              </>
+            )}
+            <FedapayBadge className="mt-4 flex justify-center" />
+            {!busy && <button type="button" onClick={onClose} className="mt-1 w-full py-2.5 text-sm font-medium text-sage transition hover:text-ink">Plus tard</button>}
           </div>
         ) : (
         <div className="px-6 pb-6 pt-5">
@@ -179,7 +225,7 @@ function ModalBody({ offer, onClose }: { offer: PremiumOffer | null; onClose: ()
           <button type="button" onClick={start} className="btn btn-primary mt-4 w-full justify-center py-3.5 text-base">
             Passer en Premium <ArrowRight className="h-4 w-4" />
           </button>
-          <p className="mt-3 text-center text-xs leading-5 text-sage">1. Créez un compte (Google ou e-mail) · 2. Payez par FedaPay</p>
+          <p className="mt-3 text-center text-xs leading-5 text-sage">Connexion (Google ou e-mail), puis page de paiement FedaPay</p>
           <FedapayBadge className="mt-2 flex justify-center" />
           <button type="button" onClick={onClose} className="mt-1 w-full py-2.5 text-sm font-medium text-sage transition hover:text-ink">
             Continuer avec la version gratuite

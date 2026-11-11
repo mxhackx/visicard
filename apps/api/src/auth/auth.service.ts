@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, BadRequestException, ServiceUnavailableException, ForbiddenException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '../database/prisma.service';
 import { hashPassword, verifyPassword } from './mot-de-passe';
@@ -326,6 +326,7 @@ export class AuthService {
         email: true,
         name: true,
         role: true,
+        premiumUntil: true,
         createdAt: true,
         updatedAt: true,
         _count: { select: { cards: true } },
@@ -365,6 +366,7 @@ export class AuthService {
         email: account.email,
         name: account.name,
         role: isAdmin ? 'admin' : 'user',
+        premiumUntil: account.premiumUntil,
         cardsCount: account._count.cards,
         ordersCount: stats.orders,
         paidOrdersCount: stats.paid,
@@ -376,6 +378,61 @@ export class AuthService {
         suspectReasons: stats.paid === 0 ? reasons : [],
       };
     });
+  }
+
+  /**
+   * Modification d'un compte par un administrateur : nom, e-mail, mot de passe, fin de Premium.
+   * Deuxième garde-fou côté serveur : `confirmEmail` doit être l'adresse actuelle du compte (retapée par l'admin).
+   * Le compte de l'administrateur principal, et ceux des autres administrateurs, ne sont modifiables que par l'administrateur principal.
+   */
+  async updateAccount(
+    accountId: string,
+    input: { name?: string; email?: string; password?: string; premiumUntil?: string | null; confirmEmail?: string },
+    acting: { id: string; email?: string; role?: string },
+  ) {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
+    if (!account) throw new BadRequestException('Compte introuvable.');
+    if ((input.confirmEmail ?? '').trim().toLowerCase() !== account.email.toLowerCase()) {
+      throw new BadRequestException('Confirmation incorrecte : retapez l’adresse e-mail actuelle du compte.');
+    }
+    const mainEmail = (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase();
+    const actingIsMain = this.isMainAdmin(acting);
+    if ((account.role === 'admin' || account.email.toLowerCase() === mainEmail) && !actingIsMain && account.id !== acting.id) {
+      throw new ForbiddenException('Seul l’administrateur principal peut modifier un compte administrateur.');
+    }
+
+    const data: { name?: string | null; email?: string; passwordHash?: string; premiumUntil?: Date | null } = {};
+    if (input.name !== undefined) data.name = input.name.trim().slice(0, 120) || null;
+    if (input.email !== undefined && input.email.trim().toLowerCase() !== account.email.toLowerCase()) {
+      const email = input.email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Adresse e-mail invalide.');
+      if (account.email.toLowerCase() === mainEmail) {
+        throw new BadRequestException('L’adresse de l’administrateur principal se change dans ADMIN_EMAIL.');
+      }
+      if (await this.findLocalAccount(email)) throw new BadRequestException('Un compte existe déjà avec cette adresse e-mail.');
+      data.email = email;
+    }
+    if (input.password) {
+      if (input.password.length < 8) throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
+      data.passwordHash = await hashPassword(input.password);
+    }
+    if (input.premiumUntil !== undefined) {
+      if (input.premiumUntil === null || input.premiumUntil === '') data.premiumUntil = null;
+      else {
+        const d = new Date(input.premiumUntil);
+        if (Number.isNaN(d.getTime())) throw new BadRequestException('Date de fin de Premium invalide.');
+        data.premiumUntil = d;
+      }
+    }
+    if (Object.keys(data).length === 0) throw new BadRequestException('Aucune modification à enregistrer.');
+
+    const updated = await this.prisma.adminUser.update({
+      where: { id: accountId },
+      data,
+      select: { id: true, email: true, name: true, role: true, premiumUntil: true, createdAt: true },
+    });
+    this.logger.warn(`Compte ${account.email} modifié par ${acting.email ?? acting.id} : ${Object.keys(data).filter((k) => k !== 'passwordHash').join(', ')}${data.passwordHash ? ', mot de passe' : ''}`);
+    return { ...updated, role: updated.role === 'admin' ? 'admin' : 'user' };
   }
 
   /** Création d'un compte par un administrateur (autre admin ou client). */
@@ -409,6 +466,9 @@ export class AuthService {
   async deleteAccount(accountId: string, actingUserId?: string) {
     const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
     if (!account) throw new BadRequestException('Compte introuvable.');
+    if (account.email.toLowerCase() === (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase()) {
+      throw new BadRequestException('L’administrateur principal ne peut pas être supprimé.');
+    }
     if (account.id === actingUserId) {
       throw new BadRequestException('Vous ne pouvez pas supprimer votre propre compte.');
     }
@@ -434,6 +494,9 @@ export class AuthService {
     const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
     if (!account) {
       throw new BadRequestException('Compte introuvable.');
+    }
+    if (account.email.toLowerCase() === (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase()) {
+      throw new BadRequestException('Le rôle de l’administrateur principal ne peut pas être modifié.');
     }
 
     if (account.role === 'admin' && role === 'user') {
@@ -549,6 +612,12 @@ export class AuthService {
   async validateAdminToken(token: string): Promise<boolean> {
     const { valid, user } = await this.validateToken(token);
     return valid && user?.role === 'admin';
+  }
+
+  /** L'administrateur principal : le compte de ADMIN_EMAIL. Lui seul nomme, retire ou crée des administrateurs. */
+  isMainAdmin(user?: { email?: string; role?: string } | null): boolean {
+    const main = (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase();
+    return user?.role === 'admin' && (user.email ?? '').toLowerCase() === main;
   }
 
   async validateUserToken(token: string): Promise<boolean> {

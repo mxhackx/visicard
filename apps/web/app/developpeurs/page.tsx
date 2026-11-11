@@ -16,8 +16,8 @@ export const metadata: Metadata = pageMetadata({
 const BASE = API_URL.startsWith("http://localhost") ? "https://api.moncode.app" : API_URL;
 
 const TYPES: [string, string][] = [
-  ["text", "data"],
-  ["url", "data (http:// ou https://)"],
+  ["url", "data (http:// ou https://) · gratuit"],
+  ["text", "data · Premium"],
   ["wifi", "ssid, password, security (WPA, WEP, nopass), hidden"],
   ["tel", "phone"],
   ["sms", "phone, message"],
@@ -71,6 +71,7 @@ export default function DeveloppeursPage() {
           ))}
         </div>
         <p className="mt-3 text-sm leading-6 text-sage">
+          La clé est gratuite et les liens (<code>type=url</code>) le sont aussi. Tous les autres contenus (Wi-Fi, téléphone, SMS, e-mail, texte, GPS…) exigent un compte <strong>Premium</strong> (5 000 FCFA) : sinon l’API répond <code>402</code>.
           Le quota se renouvelle le 1<sup>er</sup> de chaque mois (UTC). Au-delà, l’API répond <code>429</code> ; l’en-tête <code>Retry-After</code> indique quand réessayer.
           Besoin de plus ? <Link href="/contact" className="font-semibold text-forest hover:underline">Contactez-nous</Link>.
         </p>

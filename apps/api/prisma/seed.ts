@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../src/env';
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -22,7 +22,7 @@ const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
 
 if (!connectionString) {
   console.error(
-    'DATABASE_URL (ou DIRECT_URL) introuvable. Renseignez .env avant de lancer le seed.',
+    'DATABASE_URL (ou DIRECT_URL) introuvable. Renseignez .env.render avant de lancer le seed.',
   );
   process.exit(1);
 }

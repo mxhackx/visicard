@@ -6,7 +6,7 @@ import { GOOGLE_CLIENT_ID, loadGoogle, onGoogleCredential } from "@/lib/google-g
 import { useFile } from "@/app/context/FileContext";
 
 /** Bouton « Continuer avec Google ». Absent tant que NEXT_PUBLIC_GOOGLE_CLIENT_ID n'est pas défini. */
-export default function GoogleButton({ onDone, onError }: { onDone?: (role: "admin" | "user") => void; onError?: (message: string) => void }) {
+export default function GoogleButton({ onDone, onError }: { onDone?: (info: { token: string; role: "admin" | "user" }) => void; onError?: (message: string) => void }) {
   const { loginSession } = useFile();
   const box = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
@@ -22,7 +22,7 @@ export default function GoogleButton({ onDone, onError }: { onDone?: (role: "adm
       try {
         const s = await loginWithGoogle(credential);
         cb.current.loginSession(s.access_token, s.user.role, { id: s.user.id, email: s.user.email, name: s.user.name, picture: s.user.picture }, s.refresh_token);
-        cb.current.onDone?.(s.user.role);
+        cb.current.onDone?.({ token: s.access_token, role: s.user.role });
       } catch (err) {
         cb.current.onError?.(err instanceof Error ? err.message : "Connexion Google impossible.");
       }

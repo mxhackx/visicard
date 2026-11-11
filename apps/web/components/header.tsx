@@ -66,7 +66,9 @@ export default function Header() {
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const signedIn = mounted && Boolean(authToken);
   const picture = signedIn && /^https:\/\//.test(authUser?.picture ?? "") ? authUser!.picture! : null;
-  const account = signedIn && authRole !== "admin" ? { href: "/compte", label: "Mon compte" } : null;
+  const account = signedIn ? (authRole === "admin" ? { href: "/admin", label: "Administration" } : { href: "/compte", label: "Mon compte" }) : null;
+  // Sans photo Google : l'initiale du nom (ou de l'e-mail) sur un rond aux couleurs de Moncode.
+  const initial = ((authUser?.name || authUser?.email || "M").trim()[0] ?? "M").toUpperCase();
 
   return (
     <>
@@ -96,17 +98,16 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-5">
-          {account &&
-            (picture ? (
-              <Link href={account.href} aria-label={account.label} title={account.label} className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-white transition hover:ring-forest">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+          {account && (
+            <Link href={account.href} aria-label={account.label} title={account.label} className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-white transition hover:ring-forest">
+              {picture ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={picture} alt="" width={36} height={36} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-              </Link>
-            ) : (
-              <Link href={account.href} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/80 transition-colors hover:border-forest hover:text-forest">
-                {account.label}
-              </Link>
-            ))}
+              ) : (
+                <span className="flex h-full w-full items-center justify-center bg-forest text-sm font-semibold text-white">{initial}</span>
+              )}
+            </Link>
+          )}
           {!signedIn && (
             <button type="button" onClick={() => openAuth({ mode: "login" })} className="btn btn-outline btn-sm">
               Se connecter
@@ -176,9 +177,11 @@ export default function Header() {
           ))}
           {account && (
             <Link href={account.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 border-b border-line py-4 text-lg font-medium text-ink/85 hover:text-forest">
-              {picture && (
+              {picture ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={picture} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{initial}</span>
               )}
               {account.label}
             </Link>

@@ -19,7 +19,7 @@ export default function AuthForm({
   nested = false,
 }: {
   initialMode?: Mode;
-  onDone?: () => void;
+  onDone?: (info: { token: string; role: "admin" | "user" }) => void;
   className?: string;
   /** Rendu à l’intérieur d’un autre formulaire : pas de <form> imbriqué (invalide en HTML). */
   nested?: boolean;
@@ -47,7 +47,7 @@ export default function AuthForm({
           ? await registerAccount(name.trim(), email.trim(), password)
           : await loginAccount(email.trim(), password);
       loginSession(session.access_token, session.user.role, { id: session.user.id, email: session.user.email, name: session.user.name, picture: session.user.picture }, session.refresh_token);
-      onDone?.();
+      onDone?.({ token: session.access_token, role: session.user.role });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {

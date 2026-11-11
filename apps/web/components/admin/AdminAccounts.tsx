@@ -17,12 +17,14 @@ import {
   Users,
 } from "lucide-react";
 import { useFile } from "../../app/context/FileContext";
+import AdminAccountEditor from "./AdminAccountEditor";
 
 interface Account {
   id: string;
   email: string;
   name: string | null;
   role: "admin" | "user";
+  premiumUntil?: string | null;
   cardsCount: number;
   ordersCount: number;
   paidOrdersCount: number;
@@ -50,9 +52,12 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState({ name: "", email: "", password: "", role: "admin" as "admin" | "user" });
+  const [draft, setDraft] = useState({ name: "", email: "", password: "", role: "user" as "admin" | "user" });
 
   const apiUrl = API_URL;
+  // Seul l'administrateur principal (ADMIN_EMAIL) ajoute ou retire des administrateurs.
+  const [mainAdmin, setMainAdmin] = useState(false);
+  const [editing, setEditing] = useState<Account | null>(null);
 
   const request = useCallback(
     async (path: string, init?: RequestInit, token = adminToken): Promise<Response> => {
@@ -81,6 +86,18 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
     },
     [adminToken, apiUrl, refreshAccessToken],
   );
+
+  useEffect(() => {
+    if (!adminToken) return;
+    let alive = true;
+    fetch(`${apiUrl}/auth/me`, { headers: { Authorization: `Bearer ${adminToken}` }, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setMainAdmin(Boolean(d?.user?.mainAdmin)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [adminToken, apiUrl]);
 
   const loadAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -263,6 +280,19 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
         <Stat label="Suspects" value={suspects.length} icon={AlertCircle} />
       </div>
 
+      {editing && (
+        <AdminAccountEditor
+          account={editing}
+          request={(path, init) => request(path, init)}
+          onClose={() => setEditing(null)}
+          onSaved={(message) => {
+            setEditing(null);
+            setSuccess(message);
+            void loadAccounts();
+          }}
+        />
+      )}
+
       {showCreate && (
         <form onSubmit={createAccount} className="surface mb-6 rounded-2xl p-4 sm:p-5">
           <p className="text-sm font-semibold text-ink/90">Nouveau compte</p>
@@ -271,7 +301,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
             <input className="field" type="email" required placeholder="Adresse e-mail" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} autoComplete="off" />
             <input className="field" type="password" required minLength={8} placeholder="Mot de passe (8 caractères minimum)" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} autoComplete="new-password" />
             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Rôle">
-              {(["admin", "user"] as const).map((r) => (
+              {(mainAdmin ? (["admin", "user"] as const) : (["user"] as const)).map((r) => (
                 <button
                   key={r}
                   type="button"
@@ -286,7 +316,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-sage">Communiquez le mot de passe de façon sûre : la personne pourra le changer ensuite.</p>
+            <p className="text-xs text-sage">Communiquez le mot de passe de façon sûre : la personne pourra le changer ensuite.{!mainAdmin && " Seul l’administrateur principal ajoute des administrateurs."}</p>
             <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white hover:bg-forest-dark disabled:opacity-60">
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
               Créer le compte
@@ -411,6 +441,7 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
                         {fmtDate(account.createdAt)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
+                        {mainAdmin && (
                         <button
                           type="button"
                           disabled={isUpdating}
@@ -429,6 +460,14 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
                             <ShieldCheck className="h-3.5 w-3.5" />
                           )}
                           {isAdmin ? "Retirer admin" : "Nommer admin"}
+                        </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setEditing(account)}
+                          className="mr-2 inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink/80 transition-colors hover:bg-cream-deep"
+                        >
+                          Modifier
                         </button>
                         <button
                           type="button"
