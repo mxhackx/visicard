@@ -11,9 +11,9 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "deploy": "nest deploy",
-    "db:push": "NODE_OPTIONS=--env-file-if-exists=.env.render prisma db push",
+    "db:push": "node scripts/with-env.mjs prisma db push",
     "db:generate": "prisma generate",
-    "seed": "NODE_OPTIONS=--env-file-if-exists=.env.render prisma db seed",
+    "seed": "node scripts/with-env.mjs prisma db seed",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
