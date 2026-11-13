@@ -221,7 +221,11 @@ export default function AdminAccounts({ adminToken }: { adminToken: string }) {
     }
     setUpdatingId(null);
     if (removed > 0) setSuccess(removed === 1 ? "Compte supprimé." : `${removed} comptes supprimés.`);
-    if (lastError) setError(lastError);
+    if (lastError) {
+      setError(lastError);
+      // L'erreur s'affiche en haut de la page : on y remonte pour qu'elle ne passe pas inaperçue.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     await loadAccounts();
   };
 

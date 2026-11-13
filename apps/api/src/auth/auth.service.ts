@@ -556,9 +556,15 @@ export class AuthService {
       const admins = await this.prisma.adminUser.count({ where: { role: 'admin' } });
       if (admins <= 1) throw new BadRequestException('Impossible de supprimer le dernier administrateur.');
     }
-    const paid = await this.prisma.order.count({ where: { userId: accountId, status: 'paid' } });
-    if (paid > 0) {
-      throw new BadRequestException('Ce compte a des commandes payées : il ne peut pas être supprimé.');
+    // Seuls de vrais paiements (argent encaissé) protègent un compte : une commande à 0 FCFA, créée avec Premium, n'en est pas un.
+    const [paidOrders, paidPremium] = await Promise.all([
+      this.prisma.order.count({ where: { userId: accountId, status: 'paid', amount: { gt: 0 } } }),
+      this.prisma.premiumPurchase.count({ where: { userId: accountId, status: 'paid' } }),
+    ]);
+    if (paidOrders > 0 || paidPremium > 0) {
+      throw new BadRequestException(
+        'Ce compte a des paiements enregistrés (factures et reçus) : il ne peut pas être supprimé. Vous pouvez lui retirer Premium depuis « Modifier ».',
+      );
     }
     await this.prisma.adminUser.delete({ where: { id: accountId } });
     this.logger.log(`Compte supprimé : ${account.email}`);
