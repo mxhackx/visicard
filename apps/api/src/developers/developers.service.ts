@@ -36,10 +36,12 @@ export class DevelopersService {
       orderBy: { createdAt: 'desc' },
       include: { usage: { where: { period: period() } } },
     });
+    const owner = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { premiumUntil: true } });
+    const premium = Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
     return {
       limits: admin
         ? { unlimited: true, maxKeys: API_LIMITS.admin.maxKeys }
-        : { unlimited: false, ...API_LIMITS.user },
+        : { unlimited: false, premium, ...(premium ? API_LIMITS.premium : API_LIMITS.user) },
       keys: keys.map((k) => ({
         id: k.id,
         name: k.name,
@@ -47,8 +49,8 @@ export class DevelopersService {
         createdAt: k.createdAt,
         lastUsedAt: k.lastUsedAt,
         revokedAt: k.revokedAt,
-        perMinute: admin ? null : k.perMinute,
-        perMonth: admin ? null : k.perMonth,
+        perMinute: admin ? null : premium ? API_LIMITS.premium.perMinute : k.perMinute,
+        perMonth: admin ? null : premium ? API_LIMITS.premium.perMonth : k.perMonth,
         usedThisMonth: k.usage[0]?.count ?? 0,
       })),
     };
@@ -57,7 +59,9 @@ export class DevelopersService {
   async createKey(userId: string, admin: boolean, rawName: string) {
     const name = (rawName || '').trim().slice(0, 60);
     if (name.length < 2) throw new BadRequestException('Donnez un nom à la clé (2 caractères minimum).');
-    const max = admin ? API_LIMITS.admin.maxKeys : API_LIMITS.user.maxKeys;
+    const owner = admin ? null : await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { premiumUntil: true } });
+    const premium = Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
+    const max = admin ? API_LIMITS.admin.maxKeys : premium ? API_LIMITS.premium.maxKeys : API_LIMITS.user.maxKeys;
     const active = await this.prisma.apiKey.count({ where: { userId, revokedAt: null } });
     if (active >= max) {
       throw new BadRequestException(`Limite atteinte : ${max} clés actives maximum. Révoquez-en une pour en créer une autre.`);
@@ -90,12 +94,14 @@ export class DevelopersService {
    */
   async authenticate(secret: string): Promise<{ ok: true; ctx: ApiKeyContext } | { ok: false; status: number; message: string; retryAfter?: number }> {
     if (!secret.startsWith(KEY_PREFIX)) return { ok: false, status: 401, message: 'Clé d’API invalide.' };
-    const key = await this.prisma.apiKey.findUnique({ where: { keyHash: hashKey(secret) }, include: { user: { select: { role: true } } } });
+    const key = await this.prisma.apiKey.findUnique({ where: { keyHash: hashKey(secret) }, include: { user: { select: { role: true, premiumUntil: true } } } });
     if (!key || key.revokedAt) return { ok: false, status: 401, message: 'Clé d’API invalide ou révoquée.' };
 
     const admin = key.user.role === 'admin';
-    const perMinute = admin ? Infinity : key.perMinute;
-    const perMonth = admin ? Infinity : key.perMonth;
+    // Premium actif : quota élevé et tous les contenus ; sinon le quota gratuit de la clé (liens simples).
+    const premium = Boolean(key.user.premiumUntil && key.user.premiumUntil.getTime() > Date.now());
+    const perMinute = admin ? Infinity : premium ? API_LIMITS.premium.perMinute : key.perMinute;
+    const perMonth = admin ? Infinity : premium ? API_LIMITS.premium.perMonth : key.perMonth;
 
     if (!admin) {
       const now = Date.now();

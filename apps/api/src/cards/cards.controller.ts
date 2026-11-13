@@ -15,6 +15,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -22,6 +23,7 @@ import type { Request, Response } from 'express';
 import 'multer';
 import { CardsService } from './cards.service';
 import { AuthService } from '../auth/auth.service';
+import { sendQrToOwner } from '../account/notify';
 import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from './card-files';
 
 export class UpdateCardDto {
@@ -95,6 +97,52 @@ export class CardsController {
       callback(null, true);
     },
   };
+  /** Envoie à son propriétaire (par e-mail, en PNG) le QR code d'une carte de son espace. */
+  @Post(':slug/send-me')
+  @HttpCode(200)
+  @Throttle({ short: { limit: 5, ttl: 60_000 } })
+  async sendToMe(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Param('slug') slug: string,
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = cookieOf(req, 'access_token');
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || !session.user?.email) throw new UnauthorizedException('Connexion requise.');
+    const card = await this.cardsService.findOwnedBy(slug, session.user.id, session.user.role === 'admin');
+    const { qrCode, cardUrl } = await this.cardsService.getQrCode(slug);
+    const sent = await sendQrToOwner(session.user.email, {
+      title: card.title || card.restaurantName || 'QR code',
+      target: cardUrl,
+      pngDataUrl: qrCode,
+    });
+    if (!sent) throw new ServiceUnavailableException('L’envoi par e-mail n’est pas encore activé : téléchargez le QR code depuis votre espace.');
+    return { sent: true, to: session.user.email };
+  }
+
+  /**
+   * QR code créé dans le créateur du site : enregistré en base, quel que soit son contenu.
+   * Sans compte, seuls les liens sont acceptés (gratuits) ; le reste exige un compte Premium.
+   */
+  @Post('direct')
+  @HttpCode(200)
+  @Throttle({ short: { limit: 15, ttl: 60_000 } })
+  async saveDirect(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() body: { payload?: string; qrStyle?: string; title?: string },
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = cookieOf(req, 'access_token');
+    let user: { id: string; role?: string } | null = null;
+    if (token) {
+      const { valid, user: u } = await this.authService.validateToken(token);
+      if (valid && u) user = { id: u.id, role: u.role };
+    }
+    return this.cardsService.createDirect(user, body ?? {});
+  }
+
   /**
    * Création de carte d'intervention (Protégée)
    */

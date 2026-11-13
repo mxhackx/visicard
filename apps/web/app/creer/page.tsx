@@ -4,7 +4,6 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import QrTypeBuilder from "@/components/qr/qr-type-builder";
 import PageCreator from "@/components/page-builder/page-creator";
-import PremiumReturn from "@/components/premium-return";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import { isDirectQrType } from "@/lib/qr-payloads";
 
@@ -50,7 +49,6 @@ export default async function CreerPage({ searchParams }: { searchParams: Promis
       <Header />
       <div className="header-spacer"></div>
       {body}
-      <PremiumReturn />
       <Footer />
     </main>
   );

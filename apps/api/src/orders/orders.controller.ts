@@ -17,7 +17,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import 'multer';
 import { OrdersService, type OrderAccess } from './orders.service';
-import { FedapayService } from './payments/fedapay.service';
+import { FeexpayService } from './payments/feexpay.service';
 import { PremiumService } from './premium.service';
 import { AuthService } from '../auth/auth.service';
 import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from '../cards/card-files';
@@ -52,7 +52,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly auth: AuthService,
-    private readonly fedapay: FedapayService,
+    private readonly feexpay: FeexpayService,
   ) {}
 
   /** Bearer ou cookie de session ; `null` si absent ou invalide. */
@@ -119,10 +119,11 @@ export class OrdersController {
   async pay(
     @Req() req: Request,
     @Param('reference') reference: string,
+    @Body() body: { network?: string; phone?: string; firstName?: string; lastName?: string; email?: string },
     @Headers('x-order-key') key?: string,
     @Headers('authorization') authHeader?: string,
   ) {
-    return this.orders.startPayment(reference, await this.access(req, key, authHeader));
+    return this.orders.startPayment(reference, await this.access(req, key, authHeader), body ?? {});
   }
 
   @Post(':reference/payments/refresh')
@@ -167,12 +168,12 @@ export class OrdersController {
     const base = process.env.PUBLIC_API_URL || process.env.API_URL || '';
     return {
       payment: {
-        provider: 'FedaPay',
-        configured: this.fedapay.configured,
-        mode: process.env.FEDAPAY_ENV === 'live' ? 'live' : 'sandbox',
-        webhookSecret: Boolean(process.env.FEDAPAY_WEBHOOK_SECRET),
-        webhookPath: '/payments/fedapay/webhook',
-        webhookUrl: base ? `${base.replace(/\/$/, '')}/payments/fedapay/webhook` : null,
+        provider: 'FeexPay',
+        configured: this.feexpay.configured,
+        mode: this.feexpay.live ? 'live' : 'sandbox',
+        webhookSecret: Boolean(process.env.FEEXPAY_WEBHOOK_SECRET),
+        webhookPath: '/payments/feexpay/webhook',
+        webhookUrl: base ? `${base.replace(/\/$/, '')}/payments/feexpay/webhook` : null,
       },
       environment: process.env.NODE_ENV === 'production' ? 'production' : 'développement',
       node: process.version,
@@ -211,28 +212,26 @@ export class OrdersController {
   }
 }
 
-/** Notifications serveur à serveur de FedaPay. */
+/** Notifications serveur à serveur de FeexPay (en-tête `Authorization` configuré dans leur tableau de bord). */
 @Controller('payments')
-@SkipThrottle()
 export class PaymentsWebhookController {
   constructor(
     private readonly orders: OrdersService,
-    private readonly fedapay: FedapayService,
+    private readonly feexpay: FeexpayService,
     private readonly premium: PremiumService,
   ) {}
 
-  @Post('fedapay/webhook')
+  @Post('feexpay/webhook')
   @HttpCode(200)
-  async fedapayWebhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-fedapay-signature') signature: string | undefined,
-    @Body() body: { name?: string; entity?: { id?: number | string } },
+  async feexpayWebhook(
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: { reference?: string },
   ) {
-    if (!this.fedapay.verifyWebhookSignature(req.rawBody, signature)) {
-      throw new UnauthorizedException('Signature FedaPay invalide.');
+    if (!this.feexpay.verifyWebhookAuthorization(authorization)) {
+      throw new UnauthorizedException('Webhook FeexPay non autorisé.');
     }
-    // Le statut est relu chez FedaPay : le contenu du webhook ne suffit pas à valider un paiement.
-    if (!(await this.premium.handleEvent(body?.entity?.id))) await this.orders.handleFedapayEvent(body?.entity?.id);
+    // Le statut est relu chez FeexPay : le contenu du webhook ne suffit pas à valider un paiement.
+    if (!(await this.premium.handleEvent(body?.reference))) await this.orders.handleFeexpayEvent(body?.reference);
     return { received: true };
   }
 }

@@ -105,7 +105,7 @@ function QrBody({ adminToken }: { adminToken: string }) {
           <QrDesigner value={customization.qrStyle} onChange={setQrStyle} logoUrl={restaurantInfo.logoPreview} brandColor={brand} />
         </section>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside>
           <div className="surface overflow-hidden">
             <div className="brand-surface px-6 py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Récapitulatif</p>

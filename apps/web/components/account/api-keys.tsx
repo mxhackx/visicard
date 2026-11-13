@@ -84,7 +84,7 @@ export default function ApiKeys() {
           <p className="text-sm font-medium text-sage">Espace développeur</p>
           <h1 className="page-title mt-1">Clés d’API</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-sage">
-            Générez des QR codes depuis vos applications. La clé est gratuite et génère des liens sans frais ; les autres contenus (Wi-Fi, SMS, texte…) exigent Premium. Chaque clé a son quota mensuel et n’est affichée qu’une fois.
+            Générez des QR codes depuis vos applications. Les liens simples sont gratuits, avec un quota ; Wi-Fi, SMS, texte, e-mail, GPS… exigent Premium. Une clé n’est affichée qu’une fois.
           </p>
         </div>
         <div className="flex gap-2">
@@ -99,7 +99,7 @@ export default function ApiKeys() {
         <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-sage">
           {data.limits.unlimited
             ? "Compte administrateur : aucune limite de requêtes sur vos clés."
-            : `Offre développeur : ${nf.format(data.limits.perMonth ?? 0)} requêtes par mois et ${data.limits.perMinute} par minute pour chaque clé, ${data.limits.maxKeys} clés actives maximum.`}
+            : `${data.limits.premium ? "Offre Premium : tous les contenus" : "Offre gratuite : liens simples uniquement (Premium pour tout le reste)"} · ${nf.format(data.limits.perMonth ?? 0)} requêtes par mois et ${data.limits.perMinute} par minute pour chaque clé, ${data.limits.maxKeys} clés actives maximum.`}
         </p>
       )}
 

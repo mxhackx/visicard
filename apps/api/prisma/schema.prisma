@@ -154,6 +154,11 @@ model AdminUser {
   name         String?
   /// Photo de profil (Google), mise à jour à chaque connexion Google.
   pictureUrl   String?  @map("picture_url")
+  /// Téléphone du compte (avec l'indicatif, ex. +22997000000) : sert au paiement Mobile Money.
+  phone        String?
+  /// Mot de passe oublié : empreinte SHA-256 du lien envoyé par e-mail et sa date limite (le lien lui-même n'est jamais stocké).
+  resetTokenHash  String?   @map("reset_token_hash")
+  resetExpiresAt  DateTime? @map("reset_expires_at")
   role         String   @default("user")
   /// Fin de l'abonnement Premium (un an après le paiement) ; vide = pas Premium.
   premiumUntil DateTime? @map("premium_until")
@@ -168,7 +173,7 @@ model AdminUser {
   @@map("admin_users")
 }
 
-/// Paiement FedaPay de l'abonnement Premium (un an). Le statut est relu chez FedaPay, jamais reçu du navigateur.
+/// Paiement Mobile Money (FeexPay) de l'abonnement Premium (un an). Le statut est relu chez FeexPay, jamais reçu du navigateur.
 model PremiumPurchase {
   id          String    @id @default(uuid())
   userId      String    @map("user_id")

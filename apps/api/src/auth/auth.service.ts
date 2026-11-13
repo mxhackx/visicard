@@ -4,7 +4,8 @@ import { PrismaService } from '../database/prisma.service';
 import { hashPassword, verifyPassword } from './mot-de-passe';
 import { createLocalToken, readLocalToken } from './jetons-locaux';
 import { verifyGoogleCredential } from './google';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { sendPasswordReset } from '../account/notify';
 
 export interface AuthSessionUser {
   id: string;
@@ -13,6 +14,8 @@ export interface AuthSessionUser {
   name?: string | null;
   /** Photo de profil (comptes Google). */
   picture?: string | null;
+  /** Téléphone du compte (+indicatif). */
+  phone?: string | null;
   /**
    * Émetteur de la session : `supabase` pour le chemin d'origine, `local` pour
    * un compte de la table `admin_users`. Absent sur les sessions plus anciennes.
@@ -92,6 +95,7 @@ export class AuthService {
     role: string;
     name?: string | null;
     pictureUrl?: string | null;
+    phone?: string | null;
   }): AuthSessionUser {
     return {
       id: account.id,
@@ -99,6 +103,7 @@ export class AuthService {
       role: account.role === 'admin' ? 'admin' : 'user',
       name: account.name ?? null,
       picture: account.pictureUrl ?? null,
+      phone: account.phone ?? null,
       provider: 'local',
     };
   }
@@ -109,6 +114,7 @@ export class AuthService {
     role: string;
     name?: string | null;
     pictureUrl?: string | null;
+    phone?: string | null;
   }) {
     const user = this.localSessionUser(account);
     const target = { id: user.id, email: user.email ?? '', role: user.role };
@@ -256,13 +262,84 @@ export class AuthService {
   }
 
   /** Nom et photo d'un compte local (pour /auth/me : le jeton n'en contient pas). */
-  async profileOf(userId: string): Promise<{ name: string | null; picture: string | null }> {
+  async profileOf(userId: string): Promise<{ name: string | null; picture: string | null; phone: string | null }> {
     try {
-      const a = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { name: true, pictureUrl: true } });
-      return { name: a?.name ?? null, picture: a?.pictureUrl ?? null };
+      const a = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { name: true, pictureUrl: true, phone: true } });
+      return { name: a?.name ?? null, picture: a?.pictureUrl ?? null, phone: a?.phone ?? null };
     } catch {
-      return { name: null, picture: null };
+      return { name: null, picture: null, phone: null };
     }
+  }
+
+  /**
+   * Téléphone au format `+indicatif…`. Un numéro local de 8 ou 10 chiffres est béninois (+229) ;
+   * un numéro commençant par `+` ou `00` garde son indicatif (8 à 15 chiffres au total).
+   */
+  normalizePhone(raw: string): string {
+    const text = String(raw ?? '').trim();
+    const international = /^(\+|00)/.test(text);
+    const digits = text.replace(/\D/g, '').replace(/^00/, '');
+    let full: string;
+    if (international) full = digits;
+    else if (digits.startsWith('229') && (digits.length === 11 || digits.length === 13)) full = digits;
+    else if (digits.length === 8 || digits.length === 10) full = `229${digits}`;
+    else full = '';
+    if (!/^\d{8,15}$/.test(full)) {
+      throw new BadRequestException('Numéro de téléphone invalide : indiquez votre numéro avec l’indicatif (ex. +229 01 97 00 00 00).');
+    }
+    return `+${full}`;
+  }
+
+  /**
+   * Mot de passe oublié : envoie un lien valable une heure. La réponse est toujours la même, que l'adresse existe ou non
+   * (on ne révèle pas quels comptes existent). Un seul lien actif par compte : un nouveau remplace l'ancien.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const clean = (email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return;
+    const account = await this.findLocalAccount(clean);
+    if (!account) return;
+    const token = randomBytes(32).toString('base64url');
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { resetTokenHash: createHash('sha256').update(token).digest('hex'), resetExpiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+    });
+    const app = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+    const link = `${app}/?reinit=${encodeURIComponent(token)}`;
+    const sent = await sendPasswordReset(account.email, account.name, link);
+    // Sans service e-mail (développement), le lien est consigné pour pouvoir tester.
+    if (!sent) this.logger.warn(`Lien de réinitialisation pour ${account.email} (e-mail non envoyé) : ${link}`);
+  }
+
+  /** Choisit un nouveau mot de passe avec le lien reçu ; le lien est consommé et ne sert qu'une fois. */
+  async resetPassword(token: string, password: string): Promise<void> {
+    if (!token || (password || '').length < 8) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
+    }
+    const hash = createHash('sha256').update(token).digest('hex');
+    const account = await this.prisma.adminUser.findFirst({ where: { resetTokenHash: hash } });
+    if (!account || !account.resetExpiresAt || account.resetExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Ce lien est invalide ou a expiré : demandez-en un nouveau.');
+    }
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { passwordHash: await hashPassword(password), resetTokenHash: null, resetExpiresAt: null },
+    });
+    this.logger.log(`Mot de passe réinitialisé : ${account.email}`);
+  }
+
+  /** Complète ou corrige le profil du compte connecté : nom et téléphone. */
+  async updateProfile(userId: string, input: { name?: string; phone?: string }) {
+    const data: { name?: string; phone?: string } = {};
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (name.length < 2) throw new BadRequestException('Indiquez votre nom et prénom.');
+      data.name = name.slice(0, 120);
+    }
+    if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
+    if (Object.keys(data).length === 0) throw new BadRequestException('Aucune modification.');
+    const account = await this.prisma.adminUser.update({ where: { id: userId }, data });
+    return { id: account.id, email: account.email, name: account.name, phone: account.phone, picture: account.pictureUrl ?? null };
   }
 
   async loginAdmin(password: string): Promise<AuthResult> {
@@ -274,8 +351,10 @@ export class AuthService {
    * administrateurs (`admin_users`, champ `role`) afin qu'une personne puisse
    * être promue administrateur plus tard depuis l'interface.
    */
-  async register(name: string, email: string, password: string): Promise<AuthResult> {
+  async register(name: string, email: string, password: string, phone: string): Promise<AuthResult> {
     const cleanName = (name || '').trim();
+    if (cleanName.length < 2) throw new BadRequestException('Indiquez votre nom et prénom.');
+    const cleanPhone = this.normalizePhone(phone);
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPassword = password || '';
 
@@ -295,7 +374,8 @@ export class AuthService {
       const account = await this.prisma.adminUser.create({
         data: {
           email: cleanEmail,
-          name: cleanName || null,
+          name: cleanName,
+          phone: cleanPhone,
           passwordHash: await hashPassword(cleanPassword),
           role: 'user',
         },

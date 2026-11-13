@@ -49,7 +49,8 @@ export function DeviceSwitch({
 }
 
 /** Cadre d'appareil avec l'écran mis à l'échelle de la place disponible. */
-export default function DevicePreview({ device, children }: { device: Device; children: ReactNode }) {
+/** `scrollable` : la page simulée défile à l'intérieur du cadre (pages longues) ; sinon le cadre ne capte pas le défilement. */
+export default function DevicePreview({ device, children, scrollable = false }: { device: Device; children: ReactNode; scrollable?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(0);
 
@@ -73,7 +74,7 @@ export default function DevicePreview({ device, children }: { device: Device; ch
       {/* L'échelle (et donc le bloc conteneur des éléments `fixed`) est sur ce cadre fixe ;
           le défilement se fait à l'intérieur : visionneuses et barres collantes restent dans l'écran. */}
       <div className="absolute left-0 top-0 [transform-origin:0_0]" style={{ width: spec.width, height: spec.height, transform: `scale(${scale})` }}>
-        <div className="h-full w-full overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{children}</div>
+        <div className={`h-full w-full overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${scrollable ? "overflow-y-auto overscroll-contain" : "overflow-y-hidden"}`}>{children}</div>
       </div>
     </div>
   );

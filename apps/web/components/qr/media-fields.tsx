@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Images, Loader2, UploadCloud, X } from "lucide-react";
-import { useFile } from "@/app/context/FileContext";
-import { createOrder, payOrder, validateCustomer } from "@/lib/orders";
-import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
+import { FileText, Images, UploadCloud, X } from "lucide-react";
+import { createOrder, rememberOrder } from "@/lib/orders";
+import CreateAction, { useAccountContact } from "@/components/account/create-action";
 
 export type MediaKind = "media" | "document";
 
@@ -106,58 +105,35 @@ export function MediaFields({
   );
 }
 
-/** Étape finale pour un compte Premium : coordonnées, puis création du QR code (la commande est à 0, déjà couverte). */
+/** Étape finale pour un compte Premium : un seul bouton, au nom du compte (la commande est à 0, déjà couverte). */
 export function MediaOrder({ kind, title, file, qrStyle }: { kind: MediaKind; title: string; file: File | null; qrStyle: string }) {
   const router = useRouter();
-  const { authUser } = useFile();
-  const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
+  const contact = useAccountContact();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const email = authUser?.email;
 
-  // Connecté : l'e-mail du compte est repris dans la facture.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (email) setCustomer((c) => (c.email ? c : { ...c, email }));
-  }, [email]);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const create = async () => {
     if (!file) return setError(kind === "document" ? "Choisissez un fichier PDF à l’étape 1." : "Choisissez une image ou une vidéo à l’étape 1.");
-    const found = validateCustomer(customer);
-    setErrors(found);
-    if (Object.keys(found).length) return;
     setError(null);
     setBusy(true);
     const body = new FormData();
     body.append("serviceType", kind);
     body.append("title", title.trim() || file.name);
     body.append(kind === "document" ? "document" : "media", file);
-    body.append("customerName", customer.name.trim());
-    body.append("customerPhone", customer.phone.trim());
-    if (customer.email.trim()) body.append("customerEmail", customer.email.trim());
+    body.append("customerName", contact.name || contact.email);
+    body.append("customerPhone", contact.phone);
+    if (contact.email) body.append("customerEmail", contact.email);
     if (qrStyle) body.append("qrStyle", qrStyle);
     try {
       const order = await createOrder(body);
-      // Déjà couvert par Premium : le paiement répond « déjà payé » et on ouvre la commande.
-      if (!(await payOrder(order))) router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
+      // Couverte par Premium : la commande est déjà payée, on ouvre sa page.
+      rememberOrder(order);
+      router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
       setBusy(false);
     }
   };
 
-  return (
-    <form onSubmit={submit} noValidate>
-      <h3 className="text-sm font-semibold text-ink/90">Vos coordonnées</h3>
-      <p className="mt-1 text-xs text-sage">Elles figurent sur votre facture.</p>
-      <div className="mt-4"><CustomerFields value={customer} onChange={setCustomer} errors={errors} /></div>
-      {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700">{error}</p>}
-      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full max-w-sm justify-center py-3.5 text-base">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {busy ? "Création en cours…" : "Créer mon QR code"}
-      </button>
-    </form>
-  );
+  return <CreateAction label="Créer mon QR code" busyLabel="Création en cours…" busy={busy} error={error} onCreate={create} />;
 }

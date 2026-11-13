@@ -3,10 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import AuthForm from "./auth-form";
-import PremiumModal, { type PremiumOffer } from "@/components/qr/premium-modal";
+import { useRouter } from "next/navigation";
 
 interface AuthOptions {
   mode?: "register" | "login";
+  /** Jeton du lien « mot de passe oublié » reçu par e-mail. */
+  resetToken?: string;
   /** Appelé une fois le compte créé ou la connexion faite. */
   onDone?: () => void;
 }
@@ -14,28 +16,36 @@ interface AuthOptions {
 interface Dialogs {
   /** Ouvre la fenêtre de création de compte / connexion (aucune page à part). */
   openAuth: (options?: AuthOptions) => void;
-  /** Ouvre la fenêtre Premium : compte d'abord si besoin, puis paiement FedaPay. */
-  /** `newTab` : le paiement s'ouvre dans un autre onglet, pour ne pas perdre la page en cours de saisie. */
-  openPremium: (offer: Pick<PremiumOffer, "label" | "suite"> & { newTab?: boolean }) => void;
+  /** Ouvre la page de paiement Premium ; `suite` est la page où revenir une fois payé. */
+  openPremium: (offer: { label?: string; suite?: string }) => void;
 }
 
 const Ctx = createContext<Dialogs>({ openAuth: () => {}, openPremium: () => {} });
 export const useDialogs = () => useContext(Ctx);
 
-/** Les deux fenêtres du compte, disponibles partout : un clic, un popup, on reste sur la page. */
+/** Fenêtre de compte et raccourci vers la page de paiement, disponibles partout. */
 export function DialogsProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthOptions | null>(null);
-  const [offer, setOffer] = useState<PremiumOffer | null>(null);
+  const router = useRouter();
 
   const openAuth = useCallback((options?: AuthOptions) => setAuth(options ?? {}), []);
   const openPremium = useCallback(
-    (o: Pick<PremiumOffer, "label" | "suite"> & { newTab?: boolean }) => {
-      // Ouvert tout de suite, pendant le clic (sinon le navigateur bloque la fenêtre) ; l'adresse de paiement s'y ajoute ensuite.
-      const popup = o.newTab ? window.open("", "_blank") : null;
-      setOffer({ label: o.label, href: o.suite ?? "/creer", suite: o.suite, price: "5 000", direct: true, popup });
+    (o: { label?: string; suite?: string }) => {
+      const suite = o.suite ?? `${window.location.pathname}${window.location.search}`;
+      router.push(`/paiement?suite=${encodeURIComponent(suite)}`);
     },
-    [],
+    [router],
   );
+  // Lien de réinitialisation reçu par e-mail (/?reinit=…) : on ouvre le choix du nouveau mot de passe, puis on nettoie l'adresse.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get("reinit");
+    if (!token) return;
+    url.searchParams.delete("reinit");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    queueMicrotask(() => setAuth({ mode: "login", resetToken: token }));
+  }, []);
+
   const value = useMemo(() => ({ openAuth, openPremium }), [openAuth, openPremium]);
   const close = () => setAuth(null);
 
@@ -66,6 +76,7 @@ export function DialogsProvider({ children }: { children: ReactNode }) {
             <AuthForm
               className="mt-5"
               initialMode={auth.mode ?? "register"}
+              resetToken={auth.resetToken}
               onDone={() => {
                 const done = auth.onDone;
                 close();
@@ -75,7 +86,6 @@ export function DialogsProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
-      <PremiumModal offer={offer} onClose={() => setOffer(null)} />
     </Ctx.Provider>
   );
 }

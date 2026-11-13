@@ -1,9 +1,8 @@
 // Coordonnées centralisées : un seul endroit à modifier pour tout le site.
 export const CONTACT = {
   brand: "Moncode",
-  email: "contact@moncode.bj",
-  whatsappNumber: "22999389202", // format wa.me : indicatif + numéro, sans espaces ni +
-  whatsappDisplay: "+229 99 38 92 02",
+  whatsappNumber: "22959831293", // format wa.me : indicatif + numéro, sans espaces ni +
+  whatsappDisplay: "+229 59 83 12 93",
   hours: "Lundi — vendredi, 9h — 18h",
   // À REMPLACER par l'adresse réelle : elle alimente la carte de la page contact.
   address: "Cotonou — Bénin",
@@ -29,7 +28,9 @@ export const WHATSAPP_MESSAGE =
 
 /** Nom lisible du moyen de paiement enregistré (les anciens prestataires restent dans l'historique). */
 export function providerLabel(provider: string): string {
-  return provider === "manuel" ? "WhatsApp" : provider;
+  if (provider === "manuel") return "Encaissé par l’équipe";
+  if (provider === "feexpay") return "Mobile Money (FeexPay)";
+  return provider === "fedapay" ? "FedaPay" : provider;
 }
 
 export function whatsappUrl(message: string = WHATSAPP_MESSAGE): string {

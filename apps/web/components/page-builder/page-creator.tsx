@@ -1,20 +1,19 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "@/components/account/auth-dialog";
 import { useIsSignedIn } from "@/components/account/account-gate";
 import ContentPicker from "@/components/qr/content-picker";
 import Step from "@/components/qr/step-card";
-import FedapayBadge from "@/components/fedapay-badge";
-import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
+import FeexpayBadge from "@/components/feexpay-badge";
+import CreateAction, { useAccountContact } from "@/components/account/create-action";
 import { InformationsBody } from "@/components/page-builder/informations-step";
 import { AppearanceSections, PagePreview } from "@/components/page-builder/apparence-step";
-import { createOrder, payOrder, validateCustomer } from "@/lib/orders";
+import { createOrder, rememberOrder } from "@/lib/orders";
 import { PREMIUM_PRICE, usePremium, useTrial } from "@/lib/premium";
-import { useEffect } from "react";
 
 /**
  * Créateur de page digitale, dans le même cadre que les autres contenus : titre, choix du contenu, étapes numérotées
@@ -54,7 +53,7 @@ export default function PageCreator() {
           </Step>
         </div>
 
-        <aside className="order-first min-w-0 lg:sticky lg:top-24 lg:order-none">
+        <aside className="order-first min-w-0 lg:order-none">
           <PagePreview />
         </aside>
       </div>
@@ -62,42 +61,31 @@ export default function PageCreator() {
   );
 }
 
-/** Dernière étape : sans Premium, paiement FedaPay (dans un autre onglet pour garder la page) ; avec Premium, création directe. */
+/** Dernière étape : sans Premium, fenêtre de paiement Mobile Money (la page et ses photos restent en place) ; avec Premium, création directe. */
 function PageOrder({ validate }: { validate: () => boolean }) {
   const router = useRouter();
-  const { restaurantInfo, customization, resetAll, authUser } = useFile();
+  const { restaurantInfo, customization, resetAll } = useFile();
   const signedIn = useIsSignedIn();
   const premium = usePremium();
+  const contact = useAccountContact();
   const { openPremium, openAuth } = useDialogs();
-  const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const email = authUser?.email;
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (email) setCustomer((c) => (c.email ? c : { ...c, email }));
-  }, [email]);
-
   const pay = () => {
     if (!validate()) return;
-    openPremium({ label: "Créer ma page", suite: "/creer?type=page", newTab: true });
+    openPremium({ label: "Créer ma page", suite: "/creer?type=page" });
   };
 
-  const create = async (e: FormEvent) => {
-    e.preventDefault();
+  const create = async () => {
     if (!validate()) return;
-    const found = validateCustomer(customer);
-    setErrors(found);
-    if (Object.keys(found).length) return;
     setBusy(true);
     setError(null);
     const body = new FormData();
     body.append("serviceType", "page");
-    body.append("customerName", customer.name.trim());
-    body.append("customerPhone", customer.phone.trim());
-    if (customer.email.trim()) body.append("customerEmail", customer.email.trim());
+    body.append("customerName", contact.name || contact.email);
+    body.append("customerPhone", contact.phone);
+    if (contact.email) body.append("customerEmail", contact.email);
     body.append("restaurantName", restaurantInfo.restaurantName);
     body.append("address", restaurantInfo.address || "");
     body.append("locationUrl", restaurantInfo.locationUrl);
@@ -114,8 +102,8 @@ function PageOrder({ validate }: { validate: () => boolean }) {
     restaurantInfo.placeFiles.forEach((f) => body.append("place", f));
     try {
       const order = await createOrder(body);
-      // Déjà couvert par Premium : « déjà payé » côté paiement, on ouvre la commande.
-      await payOrder(order);
+      // Couverte par Premium : la commande est déjà payée, on ouvre sa page.
+      rememberOrder(order);
       router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
       resetAll();
     } catch (err) {
@@ -126,33 +114,22 @@ function PageOrder({ validate }: { validate: () => boolean }) {
 
   if (!signedIn || !premium.active) {
     return (
-      <div>
-        <p className="text-sm leading-6 text-sage">
-          La création de votre page fait partie de Premium ({PREMIUM_PRICE} FCFA). Connectez-vous, puis réglez par FedaPay : le paiement s’ouvre dans un autre onglet et cette page, avec tout ce que vous avez saisi, reste ici.
+      <div className="text-center">
+        <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
+          La création de votre page fait partie de Premium ({PREMIUM_PRICE} FCFA). Connectez-vous, puis réglez par Mobile Money : le paiement se fait dans une fenêtre, cette page et tout ce que vous avez saisi restent ici.
         </p>
-        <button type="button" onClick={signedIn ? pay : () => (validate() ? pay() : undefined)} className="btn btn-primary mt-4 w-full max-w-sm justify-center py-3.5 text-base">
+        <button type="button" onClick={signedIn ? pay : () => (validate() ? pay() : undefined)} className="btn btn-primary mx-auto mt-4 flex w-full max-w-sm justify-center py-3.5 text-base">
           Passer au paiement · {PREMIUM_PRICE} FCFA
         </button>
         {!signedIn && (
-          <button type="button" onClick={() => openAuth({ mode: "login" })} className="mt-2 block text-sm font-medium text-sage underline-offset-4 hover:text-ink hover:underline">
+          <button type="button" onClick={() => openAuth({ mode: "login" })} className="mx-auto mt-2 block text-sm font-medium text-sage underline-offset-4 hover:text-ink hover:underline">
             J’ai déjà un compte
           </button>
         )}
-        <FedapayBadge className="mt-3 flex" />
+        <FeexpayBadge className="mt-3 flex justify-center" />
       </div>
     );
   }
 
-  return (
-    <form onSubmit={create} noValidate>
-      <h3 className="text-sm font-semibold text-ink/90">Vos coordonnées</h3>
-      <p className="mt-1 text-xs text-sage">Elles figurent sur votre facture.</p>
-      <div className="mt-4"><CustomerFields value={customer} onChange={setCustomer} errors={errors} /></div>
-      {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700">{error}</p>}
-      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full max-w-sm justify-center py-3.5 text-base">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {busy ? "Création en cours…" : "Créer ma page"}
-      </button>
-    </form>
-  );
+  return <CreateAction label="Créer ma page" busyLabel="Création en cours…" busy={busy} error={error} onCreate={create} />;
 }

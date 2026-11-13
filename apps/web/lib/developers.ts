@@ -14,7 +14,7 @@ export interface DevKey {
 }
 
 export interface DevKeysResponse {
-  limits: { unlimited: boolean; maxKeys: number; perMinute?: number; perMonth?: number };
+  limits: { unlimited: boolean; maxKeys: number; perMinute?: number; perMonth?: number; premium?: boolean };
   keys: DevKey[];
 }
 

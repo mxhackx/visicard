@@ -32,7 +32,7 @@ const FAQ = [
   ["Le QR code imprimé change-t-il si je modifie ma page ?", "Non. Le motif imprimé reste le même : seul le contenu en ligne change. Vous n’avez jamais à réimprimer."],
   ["Pourquoi un compte est-il demandé ?", "Pour les contenus mis en ligne (page, image, vidéo, PDF). Votre compte vous permet de retrouver votre QR code, vos factures et vos modifications depuis n’importe quel appareil."],
   ["Faut-il un compte pour un lien gratuit ou un QR direct ?", "Non. Le lien gratuit se télécharge sans compte. Les QR directs (Wi-Fi, carte de visite, appel…) se commandent sans compte."],
-  ["Comment payer ?", "Par Mobile Money (MTN, Moov) ou carte, sur la page de paiement sécurisée FedaPay. Si le paiement en ligne rencontre un problème, écrivez-nous sur WhatsApp : nous vous aidons."],
+  ["Comment payer ?", "Par Mobile Money (MTN, Moov, Celtiis), dans un formulaire sécurisé par FeexPay : vous validez le paiement sur votre téléphone."],
   ["Comment savoir qu’un client m’a écrit ou réservé ?", "Une pastille rouge apparaît sur « Demandes » dans votre espace, avec le nombre de demandes à traiter. Vous pouvez aussi recevoir un e-mail à chaque nouvelle demande si l’équipe Moncode l’a activé."],
   ["Les statistiques sont-elles précises ?", "Elles comptent chaque ouverture de page, une fois par visite. La localisation est approximative (pays, parfois ville) et aucune adresse IP n’est conservée. Les QR codes directs (Wi-Fi, appel…) ne passent pas par Moncode et n’ont donc pas de statistiques."],
   ["Mon QR code direct peut-il être modifié ?", "Non : son contenu est écrit dans le QR code lui-même. Pour changer, commandez-en un nouveau."],

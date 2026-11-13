@@ -128,7 +128,7 @@ function ApparenceBody({ mode }: { mode: BuilderMode }) {
               <DeviceSwitch value={device} onChange={setDevice} />
             </div>
             <div className="mt-5">
-              <DevicePreview device={device}>
+              <DevicePreview device={device} scrollable>
                 <RestaurantCardLayout
                   restaurantName={restaurantInfo.restaurantName}
                   address={restaurantInfo.address}
@@ -409,7 +409,7 @@ export function PagePreview() {
         <DeviceSwitch value={device} onChange={setDevice} devices={["phone", "tablet", "laptop"]} />
       </div>
       <div className="mt-5">
-        <DevicePreview device={device}>
+        <DevicePreview device={device} scrollable>
           <RestaurantCardLayout
             restaurantName={restaurantInfo.restaurantName}
             address={restaurantInfo.address}

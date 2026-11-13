@@ -57,12 +57,16 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
 
-      # Paiement en ligne FedaPay (facultatif : sans clé, repli sur WhatsApp + « Encaisser »).
-      - key: FEDAPAY_ENV
+      # Paiement Mobile Money FeexPay (MTN, Moov, Celtiis). Clé privée « fp_… » en production, identifiant public de la boutique.
+      # `live` : vrais paiements (clé fp_…). Pour tester d'abord sur Render, mettez `sandbox` avec une clé test_key_….
+      - key: FEEXPAY_ENV
         value: live
-      - key: FEDAPAY_SECRET_KEY
+      - key: FEEXPAY_API_KEY
         sync: false
-      - key: FEDAPAY_WEBHOOK_SECRET
+      - key: FEEXPAY_SHOP_ID
+        sync: false
+      # Valeur de l'en-tête Authorization déclaré dans FeexPay > Webhooks (URL : https://<votre-api>/payments/feexpay/webhook).
+      - key: FEEXPAY_WEBHOOK_SECRET
         sync: false
 
       # Connexion avec Google (facultatif) : ID client OAuth de Google Cloud Console.
@@ -73,6 +77,9 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
+        sync: false
+      # Destinataire du formulaire de contact du site (par défaut ADMIN_EMAIL). Avec l'expéditeur de test de Resend : l'adresse du compte Resend..
+      - key: CONTACT_TO
         sync: false
 
       # Supabase Storage : fichiers envoyés (bucket public « cards »). Obligatoire sur Render,

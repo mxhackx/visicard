@@ -100,7 +100,7 @@ export default function OrderDocument({
             <Logo variant="dark" />
             <div className="mt-4 space-y-0.5 text-xs leading-5 text-sage">
               <p>{CONTACT.address}</p>
-              <p>{CONTACT.whatsappDisplay} · {CONTACT.email}</p>
+              <p>{CONTACT.whatsappDisplay}</p>
             </div>
           </div>
           <div className="sm:text-right">

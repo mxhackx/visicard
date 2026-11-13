@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Mail, MapPin, MessageCircle, Navigation, Send } from "lucide-react";
+import { Check, Clock, Loader2, Mail, MapPin, MessageCircle, Navigation, Send } from "lucide-react";
+import { sendContact } from "@/lib/contact-send";
 import { CONTACT, directionsUrl, mapEmbedUrl, whatsappUrl } from "@/lib/contact";
 import SectionHeading from "@/components/section-heading";
 
@@ -12,6 +13,7 @@ type Draft = {
   phone: string;
   kind: string;
   message: string;
+  website: string;
 };
 
 const emptyDraft: Draft = {
@@ -21,6 +23,7 @@ const emptyDraft: Draft = {
   phone: "",
   kind: "Restaurant",
   message: "",
+  website: "",
 };
 
 const kinds = ["Restaurant", "Commerce", "Cabinet / service", "Hôtel", "Groupe ou enseigne"];
@@ -90,6 +93,7 @@ ${draft.message}`;
               />
             ) : (
               <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={draft.website} onChange={(e) => update("website", e.target.value)} className="absolute -left-[9999px] h-0 w-0 opacity-0" />
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field
                     id="name"
@@ -199,12 +203,6 @@ ${draft.message}`;
                   href={whatsappUrl()}
                   external
                 />
-                <Channel
-                  icon={Mail}
-                  title="Email"
-                  value={CONTACT.email}
-                  href={`mailto:${CONTACT.email}`}
-                />
                 <Channel icon={Clock} title="Horaires" value={CONTACT.hours} />
                 <Channel
                   icon={MapPin}
@@ -253,29 +251,51 @@ function ReadyPanel({
   onEdit: () => void;
   onReset: () => void;
 }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async () => {
+    setState("sending");
+    setError(null);
+    try {
+      await sendContact(draft);
+      setState("sent");
+    } catch (err) {
+      setState("idle");
+      setError(err instanceof Error ? err.message : "L’envoi a échoué.");
+    }
+  };
+
+  if (state === "sent") {
+    return (
+      <div className="text-center" role="status">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><Check className="h-6 w-6" /></span>
+        <h3 className="mt-4 text-xl font-semibold text-ink/90">Message envoyé</h3>
+        <p className="mt-2 text-sm leading-7 text-sage">Merci {draft.name.split(" ")[0]} ! Nous vous répondons à {draft.email} sous 24 heures ouvrées.</p>
+        <button type="button" onClick={onReset} className="btn btn-outline mt-6">Envoyer un autre message</button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h3 className="text-xl font-semibold text-ink/90">Votre demande est prête</h3>
       <p className="mt-2 text-sm leading-7 text-sage">
-        Elle est pré-remplie ci-dessous. Choisissez le canal d’envoi — nous répondons sous 24 heures
-        ouvrées.
+        Relisez-la, puis envoyez-la : elle nous arrive directement par e-mail et nous répondons sous 24 heures ouvrées.
       </p>
 
       <pre className="field mt-5 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-ink/75">
         {summary}
       </pre>
 
+      {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm leading-5 text-red-700">{error}</p>}
+
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <a
-          href={`mailto:${CONTACT.email}?subject=${encodeURIComponent(
-            `Demande Moncode — ${draft.business.trim() || draft.name}`,
-          )}&body=${encodeURIComponent(summary)}`}
-          className="btn btn-outline"
-        >
-          <Mail className="h-4 w-4" />
-          Envoyer par email
-        </a>
-        <a href={whatsappUrl(summary)} target="_blank" rel="noreferrer" className="btn btn-primary">
+        <button type="button" onClick={send} disabled={state === "sending"} className="btn btn-primary">
+          {state === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {state === "sending" ? "Envoi en cours…" : "Envoyer ma demande"}
+        </button>
+        <a href={whatsappUrl(summary)} target="_blank" rel="noreferrer" className="btn btn-outline">
           <MessageCircle className="h-4 w-4" />
           Envoyer sur WhatsApp
         </a>

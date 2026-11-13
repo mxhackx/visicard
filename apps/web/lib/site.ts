@@ -47,6 +47,9 @@ export const PUBLIC_ROUTES = [
   { path: "/developpeurs", priority: 0.5, changeFrequency: "monthly" as const },
   { path: "/a-propos", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/contact", priority: 0.6, changeFrequency: "yearly" as const },
+  { path: "/confidentialite", priority: 0.3, changeFrequency: "yearly" as const },
+  { path: "/conditions", priority: 0.3, changeFrequency: "yearly" as const },
+  { path: "/mentions-legales", priority: 0.3, changeFrequency: "yearly" as const },
 ];
 
 /** Données structurées (schema.org) : l'entreprise et ses offres. */
@@ -60,7 +63,6 @@ export function organizationJsonLd() {
         name: SITE.name,
         url: SITE_URL,
         logo: `${SITE_URL}/icon-512.png`,
-        email: CONTACT.email,
         telephone: `+${CONTACT.whatsappNumber}`,
         address: { "@type": "PostalAddress", addressLocality: "Cotonou", addressCountry: "BJ" },
         areaServed: { "@type": "Country", name: "Bénin" },

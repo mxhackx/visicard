@@ -8,7 +8,6 @@ import Logo from "@/components/logo";
 import { useDialogs } from "@/components/account/auth-dialog";
 
 const navLinks = [
-  { href: "/#fonctionnement", label: "Fonctionnement" },
   { href: "/#exemples", label: "Exemples" },
   { href: "/#tarifs", label: "Tarifs" },
   { href: "/manuel", label: "Manuel" },

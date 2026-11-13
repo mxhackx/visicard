@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req, ServiceUnavailableException, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { sendContactMessage } from './notify';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CardsService } from '../cards/cards.service';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
@@ -98,5 +99,29 @@ export class PublicRequestsController {
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
   submit(@Param('slug') slug: string, @Body() body: Record<string, unknown>) {
     return this.account.submitRequest(slug, body as never);
+  }
+}
+
+/** Formulaire de contact du site : envoyé par e-mail à l'équipe (public, limité, avec piège anti-robots). */
+@Controller('contact')
+export class ContactController {
+  @Post()
+  @HttpCode(200)
+  @Throttle({ short: { limit: 3, ttl: 60_000 } })
+  async send(@Body() body: Record<string, unknown>) {
+    const text = (k: string, max: number) => (typeof body?.[k] === 'string' ? (body[k] as string).trim().slice(0, max) : '');
+    // Champ « website » invisible : seuls les robots le remplissent. On répond OK sans rien envoyer.
+    if (text('website', 100)) return { sent: true };
+    const name = text('name', 120);
+    const email = text('email', 160);
+    const phone = text('phone', 40);
+    const message = text('message', 4000);
+    if (name.length < 2) throw new BadRequestException('Indiquez votre nom.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) throw new BadRequestException('Adresse e-mail invalide.');
+    if (phone.replace(/\D/g, '').length < 8) throw new BadRequestException('Numéro de téléphone trop court pour être joint.');
+    if (message.length < 10) throw new BadRequestException('Décrivez votre besoin en quelques mots.');
+    const sent = await sendContactMessage({ name, business: text('business', 120), email, phone, kind: text('kind', 60), message });
+    if (!sent.ok) throw new ServiceUnavailableException(`${sent.reason ?? 'Envoi impossible.'} Écrivez-nous sur WhatsApp.`);
+    return { sent: true };
   }
 }

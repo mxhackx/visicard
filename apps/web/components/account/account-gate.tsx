@@ -14,7 +14,7 @@ export function useIsSignedIn(): boolean {
 }
 
 /**
- * Barrière du parcours : il faut un compte, puis Premium (5 000 FCFA par FedaPay), avant de créer.
+ * Barrière du parcours : il faut un compte, puis Premium (5 000 FCFA par Mobile Money), avant de créer.
  * Les deux étapes se font dans une fenêtre : la page et ce qui a été saisi restent en place.
  */
 export default function AccountGate({ children }: { children: ReactNode }) {
@@ -35,7 +35,7 @@ export default function AccountGate({ children }: { children: ReactNode }) {
       <div className="surface p-6 text-center sm:p-8">
         <h2 className="text-lg font-semibold text-ink/90">Passez en Premium pour continuer</h2>
         <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-sage">
-          {PREMIUM_PRICE} FCFA, payés par FedaPay. Votre contenu reste ici, rien n’est perdu.
+          {PREMIUM_PRICE} FCFA, payés par Mobile Money. Votre contenu reste ici, rien n’est perdu.
         </p>
         <button type="button" onClick={() => openPremium({ label: "Passer en Premium", suite: path || "/creer" })} className="btn btn-primary mt-5">
           Payer {PREMIUM_PRICE} FCFA

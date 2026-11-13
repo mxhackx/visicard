@@ -8,7 +8,7 @@ import type { OrderStatus } from "./orders";
 export interface SessionResult {
   access_token: string;
   refresh_token: string;
-  user: { id: string; email?: string; name?: string | null; picture?: string | null; role: "admin" | "user" };
+  user: { id: string; email?: string; name?: string | null; picture?: string | null; phone?: string | null; role: "admin" | "user" };
 }
 
 export interface AccountOrder {
@@ -23,6 +23,11 @@ export interface AccountOrder {
   paidAt: string | null;
   title: string;
   cardStatus: "draft" | "active" | "rejected" | null;
+  /** QR code créé sans commande (lien gratuit) : pas de page de commande, téléchargement direct. */
+  free?: boolean;
+  invoiceNumber?: string | null;
+  payload?: string | null;
+  qrStyle?: string | null;
   /** Ouvertures de la page publique ; `null` pour un QR direct (il ne passe pas par Moncode). */
   scans: { total: number; last7: number } | null;
 }
@@ -49,8 +54,22 @@ const json = (body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export const registerAccount = (name: string, email: string, password: string) =>
-  call<SessionResult>("/auth/register", json({ name, email, password }));
+export const registerAccount = (name: string, email: string, password: string, phone: string) =>
+  call<SessionResult>("/auth/register", json({ name, email, password, phone }));
+
+/** Mot de passe oublié : envoie un lien par e-mail (la réponse ne dit pas si l'adresse existe). */
+export const forgotPassword = (email: string) => call<{ sent: true }>("/auth/forgot", json({ email }));
+
+/** Choisit un nouveau mot de passe avec le lien reçu par e-mail. */
+export const resetPassword = (token: string, password: string) => call<{ success: true }>("/auth/reset", json({ token, password }));
+
+/** Complète le profil du compte connecté (nom et téléphone), par exemple après une connexion Google. */
+export const updateProfile = (token: string, body: { name?: string; phone?: string }) =>
+  call<{ id: string; email: string; name: string | null; phone: string | null }>("/auth/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
 
 export const loginAccount = (email: string, password: string) =>
   call<SessionResult>("/auth/login", json({ email, password }));
@@ -60,6 +79,22 @@ export const loginWithGoogle = (credential: string) =>
 
 export const fetchMyOrders = (token: string) =>
   call<AccountOrder[]>("/orders/mine", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+
+export interface PremiumReceipt {
+  id: string;
+  amount: number;
+  paidAt: string | null;
+  expiresAt: string | null;
+  reference: string;
+}
+
+/** Paiements Premium du compte (reçus). */
+export const fetchPremiumHistory = (token: string) =>
+  call<PremiumReceipt[]>("/premium/history", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+
+/** Envoie à l'adresse du compte le QR code d'une de ses cartes (PNG en pièce jointe). */
+export const sendQrToMe = (token: string, slug: string) =>
+  call<{ sent: true; to: string }>(`/cards/${encodeURIComponent(slug)}/send-me`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
 
 /** Redirection interne sûre : jamais vers un autre site. */
 export function safeNext(next: string | undefined | null, fallback = "/compte"): string {

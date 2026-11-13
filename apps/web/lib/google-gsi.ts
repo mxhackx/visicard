@@ -29,8 +29,26 @@ export function onGoogleCredential(h: Handler): () => void {
   };
 }
 
+/**
+ * Google Identity Services écrit « FedCM get() rejects with AbortError » dans la console chaque fois que sa propre demande est
+ * interrompue (fenêtre ignorée puis page quittée, par exemple). C'est une interruption normale, sans effet : on l'écarte
+ * pour que la console (et l'écran d'erreurs de Next en développement) ne la signale plus.
+ */
+function silenceAbortLog() {
+  const w = window as unknown as { __gsiLogFilter?: boolean };
+  if (w.__gsiLogFilter) return;
+  w.__gsiLogFilter = true;
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    const text = args.map((a) => (typeof a === "string" ? a : "")).join(" ");
+    if (text.includes("[GSI_LOGGER]") && text.includes("AbortError")) return;
+    original.apply(console, args as []);
+  };
+}
+
 export function loadGoogle(): Promise<GoogleId | null> {
   if (!GOOGLE_CLIENT_ID || typeof window === "undefined") return Promise.resolve(null);
+  silenceAbortLog();
   if (loading) return loading;
   loading = new Promise((resolve) => {
     const init = () => {
@@ -40,7 +58,8 @@ export function loadGoogle(): Promise<GoogleId | null> {
         client_id: GOOGLE_CLIENT_ID,
         callback: ({ credential }: { credential: string }) => handlers[handlers.length - 1]?.(credential),
         auto_select: false,
-        cancel_on_tap_outside: true,
+        // Un clic ailleurs sur la page ne doit pas annuler la fenêtre : cette annulation faisait remonter l'erreur « AbortError » de FedCM.
+        cancel_on_tap_outside: false,
         use_fedcm_for_prompt: true,
         itp_support: true,
       });

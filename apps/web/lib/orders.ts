@@ -1,5 +1,5 @@
 /**
- * Commandes client (sans compte) : devis → paiement sur WhatsApp (confirmé par
+ * Commandes client (sans compte) : devis → paiement Mobile Money (FeexPay) (confirmé par
  * l'admin) → facture.
  * Le jeton du lien privé est gardé dans le navigateur et envoyé dans l'en-tête
  * `X-Order-Key` ; il n'apparaît jamais dans les URL envoyées à l'API.
@@ -58,7 +58,7 @@ export interface OrderView {
   lastPayment: { provider: string; status: "pending" | "succeeded" | "failed"; createdAt: string } | null;
   modifications: { reference: string; status: OrderStatus; amount: number; quoteNumber: string; createdAt: string }[];
   pendingChanges: Record<string, unknown> | null;
-  /** `online` : le paiement en ligne (FedaPay) est disponible. */
+  /** `online` : le paiement Mobile Money (FeexPay) est disponible. */
   payment?: { online: boolean };
 }
 
@@ -176,30 +176,29 @@ export async function adminOrderAction(orderId: string, action: "mark-paid" | "c
   );
 }
 
-/** Crée la transaction FedaPay et renvoie l'adresse de sa page de paiement. */
-export async function startPayment(reference: string, key: string): Promise<{ paymentUrl: string }> {
-  return parse(await send(`${API_URL}/orders/${reference}/payments`, { method: "POST", headers: accessHeaders(key) }));
+/** Lance le paiement Mobile Money d'une commande (FeexPay) : le client valide sur son téléphone. */
+export async function startPayment(
+  reference: string,
+  key: string,
+  body: { network: string; phone: string },
+): Promise<{ reference: string; status: string }> {
+  return parse(
+    await send(`${API_URL}/orders/${reference}/payments`, {
+      method: "POST",
+      headers: { ...accessHeaders(key), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
-/** Relit le paiement chez FedaPay, puis renvoie la commande à jour. */
+/** Relit le paiement chez FeexPay, puis renvoie la commande à jour. */
 export async function refreshOrder(reference: string, key: string): Promise<OrderView> {
   return parse(await send(`${API_URL}/orders/${reference}/payments/refresh`, { method: "POST", headers: accessHeaders(key) }));
 }
 
-/**
- * Parcours « un seul bouton » : mémorise la commande puis envoie le client sur la page de
- * paiement FedaPay. Renvoie `false` si le paiement en ligne n'est pas disponible : l'appelant
- * ouvre alors la page de commande, où le paiement FedaPay peut être relancé.
- */
-export async function payOrder(order: CreatedOrder): Promise<boolean> {
+/** Mémorise la clé privée de la commande (le navigateur la garde) ; le paiement, lui, passe par le formulaire Mobile Money. */
+export function rememberOrder(order: CreatedOrder): void {
   rememberOrderKey(order.reference, order.accessToken);
-  try {
-    const { paymentUrl } = await startPayment(order.reference, order.accessToken);
-    window.location.assign(paymentUrl);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function requestModification(reference: string, key: string, body: FormData): Promise<CreatedOrder> {

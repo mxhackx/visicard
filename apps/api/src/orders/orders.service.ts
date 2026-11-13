@@ -12,7 +12,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Order, Payment, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
-import { FedapayService } from './payments/fedapay.service';
+import { FEEXPAY_NETWORKS, FeexpayService, type FeexpayNetwork } from './payments/feexpay.service';
 import { PremiumService } from './premium.service';
 import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
@@ -42,7 +42,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cards: CardsService,
-    private readonly fedapay: FedapayService,
+    private readonly feexpay: FeexpayService,
     private readonly premium: PremiumService,
   ) {}
 
@@ -66,7 +66,7 @@ export class OrdersService {
     if (!userId) {
       throw new UnauthorizedException('Connectez-vous ou créez un compte pour passer en Premium.');
     }
-    // Rien ne se crée sans Premium actif (5 000 FCFA, payés par FedaPay avant tout).
+    // Rien ne se crée sans Premium actif (5 000 FCFA, payés par Mobile Money avant tout).
     if (!(await this.premium.isActive({ id: userId, role }))) {
       throw new HttpException('Passez en Premium (5 000 FCFA) pour créer ce QR code.', HttpStatus.PAYMENT_REQUIRED);
     }
@@ -202,17 +202,21 @@ export class OrdersService {
         : null,
       modifications: children,
       pendingChanges: order.kind === 'modification' ? order.pendingChanges : null,
-      /** Le paiement en ligne n'est proposé que si FedaPay est configuré. */
-      payment: { online: this.fedapay.configured },
+      /** Le paiement en ligne n'est proposé que si FeexPay est configuré. */
+      payment: { online: this.feexpay.configured },
     };
   }
 
   /* ------------------------------------------------------------------ */
-  /* Paiement en ligne (FedaPay) ; repli : WhatsApp + « Encaisser » admin */
+  /* Paiement Mobile Money (FeexPay) ; « Encaisser » côté admin            */
   /* ------------------------------------------------------------------ */
 
-  /** Crée la transaction FedaPay et renvoie l'adresse de la page de paiement. */
-  async startPayment(reference: string, access: OrderAccess) {
+  /** Lance le paiement Mobile Money d'une commande : le client valide sur son téléphone. */
+  async startPayment(
+    reference: string,
+    access: OrderAccess,
+    input: { network?: string; phone?: string; firstName?: string; lastName?: string; email?: string },
+  ) {
     const order = await this.authorize(reference, access);
     if (order.status === 'paid') throw new ConflictException('Cette commande est déjà payée.');
     if (order.status === 'cancelled') throw new ConflictException('Cette commande a été annulée.');
@@ -220,37 +224,41 @@ export class OrdersService {
     if (card?.status === 'rejected') {
       throw new ConflictException('Ce contenu a été refusé : contactez-nous avant de payer.');
     }
+    const network = String(input.network ?? '').toLowerCase() as FeexpayNetwork;
+    if (!FEEXPAY_NETWORKS.includes(network)) throw new BadRequestException('Choisissez MTN, Moov ou Celtiis.');
 
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
-    const checkout = await this.fedapay.createCheckout({
+    const payment = await this.feexpay.requestPayment({
+      network,
+      phone: input.phone ?? '',
       amount: order.amount,
-      description: `Moncode ${order.reference} · ${order.quoteNumber}`,
-      // Le lien secret n'est pas transmis à FedaPay : le navigateur le garde de son côté.
-      callbackUrl: `${appUrl}/commande/${order.reference}?paiement=fedapay`,
-      customer: { name: order.customerName, phone: order.customerPhone, email: order.customerEmail },
+      description: `Moncode ${order.reference}`,
+      callbackInfo: order.reference,
+      firstName: (input.firstName ?? '').trim() || order.customerName.split(/\s+/)[0],
+      lastName: (input.lastName ?? '').trim() || order.customerName.split(/\s+/).slice(1).join(' ') || 'Client',
+      email: (input.email ?? '').trim() || order.customerEmail || undefined,
     });
     await this.prisma.$transaction([
       this.prisma.payment.create({
         data: {
           orderId: order.id,
-          provider: 'fedapay',
-          providerRef: checkout.transactionId,
+          provider: 'feexpay',
+          providerRef: payment.reference,
           amount: order.amount,
           currency: order.currency,
-          phone: order.customerPhone,
+          phone: this.feexpay.normalizePhone(input.phone ?? '', network),
         },
       }),
       this.prisma.order.update({ where: { id: order.id }, data: { status: 'pending' } }),
     ]);
-    return { paymentUrl: checkout.paymentUrl };
+    return { reference: payment.reference, status: payment.status.toLowerCase() };
   }
 
-  /** Interroge FedaPay pour le dernier paiement en attente, puis renvoie la commande. */
+  /** Interroge FeexPay pour le dernier paiement en attente, puis renvoie la commande. */
   async refreshPayment(reference: string, access: OrderAccess) {
     const order = await this.authorize(reference, access);
     if (order.status !== 'paid') {
       const pending = await this.prisma.payment.findFirst({
-        where: { orderId: order.id, status: 'pending', provider: 'fedapay' },
+        where: { orderId: order.id, status: 'pending', provider: 'feexpay' },
         orderBy: { createdAt: 'desc' },
       });
       if (pending) await this.verifyWithProvider(pending);
@@ -259,21 +267,20 @@ export class OrdersService {
     return this.present(fresh);
   }
 
-  /** Le statut ne vient jamais du navigateur : il est relu chez FedaPay. */
+  /** Le statut ne vient jamais du navigateur : il est relu chez FeexPay. */
   private async verifyWithProvider(payment: Payment) {
     try {
-      const { status, amount, raw } = await this.fedapay.getStatus(payment.providerRef);
-      if (status === 'approved' || status === 'transferred') {
+      const { status, amount, raw } = await this.feexpay.getStatus(payment.providerRef);
+      if (status === 'SUCCESSFUL') {
         if (amount !== undefined && amount !== payment.amount) {
-          this.logger.error(`Montant FedaPay inattendu pour ${payment.id} : ${amount} ≠ ${payment.amount}`);
-          return;
+          this.logger.warn(`Montant FeexPay différent pour ${payment.id} : ${amount} ≠ ${payment.amount}`);
         }
         await this.settle(payment, 'succeeded', raw);
-      } else if (['declined', 'canceled', 'refunded'].includes(status)) {
+      } else if (status === 'FAILED') {
         await this.settle(payment, 'failed', raw);
       }
     } catch (error) {
-      this.logger.warn(`Vérification FedaPay ${payment.providerRef} impossible : ${error}`);
+      this.logger.warn(`Vérification FeexPay ${payment.providerRef} impossible : ${error}`);
     }
   }
 
@@ -289,11 +296,11 @@ export class OrdersService {
     }
   }
 
-  /** Webhook FedaPay : on ne se fie pas au corps reçu, on relit la transaction. */
-  async handleFedapayEvent(transactionId: string | number | undefined) {
+  /** Webhook FeexPay : on ne se fie pas au corps reçu, on relit la transaction. */
+  async handleFeexpayEvent(transactionId: string | number | undefined) {
     if (!transactionId) return;
     const payment = await this.prisma.payment.findUnique({
-      where: { provider_providerRef: { provider: 'fedapay', providerRef: String(transactionId) } },
+      where: { provider_providerRef: { provider: 'feexpay', providerRef: String(transactionId) } },
     });
     if (payment && payment.status === 'pending') await this.verifyWithProvider(payment);
   }
@@ -434,7 +441,32 @@ export class OrdersService {
       : [[], []];
     const totalBy = new Map(totals.map((t) => [String(t.cardId), t._count._all]));
     const recentBy = new Map(recents.map((t) => [String(t.cardId), t._count._all]));
-    return orders.map((o) => {
+    // QR codes créés dans le créateur sans commande (liens gratuits) : eux aussi sont enregistrés dans l'espace du compte.
+    const free = await this.prisma.card.findMany({
+      where: { ownerId: userId, serviceType: 'direct', status: 'active', id: { notIn: orders.map((o) => o.cardId) } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { slug: true, title: true, contentUrl: true, qrStyle: true, createdAt: true },
+    });
+    const freeRows = free.map((c) => ({
+      scans: null,
+      reference: '',
+      slug: c.slug,
+      serviceType: 'direct' as const,
+      serviceLabel: 'QR code gratuit',
+      status: 'paid',
+      amount: 0,
+      currency: 'XOF',
+      createdAt: c.createdAt,
+      paidAt: c.createdAt,
+      title: c.title || 'QR code',
+      cardStatus: 'active',
+      free: true,
+      invoiceNumber: null as string | null,
+      payload: c.contentUrl,
+      qrStyle: c.qrStyle,
+    }));
+    const paidRows = orders.map((o) => {
       const card = byId.get(String(o.cardId));
       return {
         scans: o.serviceType === 'direct' ? null : { total: totalBy.get(String(o.cardId)) ?? 0, last7: recentBy.get(String(o.cardId)) ?? 0 },
@@ -449,19 +481,25 @@ export class OrdersService {
         paidAt: o.paidAt,
         title: card?.title || card?.restaurantName || SERVICE_LABELS[o.serviceType as ServiceType] || 'QR code',
         cardStatus: card?.status ?? null,
+        free: false,
+        invoiceNumber: o.invoiceNumber,
+        payload: null as string | null,
+        qrStyle: null as string | null,
       };
     });
+    return [...paidRows, ...freeRows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   private validateCustomer(input: CustomerInput) {
     const name = input.customerName?.trim() ?? '';
     const phone = input.customerPhone?.trim() ?? '';
     const email = input.customerEmail?.trim() || null;
-    if (name.length < 2) throw new BadRequestException('Indiquez votre nom.');
+    // Nom et téléphone viennent du compte et restent facultatifs : rien n'est exigé avant d'obtenir le QR code.
+    const displayName = name.length >= 2 ? name : (email ?? '').split('@')[0] || 'Client';
     const digits = phone.replace(/\D/g, '').length;
-    if (digits < 8 || digits > 15) throw new BadRequestException('Numéro de téléphone invalide.');
+    if (phone && (digits < 8 || digits > 15)) throw new BadRequestException('Numéro de téléphone invalide.');
     if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new BadRequestException('Adresse e-mail invalide.');
-    return { name: name.slice(0, 120), phone: phone.slice(0, 30), email };
+    return { name: displayName.slice(0, 120), phone: phone.slice(0, 30), email };
   }
 
   private async uniqueReference(): Promise<string> {

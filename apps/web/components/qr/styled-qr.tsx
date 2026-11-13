@@ -36,6 +36,7 @@ export default function StyledQr({
   downloadName,
   hideQr = false,
   className = "",
+  onDownload,
 }: {
   data: string;
   /** Style déjà lu, ou valeur brute de la colonne `qrStyle`. */
@@ -46,6 +47,8 @@ export default function StyledQr({
   /** N'affiche que les boutons de téléchargement (le QR est déjà visible ailleurs). */
   hideQr?: boolean;
   className?: string;
+  /** Appelé au téléchargement (PNG ou SVG) : sert à enregistrer le QR code créé. */
+  onDownload?: (extension: "png" | "svg") => void;
 }) {
   const resolved = typeof style === "object" && style !== null ? style : parseQrStyle(style);
   const key = JSON.stringify(resolved);
@@ -81,6 +84,7 @@ export default function StyledQr({
         type: extension === "svg" ? "svg" : "canvas",
       });
       await file.download({ name: downloadName || "qr-code", extension });
+      onDownload?.(extension);
     } finally {
       setBusy(null);
     }

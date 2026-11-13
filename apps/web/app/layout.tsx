@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { SITE, SITE_URL, organizationJsonLd } from "@/lib/site";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { FileProvider } from "./context/FileContext";
 import WhatsAppButton from "@/components/whatsapp-button";
 import ScrollProgress from "@/components/scroll-progress";
 import RevealObserver from "@/components/reveal-observer";
 import GoogleOneTap from "@/components/account/google-one-tap";
+import IntroScript from "@/components/intro-script";
 import { DialogsProvider } from "@/components/account/auth-dialog";
 import { cn } from "@/lib/utils";
 
@@ -71,9 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
         {/* Déjà vue pendant cette session (ajouter ?intro à l'adresse pour la revoir) : l'animation d'accueil est masquée avant le premier affichage (pas de clignotement). */}
-        <Script id="intro-seen" strategy="beforeInteractive">
-          {"try{if(sessionStorage.getItem('moncode-intro')&&!/[?&]intro\\b/.test(location.search))document.documentElement.classList.add('intro-seen')}catch(e){}"}
-        </Script>
+        <IntroScript />
       </head>
       <body className="flex min-h-full flex-col text-ink">
         <FileProvider>

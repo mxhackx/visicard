@@ -15,6 +15,7 @@ export default function GoogleOneTap() {
   const { authToken, loginSession } = useFile();
   const pathname = usePathname();
   const login = useRef(loginSession);
+  const prompted = useRef(false);
   useEffect(() => {
     login.current = loginSession;
   });
@@ -28,21 +29,33 @@ export default function GoogleOneTap() {
     const off = onGoogleCredential(async (credential) => {
       try {
         const s = await loginWithGoogle(credential);
-        login.current(s.access_token, s.user.role, { id: s.user.id, email: s.user.email, name: s.user.name, picture: s.user.picture }, s.refresh_token);
+        login.current(s.access_token, s.user.role, { id: s.user.id, email: s.user.email, name: s.user.name, picture: s.user.picture, phone: s.user.phone }, s.refresh_token);
       } catch {
         /* la personne peut réessayer avec le bouton de la page de connexion */
       }
     });
     // Après l'animation d'accueil et le premier affichage : la fenêtre ne doit pas voler la vedette.
     timer = window.setTimeout(() => {
-      loadGoogle().then((g) => alive && g?.prompt());
+      loadGoogle().then((g) => {
+        if (!alive || !g) return;
+        prompted.current = true;
+        g.prompt();
+      });
     }, 3200);
     return () => {
       alive = false;
       window.clearTimeout(timer);
       off();
-      window.google?.accounts?.id.cancel();
     };
+  }, [authToken, blocked]);
+
+  // La fenêtre n'est retirée que lorsqu'elle n'a plus lieu d'être (connecté, ou page sans One Tap) : annuler à chaque
+  // changement de page interrompait la requête FedCM de Chrome (erreur « AbortError » dans la console).
+  useEffect(() => {
+    if ((authToken || blocked) && prompted.current) {
+      prompted.current = false;
+      window.google?.accounts?.id.cancel();
+    }
   }, [authToken, blocked]);
 
   return null;

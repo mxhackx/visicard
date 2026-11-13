@@ -12,6 +12,8 @@ export interface AuthUser {
   name?: string | null;
   /** Photo de profil (connexion Google). */
   picture?: string | null;
+  /** Téléphone du compte (+indicatif) : sert au paiement Mobile Money. */
+  phone?: string | null;
 }
 
 export interface UserInfo {
@@ -132,6 +134,8 @@ interface FileContextType {
     refreshToken?: string,
   ) => void;
   logoutSession: () => void;
+  /** Met à jour le profil affiché (nom, téléphone) sans changer de session. */
+  updateAuthUser: (patch: Partial<AuthUser>) => void;
   refreshAccessToken: () => Promise<string | null>;
 }
 
@@ -182,7 +186,8 @@ export function FileProvider({ children }: { children: ReactNode }) {
         const storedEmail = sessionStorage.getItem("moncode_user_email");
         const picture = sessionStorage.getItem("moncode_user_picture");
         const name = sessionStorage.getItem("moncode_user_name");
-        return storedEmail ? { email: storedEmail, picture: picture || null, name: name || null } : null;
+        const phone = sessionStorage.getItem("moncode_user_phone");
+        return storedEmail ? { email: storedEmail, picture: picture || null, name: name || null, phone: phone || null } : null;
       } catch {
         return null;
       }
@@ -233,9 +238,27 @@ export function FileProvider({ children }: { children: ReactNode }) {
         else sessionStorage.removeItem("moncode_user_picture");
         if (user.name) sessionStorage.setItem("moncode_user_name", user.name);
         else sessionStorage.removeItem("moncode_user_name");
+        if (user.phone) sessionStorage.setItem("moncode_user_phone", user.phone);
+        else sessionStorage.removeItem("moncode_user_phone");
       }
       if (newRefreshToken) {
         sessionStorage.setItem("moncode_refresh_token", newRefreshToken);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const updateAuthUser = (patch: Partial<AuthUser>) => {
+    setAuthUser((prev) => ({ ...(prev ?? {}), ...patch }));
+    try {
+      if (patch.name !== undefined) {
+        if (patch.name) sessionStorage.setItem("moncode_user_name", patch.name);
+        else sessionStorage.removeItem("moncode_user_name");
+      }
+      if (patch.phone !== undefined) {
+        if (patch.phone) sessionStorage.setItem("moncode_user_phone", patch.phone);
+        else sessionStorage.removeItem("moncode_user_phone");
       }
     } catch {
       // ignore
@@ -257,6 +280,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem("moncode_user_email");
       sessionStorage.removeItem("moncode_user_picture");
       sessionStorage.removeItem("moncode_user_name");
+      sessionStorage.removeItem("moncode_user_phone");
       sessionStorage.removeItem("genqr_admin_token");
       sessionStorage.removeItem("visitcard_admin_token");
     } catch {
@@ -466,6 +490,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         isAuthLoading,
         loginSession,
         logoutSession,
+        updateAuthUser,
         refreshAccessToken,
       }}
     >

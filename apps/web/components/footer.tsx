@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import Logo from "@/components/logo";
 import { CONTACT, whatsappUrl } from "@/lib/contact";
 
@@ -13,6 +13,12 @@ const liens = [
   { href: "/creer", label: "QR code gratuit (lien)" },
   { href: "/developpeurs", label: "API développeurs" },
   { href: "/contact", label: "Contact" },
+];
+
+const legal = [
+  { href: "/confidentialite", label: "Confidentialité" },
+  { href: "/conditions", label: "Conditions d’utilisation" },
+  { href: "/mentions-legales", label: "Mentions légales" },
 ];
 
 export default function Footer() {
@@ -55,23 +61,19 @@ export default function Footer() {
                 {CONTACT.whatsappDisplay}
               </a>
             </li>
-            <li>
-              <a
-                href={`mailto:${CONTACT.email}`}
-                className="inline-flex items-center gap-3 text-[15px] text-ink/85 transition-colors hover:text-forest"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-deep text-forest ring-1 ring-line">
-                  <Mail className="h-4 w-4" />
-                </span>
-                {CONTACT.email}
-              </a>
-            </li>
           </ul>
         </div>
 
-        <p className="py-6 text-sm text-sage">
-          © {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.
-        </p>
+        <div className="flex flex-col gap-3 py-6 text-sm text-sage sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.</p>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1">
+            {legal.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="transition-colors hover:text-forest">{item.label}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </footer>
   );

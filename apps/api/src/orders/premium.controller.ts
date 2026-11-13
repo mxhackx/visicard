@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, HttpCode, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
@@ -25,10 +25,21 @@ export class PremiumController {
     return this.premium.status(await this.user(req, authHeader));
   }
 
-  @Post('checkout')
+  @Get('history')
+  @SkipThrottle({ short: true })
+  async history(@Req() req: Request, @Headers('authorization') authHeader?: string) {
+    return this.premium.history((await this.user(req, authHeader)).id);
+  }
+
+  /** Lance le paiement Mobile Money : le client valide ensuite sur son téléphone. */
+  @Post('pay')
   @HttpCode(200)
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
-  async checkout(@Req() req: Request, @Headers('authorization') authHeader?: string) {
-    return this.premium.checkout(await this.user(req, authHeader));
+  async pay(
+    @Req() req: Request,
+    @Headers('authorization') authHeader?: string,
+    @Body() body?: { network?: string; phone?: string },
+  ) {
+    return this.premium.pay(await this.user(req, authHeader), body ?? {});
   }
 }

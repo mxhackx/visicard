@@ -87,7 +87,7 @@ export default function ExamplesSection() {
           </div>
 
           <div className="order-1 min-w-0 overflow-x-clip lg:order-2">
-            <DevicePreview device="laptop">
+            <DevicePreview device="laptop" scrollable>
               <div key={layout} className="example-enter">
                 <ExamplePage layout={layout} />
               </div>

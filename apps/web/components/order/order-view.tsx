@@ -11,15 +11,13 @@ import {
   Lock,
   MessageCircle,
   PencilLine,
-  RefreshCw,
   Ban,
   CheckCircle2,
   Receipt,
   ShieldAlert,
-  CreditCard,
   QrCode,
 } from "lucide-react";
-import FedapayBadge from "@/components/fedapay-badge";
+import PaymentForm from "@/components/payment/payment-form";
 import DirectResult from "@/components/order/direct-result";
 import StyledQr from "@/components/qr/styled-qr";
 import { useOrderKey } from "@/lib/use-order-key";
@@ -87,27 +85,6 @@ export default function OrderView({
     return () => window.clearTimeout(id);
   }, [key, load]);
 
-  // Retour de la page de paiement FedaPay : on relit le statut chez FedaPay (jamais depuis l'adresse).
-  useEffect(() => {
-    if (adminToken || !key) return;
-    if (new URLSearchParams(window.location.search).get("paiement") !== "fedapay") return;
-    window.history.replaceState(null, "", `/commande/${reference}`);
-    let tries = 0;
-    let timer = 0;
-    const check = async () => {
-      try {
-        const next = await refreshOrder(reference, key);
-        setOrder(next);
-        // Le paiement mobile peut mettre quelques secondes à être confirmé.
-        if (next.status === "pending" && ++tries < 8) timer = window.setTimeout(check, 4000);
-      } catch {
-        /* le bouton « actualiser » reste disponible */
-      }
-    };
-    void check();
-    return () => window.clearTimeout(timer);
-  }, [adminToken, key, reference]);
-
   // Le paiement est confirmé par l'équipe : la page se relit quand le client y revient.
   useEffect(() => {
     if (adminToken) return;
@@ -153,11 +130,11 @@ export default function OrderView({
 
   return (
     <Shell>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
           <QrCode className="h-7 w-7" />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <p className="text-sm font-medium text-sage">
             {order.kind === "modification" ? "Modification" : order.serviceLabel} · {order.reference}
           </p>
@@ -175,7 +152,6 @@ export default function OrderView({
       </div>
 
       {paid && order.serviceType === "direct" && order.card.preview?.contentUrl ? (
-        <>
         <DirectResult
           payload={order.card.preview.contentUrl}
           style={order.card.preview.qrStyle}
@@ -183,35 +159,33 @@ export default function OrderView({
           reference={order.reference}
           invoiceNumber={order.invoiceNumber}
           invoiceHref={adminToken ? `/admin/commandes/${order.reference}/facture` : `/commande/${order.reference}/facture`}
-          amountLabel={fcfa(order.amount)}
+          amountLabel={order.amount === 0 ? "Offert" : fcfa(order.amount)}
           paidLabel={`Payée le ${formatDate(order.paidAt)}`}
+          extra={!adminToken ? <PrivateLink reference={order.reference} orderKey={key} /> : undefined}
         />
-        {!adminToken && <div className="mt-6 max-w-2xl"><PrivateLink reference={order.reference} orderKey={key} /></div>}
-        </>
       ) : (
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
         <div className="min-w-0 space-y-6">
           {order.card.status === "rejected" && <RejectedNotice order={order} />}
           {adminToken && <AdminOrderPanel order={order} adminToken={adminToken} onDone={() => load()} />}
+          {/* Le contenu à gauche ; le QR code (ou le devis et le paiement) à droite. */}
+          <Preview order={order} />
+          {paid && <Details order={order} />}
+          {paid && order.kind === "creation" && !adminToken && order.serviceType !== "direct" && <ModifyCard order={order} />}
+          {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
+        </div>
+
+        <aside className="order-first min-w-0 space-y-6 lg:order-none">
           {paid ? (
-            <>
-              <QrPanel order={order} admin={Boolean(adminToken)} />
-              <Details order={order} />
-            </>
+            <QrPanel order={order} admin={Boolean(adminToken)} />
           ) : adminToken ? (
             <QuotePanel order={order} admin />
           ) : order.status !== "cancelled" && order.card.status !== "rejected" ? (
             <>
               <QuotePanel order={order} />
-              <PaymentPanel order={order} onRefresh={load} onPay={async () => { const { paymentUrl } = await startPayment(reference, key!); window.location.assign(paymentUrl); }} />
+              <PaymentPanel order={order} orderKey={key} onRefresh={load} />
             </>
           ) : null}
-          {paid && order.kind === "creation" && !adminToken && order.serviceType !== "direct" && <ModifyCard order={order} />}
-          {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
-        </div>
-
-        <aside className="order-first min-w-0 lg:sticky lg:top-24 lg:order-none">
-          <Preview order={order} />
         </aside>
       </div>
       )}
@@ -386,60 +360,30 @@ function QuotePanel({ order, admin }: { order: Order; admin?: boolean }) {
 
 /* ----------------------------------- Paiement ----------------------------------- */
 
-function PaymentPanel({ order, onRefresh, onPay }: { order: Order; onRefresh: () => Promise<unknown>; onPay: () => Promise<void> }) {
-  const [checking, setChecking] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
+function PaymentPanel({ order, orderKey, onRefresh }: { order: Order; orderKey: string; onRefresh: () => Promise<unknown> }) {
   const message =
     `Bonjour Moncode, j’ai une question sur ma commande ${order.reference} ` +
     `(devis ${order.quoteNumber}, ${order.serviceLabel}, ${fcfa(order.amount)}).`;
 
   return (
-    <div className="surface p-6">
-      <h2 className="text-base font-semibold text-ink/90">Paiement</h2>
-      <p className="mt-2 text-sm leading-6 text-sage">
-        Réglez {fcfa(order.amount)} par Mobile Money ou carte, via FedaPay. Votre QR code est activé et votre facture émise dès la confirmation.
+    <div className="surface p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-ink/90">Paiement par Mobile Money</h2>
+      <p className="mt-1 mb-4 text-sm leading-6 text-sage">
+        Votre QR code est activé et votre facture émise dès la confirmation du paiement.
       </p>
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-        <button
-          type="button"
-          disabled={paying}
-          onClick={async () => {
-            setPaying(true);
-            setPayError(null);
-            try {
-              await onPay();
-            } catch (err) {
-              setPayError(
-                err instanceof Error && !/503|indisponible/i.test(err.message)
-                  ? err.message
-                  : "Le paiement FedaPay est momentanément indisponible. Réessayez dans un instant.",
-              );
-              setPaying(false);
-            }
-          }}
-          className="btn btn-primary min-w-0 flex-1 sm:flex-none"
-        >
-          {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-          {paying ? "Redirection…" : `Payer ${fcfa(order.amount)}`}
-        </button>
-        <FedapayBadge />
-      </div>
-      {payError && <p role="alert" className="mt-3 text-sm font-medium text-red-600">{payError}</p>}
-      <button
-        type="button"
-        disabled={checking}
-        onClick={async () => {
-          setChecking(true);
-          await onRefresh();
-          setChecking(false);
+      <PaymentForm
+        amount={order.amount}
+        defaults={{ phone: order.customer.phone }}
+        pay={async (v) => {
+          await startPayment(order.reference, orderKey, v);
         }}
-        className="btn btn-outline btn-sm mt-4 w-full"
-      >
-        {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-        J’ai payé : actualiser
-      </button>
-      <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
+        check={async () => {
+          const next = await refreshOrder(order.reference, orderKey);
+          return next.status === "paid" ? "paid" : next.status === "quote" || next.status === "cancelled" ? "failed" : "pending";
+        }}
+        onPaid={() => void onRefresh()}
+      />
+      <a href={whatsappUrl(message)} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-sage hover:text-ink">
         <MessageCircle className="h-4 w-4" /> Une question ? Écrivez-nous
       </a>
       <p className="mt-3 text-xs text-sage">
@@ -601,7 +545,7 @@ function AdminOrderPanel({ order, adminToken, onDone }: { order: Order; adminTok
         <div>
           <dt className="text-sage">Paiement</dt>
           <dd className="font-medium text-ink/90">
-            {order.lastPayment ? `${providerLabel(order.lastPayment.provider)} · ${order.lastPayment.status}` : "À régler par FedaPay"}
+            {order.lastPayment ? `${providerLabel(order.lastPayment.provider)} · ${order.lastPayment.status}` : "À régler par Mobile Money"}
           </dd>
         </div>
       </dl>

@@ -60,8 +60,8 @@ export default function DeveloppeursPage() {
         <h2 className="page-title mt-14">Quotas</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
-            ["1 000", "requêtes par mois et par clé"],
-            ["30", "requêtes par minute et par clé"],
+            ["1 000", "requêtes gratuites par mois (liens simples)"],
+            ["50 000", "requêtes par mois avec Premium (tous les contenus)"],
             ["5", "clés actives par compte"],
           ].map(([v, l]) => (
             <div key={l} className="surface p-5 text-center">

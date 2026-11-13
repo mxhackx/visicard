@@ -774,3 +774,16 @@
 .premium-pill{display:inline-flex;align-items:center;gap:.25rem;border-radius:9999px;padding:.125rem .5rem;font-size:.6875rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:linear-gradient(135deg,#f9e29c 0%,#e8b43c 45%,#b9791a 100%);color:#3b2300;box-shadow:inset 0 0 0 1px rgb(255 255 255 / .45)}
 .premium-bar{border-radius:1rem;padding:1px;background:linear-gradient(135deg,#f9e29c,#e8b43c,#b9791a)}
 }
+
+/* Les pages courtes occupent toute la hauteur : le pied de page reste en bas de l'écran, sans vide dessous. */
+main:has(> footer) {
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+}
+main:has(> footer) > * {
+  width: 100%;
+}
+main:has(> footer) > footer {
+  margin-top: auto;
+}

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Lock,
-  Loader2,
   AlertTriangle,
   CalendarDays,
   Check,
@@ -24,11 +23,10 @@ import {
   X,
 } from "lucide-react";
 import AccountGate from "@/components/account/account-gate";
-import { usePremium } from "@/lib/premium";
+import CreateAction, { useAccountContact } from "@/components/account/create-action";
 import QrDesigner from "./qr-designer";
 import AddressSearch from "@/components/address-search";
-import CustomerFields, { emptyCustomer, type CustomerDraft } from "@/components/order/customer-fields";
-import { createOrder, payOrder, validateCustomer } from "@/lib/orders";
+import { createOrder, rememberOrder } from "@/lib/orders";
 import { coordsFromUrl } from "@/lib/page-design";
 import {
   DENSE_PAYLOAD,
@@ -485,7 +483,7 @@ function PayloadPreview({ payload }: { payload: string }) {
 }
 
 /* ------------------------------------------------------------------
-   Commande d'un QR direct payant : devis, puis paiement en ligne (FedaPay)
+   Commande d'un QR direct payant : devis, puis création (incluse dans Premium)
 ------------------------------------------------------------------ */
 
 export function OrderPanel({
@@ -501,17 +499,11 @@ export function OrderPanel({
   logo: string | null;
 }) {
   const router = useRouter();
-  const premium = usePremium();
-  const [customer, setCustomer] = useState<CustomerDraft>(emptyCustomer);
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDraft, string>>>({});
+  const contact = useAccountContact();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const found = validateCustomer(customer);
-    setErrors(found);
-    if (Object.keys(found).length) return;
+  const create = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -519,13 +511,14 @@ export function OrderPanel({
       body.append("serviceType", "direct");
       body.append("title", title);
       body.append("directPayload", payload);
-      body.append("customerName", customer.name.trim());
-      body.append("customerPhone", customer.phone.trim());
-      if (customer.email.trim()) body.append("customerEmail", customer.email.trim());
+      body.append("customerName", contact.name || contact.email);
+      body.append("customerPhone", contact.phone);
+      if (contact.email) body.append("customerEmail", contact.email);
       if (qrStyle) body.append("qrStyle", qrStyle);
       if (logo) body.append("logo", await (await fetch(logo)).blob(), "logo");
       const order = await createOrder(body);
-      if (!(await payOrder(order))) router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
+      rememberOrder(order);
+      router.push(`/commande/${order.reference}?cle=${encodeURIComponent(order.accessToken)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
       setBusy(false);
@@ -534,23 +527,7 @@ export function OrderPanel({
 
   return (
     <AccountGate>
-    <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-cream-deep p-5 sm:p-6" noValidate>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold text-ink/90">Créer ce QR code</h3>
-        {!premium.admin && <p className="text-sm font-semibold text-forest">Inclus dans Premium</p>}
-      </div>
-      <p className="mt-1 text-sm text-sage">
-        Remplissez ces quelques champs : le QR code est créé tout de suite, en PNG et SVG.
-      </p>
-      <div className="mt-5">
-        <CustomerFields value={customer} onChange={setCustomer} errors={errors} />
-      </div>
-      {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
-      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full sm:w-auto">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {busy ? "Création en cours…" : "Créer mon QR code"}
-      </button>
-    </form>
+      <CreateAction label="Créer mon QR code" busyLabel="Création en cours…" busy={busy} error={error} onCreate={create} />
     </AccountGate>
   );
 }

@@ -161,6 +161,50 @@ export class CardsService {
     return { url: `${apiUrl}/uploads/${fileName}`, type: file.mimetype, name: file.originalname };
   }
 
+  /**
+   * Enregistre un QR code créé dans le créateur du site (lien web, Wi-Fi, texte…), quel que soit son contenu.
+   * Les liens (http/https) sont gratuits, même sans compte ; tout autre contenu exige un compte Premium (ou administrateur).
+   * Un même contenu et un même style, créés par le même compte, ne sont enregistrés qu'une fois.
+   */
+  async createDirect(
+    user: { id: string; role?: string } | null,
+    input: { payload?: string; qrStyle?: string; title?: string },
+  ) {
+    const payload = (input.payload ?? '').trim();
+    if (!payload || payload.length > 1500) throw new BadRequestException('Contenu du QR code manquant ou trop long.');
+    const isLink = /^https?:\/\/\S+$/i.test(payload);
+    if (!isLink) {
+      let premium = user?.role === 'admin';
+      if (user && !premium) {
+        const owner = await this.prisma.adminUser.findUnique({ where: { id: user.id }, select: { premiumUntil: true } });
+        premium = Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
+      }
+      if (!premium) throw new ForbiddenException('Ce contenu exige un compte Premium : seuls les liens sont gratuits.');
+    }
+    if (user) {
+      const same = await this.prisma.card.findFirst({
+        where: { ownerId: user.id, serviceType: 'direct', contentUrl: payload, status: 'active' },
+        orderBy: { id: 'desc' },
+      });
+      if (same) return { slug: same.slug, saved: false };
+    }
+    let title = (input.title ?? '').trim().slice(0, 80);
+    if (!title) {
+      try {
+        title = isLink ? new URL(payload).hostname : payload.split(/[:\n;]/)[0].slice(0, 40);
+      } catch {
+        title = 'QR code';
+      }
+    }
+    const created = await this.createCard(
+      {},
+      { serviceType: 'direct', directPayload: payload, title, qrStyle: input.qrStyle, clientName: title },
+      user?.id ?? null,
+      { status: 'active' },
+    );
+    return { slug: created.slug, saved: true };
+  }
+
   async createCard(
     files: UploadedCardFiles,
     metadata?: CardMetadata,
@@ -359,6 +403,13 @@ export class CardsService {
   }
 
   /** QR code (data URL PNG) d'une carte, dans le style enregistré. */
+  /** La carte d'un compte (ou n'importe laquelle pour un administrateur) ; sinon introuvable. */
+  async findOwnedBy(slug: string, userId: string, admin: boolean) {
+    const card = await this.prisma.card.findUnique({ where: { slug } });
+    if (!card || (!admin && card.ownerId !== userId)) throw new NotFoundException('QR code introuvable.');
+    return card;
+  }
+
   async getQrCode(slug: string): Promise<{ qrCode: string; cardUrl: string }> {
     const card = await this.prisma.card.findUnique({ where: { slug } });
     if (!card) throw new NotFoundException(`Carte introuvable pour le slug "${slug}"`);

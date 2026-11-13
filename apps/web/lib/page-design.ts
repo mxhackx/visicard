@@ -24,7 +24,7 @@ export interface Palette {
 }
 
 export const PAGE_PALETTES: Palette[] = [
-  { id: "exoticas-vert", name: "Vert Exoticas", brand: "#466931", accent: "#6EA03F", surface: "#F7F6F1", text: "#22331B" },
+  { id: "exoticas-vert", name: "Vert exotique", brand: "#466931", accent: "#6EA03F", surface: "#F7F6F1", text: "#22331B" },
   { id: "moncode-rouge", name: "Rouge Moncode", brand: "#17171A", accent: "#FB0520", surface: "#FFFFFF", text: "#1A1A1D" },
   { id: "nuit", name: "Bleu nuit", brand: "#16243A", accent: "#3F72AF", surface: "#F5F7FA", text: "#14202F" },
   { id: "terre", name: "Terre cuite", brand: "#7A3B2E", accent: "#C8703A", surface: "#FBF6F1", text: "#33201A" },

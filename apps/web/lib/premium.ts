@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Premium : 5 000 FCFA payés par FedaPay, valables un an. Tant qu'il n'est pas actif,
+ * Premium : 5 000 FCFA payés par Mobile Money (FeexPay), valables un an. Tant qu'il n'est pas actif,
  * un compte ne peut rien créer. L'état vient toujours de l'API (jamais du navigateur).
  */
 import { useCallback, useEffect, useState } from "react";
@@ -16,12 +16,16 @@ export interface PremiumStatus {
   active: boolean;
   until: string | null;
   admin: boolean;
+  /** Dernier paiement récent : `pending`, `failed` ou `paid`. */
+  payment?: string | null;
+  /** Mode test de FeexPay : seuls les numéros de test fonctionnent. */
+  sandbox?: boolean;
 }
 
 async function api<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    res = await fetch(`${API_URL}${path}`, { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` }, cache: "no-store" });
   } catch {
     throw new Error("Impossible de joindre le serveur. Vérifiez votre connexion, puis réessayez.");
   }
@@ -35,8 +39,13 @@ async function api<T>(path: string, token: string, init?: RequestInit): Promise<
 
 export const fetchPremiumStatus = (token: string) => api<PremiumStatus>("/premium/status", token);
 
-/** Crée la transaction FedaPay et renvoie l'adresse de la page de paiement. */
-export const startPremiumCheckout = (token: string) => api<{ paymentUrl: string }>("/premium/checkout", token, { method: "POST" });
+/** Lance le paiement Mobile Money : le client valide ensuite sur son téléphone (FeexPay). */
+export const payPremium = (token: string, body: { network: string; phone: string }) =>
+  api<{ reference: string; status: string }>("/premium/pay", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
 /** État Premium du compte connecté. `status` vaut `null` tant que la réponse n'est pas arrivée. */
 export function usePremium() {
@@ -79,6 +88,7 @@ export function usePremium() {
   return {
     signedIn,
     admin: authRole === "admin",
+    sandbox: Boolean(status?.sandbox),
     /** Réponse reçue (ou pas de session). */
     ready: !signedIn || status !== null || failed,
     active: authRole === "admin" || Boolean(status?.active),
@@ -87,8 +97,6 @@ export function usePremium() {
   };
 }
 
-/** Page où revenir après le paiement FedaPay (gardée le temps de la redirection). */
-export const PREMIUM_SUITE_KEY = "moncode_premium_suite";
 
 const TRIAL_KEY = "moncode_premium_trial";
 

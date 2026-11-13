@@ -99,7 +99,7 @@ export default function PricingSection() {
         </div>
 
         <p className="mt-10 border-l-2 border-ambre/60 pl-4 text-[15px] leading-7 text-sage">
-          Paiement en ligne par Mobile Money ou carte, via FedaPay. Le lien web reste gratuit. Facture établie à votre nom. Un QR code déjà
+          Paiement par Mobile Money (MTN, Moov, Celtiis), sécurisé par FeexPay. Le lien web reste gratuit. Facture établie à votre nom. Un QR code déjà
           imprimé continue de fonctionner même si vous faites évoluer la page.
         </p>
       </div>

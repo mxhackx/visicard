@@ -12,10 +12,9 @@ export interface LayoutOption {
 export const LAYOUT_OPTIONS: LayoutOption[] = [
   { id: "classic", name: "Classique", desc: "En-tête coloré, actions rapides, menu en grille", sector: "Polyvalent" },
   { id: "saas", name: "SaaS", desc: "Page produit : accroche, vitrine, appel à l’action", sector: "Services" },
-  { id: "maps", name: "Couverture", desc: "Grande photo, logo rond, onglets", sector: "Polyvalent" },
   { id: "minimal", name: "Minimaliste", desc: "Typographique, centré, le menu avant tout", sector: "Polyvalent" },
   { id: "premium", name: "Avant-garde", desc: "Éditorial, grandes capitales, sections numérotées", sector: "Création" },
-  { id: "exoticas", name: "Exoticas", desc: "Hero plein, galerie en verre, contact et carte", sector: "Restauration" },
+  { id: "exoticas", name: "Exotique", desc: "Hero plein, galerie en verre, contact et carte", sector: "Restauration" },
   { id: "maquis", name: "Maquis", desc: "Enseigne jaune, ardoise de menu, ambiance conviviale", sector: "Restaurants et bars" },
   { id: "beaute", name: "Beauté", desc: "Arche, tons poudrés, lignes dorées", sector: "Salons et instituts" },
   { id: "boutique", name: "Boutique", desc: "Titre géant, mosaïque de photos, grille produits", sector: "Mode et boutiques" },

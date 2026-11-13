@@ -193,7 +193,7 @@ export default function AdminSettingsForm({ adminToken }: { adminToken: string }
       </div>
 
       <div className="space-y-5">
-        <Card icon={CreditCard} title="Paiement en ligne" text="FedaPay encaisse Mobile Money et cartes, puis active le QR code automatiquement.">
+        <Card icon={CreditCard} title="Paiement en ligne" text="FeexPay encaisse le Mobile Money (MTN, Moov, Celtiis), puis active le QR code automatiquement.">
           {statusError ? (
             <p className="text-sm text-sage">État indisponible : l’API ne répond pas ou doit être redémarrée.</p>
           ) : !status ? (
@@ -202,9 +202,9 @@ export default function AdminSettingsForm({ adminToken }: { adminToken: string }
             <>
               <Row label="Clé API"><Pill ok={status.payment.configured}>{status.payment.configured ? "Configurée" : "Manquante"}</Pill></Row>
               <Row label="Mode"><Pill ok={status.payment.mode === "live"}>{status.payment.mode === "live" ? "Production" : "Test (sandbox)"}</Pill></Row>
-              <Row label="Signature du webhook"><Pill ok={status.payment.webhookSecret}>{status.payment.webhookSecret ? "Active" : "Non définie"}</Pill></Row>
+              <Row label="Secret du webhook"><Pill ok={status.payment.webhookSecret}>{status.payment.webhookSecret ? "Active" : "Non définie"}</Pill></Row>
               <div className="mt-4 rounded-xl bg-cream-deep p-3">
-                <p className="text-xs font-semibold text-ink/70">URL du webhook à déclarer chez FedaPay</p>
+                <p className="text-xs font-semibold text-ink/70">URL du webhook à déclarer chez FeexPay</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <code className="min-w-0 flex-1 truncate text-xs text-ink/80">{status.payment.webhookUrl ?? `https://<votre-api>${status.payment.webhookPath}`}</code>
                   <button
@@ -230,7 +230,6 @@ export default function AdminSettingsForm({ adminToken }: { adminToken: string }
 
         <Card icon={Globe} title="Coordonnées du site" text="Affichées sur le site, les devis et les factures (modifiables dans lib/contact.ts).">
           <Row label="Marque">{CONTACT.brand}</Row>
-          <Row label="E-mail">{CONTACT.email}</Row>
           <Row label="WhatsApp">{CONTACT.whatsappDisplay}</Row>
           <Row label="Horaires">{CONTACT.hours}</Row>
           <Row label="Adresse">{CONTACT.address}</Row>

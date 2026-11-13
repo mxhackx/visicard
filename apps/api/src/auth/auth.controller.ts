@@ -83,13 +83,14 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   async register(
-    @Body() body: { name?: string; email?: string; password?: string },
+    @Body() body: { name?: string; email?: string; password?: string; phone?: string },
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.register(
       body?.name ?? '',
       body?.email ?? '',
       body?.password ?? '',
+      body?.phone ?? '',
     );
 
     this.applySessionCookies(res, result);
@@ -152,6 +153,35 @@ export class AuthController {
       authenticated: true,
       user: { ...user, ...extra, mainAdmin: this.authService.isMainAdmin(user) },
     };
+  }
+
+  /** Mot de passe oublié : envoie un lien par e-mail (réponse identique que l'adresse existe ou non). */
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('forgot')
+  async forgot(@Body() body: { email?: string }) {
+    await this.authService.requestPasswordReset(body?.email ?? '');
+    return { sent: true };
+  }
+
+  /** Nouveau mot de passe avec le lien reçu par e-mail. */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('reset')
+  async reset(@Body() body: { token?: string; password?: string }) {
+    await this.authService.resetPassword(body?.token ?? '', body?.password ?? '');
+    return { success: true };
+  }
+
+  /** Complète le profil du compte connecté (nom et téléphone), par exemple après une connexion Google. */
+  @Patch('profile')
+  async updateProfile(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() body: { name?: string; phone?: string },
+  ) {
+    const token = this.sessionToken(req, authHeader);
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || !session.user) throw new UnauthorizedException('Connexion requise.');
+    return this.authService.updateProfile(session.user.id, body ?? {});
   }
 
   /** Liste des comptes pour l'onglet « Utilisateurs » du panneau admin. */

@@ -14,7 +14,7 @@ process.on('unhandledRejection', (reason) => {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    // Corps brut conservé : nécessaire pour vérifier la signature du webhook FedaPay.
+    // Corps brut conservé (utile à la vérification des webhooks).
     rawBody: true,
   });
 
@@ -22,10 +22,12 @@ async function bootstrap() {
   // personnes partageraient alors le même quota. On lit l'adresse réelle (en-tête X-Forwarded-For).
   app.set('trust proxy', 1);
 
+  // APP_URL, localhost:3000 et, au besoin, des origines supplémentaires séparées par des virgules (CORS_ORIGINS).
   const allowedOrigins = [
-  process.env.APP_URL,
-  'http://localhost:3000', 
-].filter(Boolean) as string[];
+    process.env.APP_URL,
+    'http://localhost:3000',
+    ...(process.env.CORS_ORIGINS ?? '').split(',').map((o) => o.trim()),
+  ].filter(Boolean) as string[];
 
   // En développement, le front tombe sur le premier port libre (Next décale de
   // 3000 à 3001, 3100… sitôt qu'un port est déjà pris) : toute origine locale

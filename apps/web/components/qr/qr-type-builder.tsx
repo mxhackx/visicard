@@ -9,13 +9,16 @@ import { type PremiumOffer } from "./premium-modal";
 import PremiumModal from "./premium-modal";
 import { useDialogs } from "@/components/account/auth-dialog";
 import { usePremium, useTrial } from "@/lib/premium";
+import { saveQr } from "@/lib/qr-save";
+import { draftStore } from "@/lib/draft-store";
+import { useFile } from "@/app/context/FileContext";
 import StyledQr from "./styled-qr";
 import QrStyleCards from "./qr-style-cards";
 import TypeArt from "./type-art";
 import { Fields, LogoPicker, OrderPanel, hasInput, type AllData } from "./direct-qr-generator";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { QR_DOTS, parseQrStyle, DEFAULT_QR_STYLE } from "@/lib/qr-style";
-import FedapayBadge from "@/components/fedapay-badge";
+import FeexpayBadge from "@/components/feexpay-badge";
 import {
   DENSE_PAYLOAD,
   DIRECT_QR_DEFAULTS,
@@ -69,7 +72,7 @@ const ACTION: Record<DirectQrType, string> = {
 /**
  * Créateur de QR code unique, sur /creer : le type vient de l'adresse (`?type=wifi`), le lien web est
  * gratuit, tout le reste est Premium. À gauche la saisie (contenu, style), à droite l'aperçu en direct.
- * Les options Premium s'essaient d'abord ; le paiement (compte, puis FedaPay) vient en bas, à la fin.
+ * Les options Premium s'essaient d'abord ; le paiement (compte, puis Mobile Money) vient en bas, à la fin.
  */
 export type BuilderType = DirectQrType | "media" | "document";
 
@@ -78,8 +81,16 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const dtype: DirectQrType = media ? "url" : type;
   const meta = DIRECT_QR_TYPES.find((t) => t.id === dtype)!;
   const isUrl = type === "url";
-  const [mediaTitle, setMediaTitle] = useState("");
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaTitle, setMediaTitleState] = useState(draftStore.mediaTitle);
+  const [mediaFile, setMediaFileState] = useState<File | null>(draftStore.mediaFile);
+  const setMediaTitle = (v: string) => {
+    draftStore.mediaTitle = v;
+    setMediaTitleState(v);
+  };
+  const setMediaFile = (f: File | null) => {
+    draftStore.mediaFile = f;
+    setMediaFileState(f);
+  };
   const [all, setAll] = useState<AllData>(DIRECT_QR_DEFAULTS);
   const [qrStyle, setQrStyle] = useState("");
   const [logo, setLogo] = useState<string | null>(null);
@@ -87,6 +98,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const [offer, setOffer] = useState<PremiumOffer | null>(null);
   const premium = usePremium();
   const { openPremium } = useDialogs();
+  const { authToken } = useFile();
   const [trial, startTrial] = useTrial();
   const locked = !premium.active && !trial;
   // Un simple lien est gratuit : le paiement n'attend en bas que si le QR utilise une option Premium (style, couleurs, logo) ou un autre contenu.
@@ -168,13 +180,15 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
 
           {needsPay && (
             <Step n={3} title="Télécharger mon QR code">
-              <p className="text-sm leading-6 text-sage">
-                Votre QR code utilise des options Premium. Connectez-vous, puis réglez {PRICE_QR} FCFA par FedaPay : le téléchargement s’ouvre aussitôt.
+              <div className="text-center">
+              <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
+                Votre QR code utilise des options Premium. Connectez-vous, puis réglez {PRICE_QR} FCFA par Mobile Money : le téléchargement s’ouvre aussitôt.
               </p>
-              <button type="button" onClick={goToPayment} className="btn btn-primary mt-4 w-full max-w-sm justify-center py-3.5 text-base">
+              <button type="button" onClick={goToPayment} className="btn btn-primary mx-auto mt-4 flex w-full max-w-sm justify-center py-3.5 text-base">
                 Passer au paiement · {PRICE_QR} FCFA
               </button>
-              <FedapayBadge className="mt-3 flex" />
+              <FeexpayBadge className="mt-3 flex justify-center" />
+              </div>
             </Step>
           )}
 
@@ -201,7 +215,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           )}
         </div>
 
-        <aside className="order-first min-w-0 lg:sticky lg:top-24 lg:order-none">
+        <aside className="order-first min-w-0 lg:order-none">
           <div className="surface p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-ink/80">Aperçu</p>
@@ -219,7 +233,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
                     <Lock className="h-3.5 w-3.5" /> Le téléchargement est débloqué après le paiement Premium.
                   </p>
                 ) : isUrl ? (
-                  <StyledQr data={payload} style={qrStyle} logoUrl={logo} downloadName="qr-lien" hideQr />
+                  <StyledQr data={payload} style={qrStyle} logoUrl={logo} downloadName="qr-lien" hideQr onDownload={() => void saveQr(payload, qrStyle, authToken)} />
                 ) : (
                   <p className="flex items-center justify-center gap-1.5 text-center text-xs text-sage">
                     <Lock className="h-3.5 w-3.5" /> Le QR code net est livré après sa création, à l’étape 3.
