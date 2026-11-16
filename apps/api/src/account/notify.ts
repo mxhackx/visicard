@@ -15,6 +15,30 @@ interface Notice {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
+const BRAND = '#e3051d';
+
+/** Modèle d'e-mail commun : logo Moncode, titre, corps, bouton facultatif et pied de page (styles en ligne, compatibles messageries). */
+function emailLayout(o: { title: string; intro?: string; bodyHtml?: string; button?: { label: string; href: string }; note?: string; preheader?: string }): string {
+  const app = primaryAppUrl();
+  const button = o.button
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="border-radius:10px;background:${BRAND}"><a href="${esc(o.button.href)}" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">${esc(o.button.label)}</a></td></tr></table>`
+    : '';
+  return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f6f1f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#17171a">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.preheader ?? o.title)}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1f1;padding:32px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;border:1px solid #ece4e4;overflow:hidden">
+<tr><td style="padding:28px 32px 0"><a href="${esc(app)}" style="text-decoration:none"><img src="${esc(app)}/logo.png" width="44" height="44" alt="Moncode" style="vertical-align:middle;border-radius:10px;border:0"><span style="vertical-align:middle;margin-left:10px;font-size:20px;font-weight:700;color:#17171a">Moncode</span></a></td></tr>
+<tr><td style="padding:24px 32px 32px">
+<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#17171a">${esc(o.title)}</h1>
+${o.intro ? `<p style="margin:0;font-size:15px;line-height:1.6;color:#4a4a52">${o.intro}</p>` : ''}
+${button}
+${o.bodyHtml ?? ''}
+${o.note ? `<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#7a7a84">${o.note}</p>` : ''}
+</td></tr>
+<tr><td style="padding:18px 32px;background:#faf6f6;border-top:1px solid #ece4e4;font-size:12px;line-height:1.6;color:#7a7a84">Moncode · QR codes et pages digitales · Cotonou, Bénin<br><a href="${esc(app)}" style="color:${BRAND};text-decoration:none">moncode.bj</a></td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 /**
  * Prévient le propriétaire d'une nouvelle demande par e-mail (service Resend).
  * Sans `RESEND_API_KEY`, rien n'est envoyé : la demande reste visible dans l'espace client.
@@ -29,10 +53,16 @@ export async function notifyOwner(email: string | null | undefined, n: Notice): 
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
         to: [email],
         subject: `Nouvelle ${label} : ${n.title}`,
-        html: `<p>Nouvelle <strong>${label}</strong> de <strong>${esc(n.name)}</strong> (${esc(n.phone)}) pour « ${esc(n.title)} ».</p>${n.message ? `<p>${esc(n.message)}</p>` : ''}<p><a href="${app}/compte/demandes">Ouvrir mes demandes</a></p>`,
+        html: emailLayout({
+          title: `Nouvelle ${label}`,
+          preheader: `${n.name} · ${n.title}`,
+          intro: `<strong>${esc(n.name)}</strong> (${esc(n.phone)}) pour « ${esc(n.title)} ».`,
+          bodyHtml: n.message ? `<p style="margin:16px 0 0;padding:12px 14px;background:#faf6f6;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(n.message)}</p>` : '',
+          button: { label: 'Ouvrir mes demandes', href: `${app}/compte/demandes` },
+        }),
       }),
     });
     if (!res.ok) logger.warn(`Envoi refusé (${res.status})`);
@@ -54,10 +84,17 @@ export async function sendQrToOwner(email: string, input: { title: string; targe
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
         to: [email],
         subject: `Votre QR code : ${input.title}`,
-        html: `<p>Voici votre QR code <strong>${esc(input.title)}</strong>, en pièce jointe (PNG).</p><p>Contenu : ${esc(input.target)}</p><p>Retrouvez tous vos QR codes dans votre espace Moncode.</p>`,
+        html: emailLayout({
+          title: 'Votre QR code est prêt',
+          preheader: `QR code « ${input.title} » en pièce jointe.`,
+          intro: `Voici votre QR code <strong>${esc(input.title)}</strong>, en pièce jointe (PNG).`,
+          bodyHtml: `<p style="margin:16px 0 0;font-size:14px;color:#4a4a52">Contenu : <span style="word-break:break-all">${esc(input.target)}</span></p>`,
+          button: { label: 'Ouvrir mon espace', href: `${primaryAppUrl()}/compte` },
+          note: 'Retrouvez tous vos QR codes dans votre espace Moncode.',
+        }),
         attachments: [{ filename: 'qr-code.png', content: base64 }],
       }),
     });
@@ -82,24 +119,29 @@ export interface ContactMessage {
 }
 
 /**
- * Transmet à l'équipe un message du formulaire de contact (destinataire : CONTACT_TO, sinon l'adresse de l'administrateur ADMIN_EMAIL).
+ * Transmet à l'équipe un message du formulaire de contact (destinataire : CONTACT_TO, par défaut contact@moncode.bj).
  * L'adresse du visiteur est mise en « répondre à » : il suffit de répondre pour lui écrire.
  */
 export async function sendContactMessage(m: ContactMessage): Promise<{ ok: boolean; reason?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, reason: 'Le service d’envoi n’est pas configuré (RESEND_API_KEY).' };
-  const to = process.env.CONTACT_TO || process.env.ADMIN_EMAIL || '';
-  if (!to) return { ok: false, reason: 'Aucun destinataire configuré (CONTACT_TO).' };
+  const to = process.env.CONTACT_TO || 'contact@moncode.bj';
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
         to: [to],
         reply_to: m.email,
         subject: `Contact Moncode : ${m.name}${m.business ? ` (${m.business})` : ''}`,
-        html: `<p><strong>${esc(m.name)}</strong>${m.business ? ` · ${esc(m.business)}` : ''}${m.kind ? ` · ${esc(m.kind)}` : ''}</p><p>E-mail : ${esc(m.email)}<br>Téléphone : ${esc(m.phone)}</p><p style="white-space:pre-wrap">${esc(m.message)}</p>`,
+        html: emailLayout({
+          title: 'Nouveau message de contact',
+          preheader: `${m.name} vous a écrit.`,
+          intro: `<strong>${esc(m.name)}</strong>${m.business ? ` · ${esc(m.business)}` : ''}${m.kind ? ` · ${esc(m.kind)}` : ''}<br>${esc(m.email)} · ${esc(m.phone)}`,
+          bodyHtml: `<p style="margin:16px 0 0;padding:12px 14px;background:#faf6f6;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(m.message)}</p>`,
+          note: 'Répondez directement à cet e-mail : la réponse part chez la personne.',
+        }),
       }),
     });
     if (!res.ok) {
@@ -123,10 +165,17 @@ export async function sendPasswordReset(email: string, name: string | null | und
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
         to: [email],
         subject: 'Réinitialisez votre mot de passe Moncode',
-        html: `<p>Bonjour${name ? ` ${esc(name)}` : ''},</p><p>Vous avez demandé à réinitialiser votre mot de passe. Ce lien est valable <strong>une heure</strong> :</p><p><a href="${esc(link)}">Choisir un nouveau mot de passe</a></p><p>Si vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.</p>`,
+        html: emailLayout({
+          title: 'Réinitialisez votre mot de passe',
+          preheader: 'Ce lien est valable une heure.',
+          intro: `Bonjour${name ? ` ${esc(name)}` : ''}, vous avez demandé à choisir un nouveau mot de passe pour votre compte Moncode. Ce lien est valable <strong>une heure</strong>.`,
+          button: { label: 'Choisir un nouveau mot de passe', href: link },
+          bodyHtml: `<p style="margin:20px 0 6px;font-size:13px;color:#7a7a84">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :</p><p style="margin:0;padding:10px 12px;background:#faf6f6;border:1px solid #ece4e4;border-radius:8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#17171a;word-break:break-all">${esc(link)}</p>`,
+          note: 'Si vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.',
+        }),
       }),
     });
     if (!res.ok) {

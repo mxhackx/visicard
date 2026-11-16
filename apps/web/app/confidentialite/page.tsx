@@ -24,7 +24,7 @@ export default function Confidentialite() {
           title: "Qui est responsable de vos données",
           body: (
             <p>
-              {CONTACT.brand}, basé à Cotonou (Bénin), est responsable du traitement des données décrites ci-dessous. Pour toute question sur vos données : écrivez-nous via {mail} ou sur WhatsApp au {CONTACT.whatsappDisplay}.
+              {CONTACT.brand}, basé à Cotonou (Bénin), est responsable du traitement des données décrites ci-dessous. Pour toute question sur vos données : écrivez-nous à <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>, via {mail} ou sur WhatsApp au {CONTACT.whatsappDisplay}.
             </p>
           ),
         },

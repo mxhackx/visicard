@@ -215,7 +215,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           )}
         </div>
 
-        <aside className="order-first min-w-0 lg:order-none">
+        <aside className="order-first min-w-0 lg:order-none lg:sticky lg:top-24 lg:self-start">
           <div className="surface p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-ink/80">Aperçu</p>

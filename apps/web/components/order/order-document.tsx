@@ -101,6 +101,7 @@ export default function OrderDocument({
             <div className="mt-4 space-y-0.5 text-xs leading-5 text-sage">
               <p>{CONTACT.address}</p>
               <p>{CONTACT.whatsappDisplay}</p>
+              <p>{CONTACT.email}</p>
             </div>
           </div>
           <div className="sm:text-right">

@@ -53,7 +53,7 @@ export default function PageCreator() {
           </Step>
         </div>
 
-        <aside className="order-first min-w-0 lg:order-none">
+        <aside className="order-first min-w-0 lg:order-none lg:sticky lg:top-24 lg:self-start">
           <PagePreview />
         </aside>
       </div>

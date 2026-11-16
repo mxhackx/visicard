@@ -11,7 +11,6 @@ export interface LegalSection {
 const LINKS = [
   { href: "/confidentialite", label: "Confidentialité" },
   { href: "/conditions", label: "Conditions d’utilisation" },
-  { href: "/mentions-legales", label: "Mentions légales" },
 ];
 
 /** Page juridique : titre, date de mise à jour, sommaire cliquable, sections numérotées. */

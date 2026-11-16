@@ -3,6 +3,7 @@ export const CONTACT = {
   brand: "Moncode",
   whatsappNumber: "22959831293", // format wa.me : indicatif + numéro, sans espaces ni +
   whatsappDisplay: "+229 59 83 12 93",
+  email: "contact@moncode.bj",
   hours: "Lundi — vendredi, 9h — 18h",
   // À REMPLACER par l'adresse réelle : elle alimente la carte de la page contact.
   address: "Cotonou — Bénin",

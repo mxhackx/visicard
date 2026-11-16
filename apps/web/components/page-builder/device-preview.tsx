@@ -74,7 +74,7 @@ export default function DevicePreview({ device, children, scrollable = false }: 
       {/* L'échelle (et donc le bloc conteneur des éléments `fixed`) est sur ce cadre fixe ;
           le défilement se fait à l'intérieur : visionneuses et barres collantes restent dans l'écran. */}
       <div className="absolute left-0 top-0 [transform-origin:0_0]" style={{ width: spec.width, height: spec.height, transform: `scale(${scale})` }}>
-        <div className={`h-full w-full overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${scrollable ? "overflow-y-auto overscroll-contain" : "overflow-y-hidden"}`}>{children}</div>
+        <div className={`h-full w-full overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${scrollable ? "overflow-y-auto" : "overflow-y-hidden"}`}>{children}</div>
       </div>
     </div>
   );

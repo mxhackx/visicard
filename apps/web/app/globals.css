@@ -120,7 +120,7 @@
     height: calc(var(--header-h) + 1px);
   }
   .anchor {
-    /* #tarifs, #avis... ne passent pas sous le header fixe.
+    /* #tarifs, #avis... ne passent pas sous l’en-tête.
        L'offset est porté par la cible : cumuler avec un scroll-padding-top
        sur <html> décalerait les sections d'un tour de header. */
     scroll-margin-top: calc(var(--header-h) + 1rem);

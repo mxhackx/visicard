@@ -203,6 +203,7 @@ ${draft.message}`;
                   href={whatsappUrl()}
                   external
                 />
+                <Channel icon={Mail} title="E-mail" value={CONTACT.email} href={`mailto:${CONTACT.email}`} />
                 <Channel icon={Clock} title="Horaires" value={CONTACT.hours} />
                 <Channel
                   icon={MapPin}

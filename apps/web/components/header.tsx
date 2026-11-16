@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFile } from "@/app/context/FileContext";
@@ -8,7 +9,6 @@ import Logo from "@/components/logo";
 import { useDialogs } from "@/components/account/auth-dialog";
 
 const navLinks = [
-  { href: "/#exemples", label: "Exemples" },
   { href: "/#tarifs", label: "Tarifs" },
   { href: "/manuel", label: "Manuel" },
   { href: "/contact", label: "Contact" },
@@ -18,34 +18,7 @@ const noopSubscribe = () => () => {};
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  // En défilement, l'en-tête s'efface : il revient en haut de page, au survol du bord haut (ordinateur)
-  // ou en remontant la page du doigt (tactile).
-  const [scrolled, setScrolled] = useState(false);
-  const [peek, setPeek] = useState(false);
-  const lastY = useRef(0);
-  useEffect(() => {
-    let raf = 0;
-    const touch = window.matchMedia("(pointer: coarse)").matches;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const y = window.scrollY;
-        setScrolled(y > 80);
-        if (touch) {
-          if (y < lastY.current - 2 && y > 80) setPeek(true);
-          else if (y > lastY.current + 2) setPeek(false);
-        }
-        lastY.current = y;
-      });
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-  const hidden = scrolled && !peek && !isOpen;
+  const pathname = usePathname();
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!isOpen) return;
@@ -71,32 +44,32 @@ export default function Header() {
 
   return (
     <>
-    {/* Bande invisible au bord haut de l'écran : l'approcher avec la souris fait revenir l'en-tête. */}
-    <div aria-hidden="true" className="fixed inset-x-0 top-0 z-40 hidden h-3 lg:block" onMouseEnter={() => setPeek(true)} />
-    <header
-      onMouseLeave={() => setPeek(false)}
-      className={`fixed inset-x-0 top-0 z-50 isolate border-b text-ink will-change-transform transition-[transform,background-color,border-color] duration-300 ease-out ${scrolled ? "border-line bg-[#fdf9f9]" : "border-transparent bg-transparent"} ${hidden ? "-translate-y-full" : "translate-y-0"}`}
-    >
+    {/* En-tête dans le flux de la page (non fixe) : il défile avec elle. L'espace est réservé par .header-spacer. */}
+    <header className="absolute inset-x-0 top-0 z-50 isolate border-b border-line bg-white/90 text-ink backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
           <Logo variant="dark" />
         </Link>
 
         {/* Liens et bouton regroupés à droite : les liens sont proches du bouton. */}
-        <div className="hidden items-center gap-10 lg:flex">
-        <nav aria-label="Sections du site" className="flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="relative py-1 text-[15px] font-medium text-ink/70 transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-forest after:transition-transform hover:text-ink hover:after:scale-x-100"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="hidden items-center gap-6 lg:flex">
+        <nav aria-label="Sections du site" className="flex items-center gap-1">
+          {navLinks.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${active ? "bg-cream-deep text-forest" : "text-ink/70 hover:bg-cream-deep hover:text-ink"}`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 border-l border-line pl-6">
           {account && (
             <Link href={account.href} aria-label={account.label} title={account.label} className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-white transition hover:ring-forest">
               {picture ? (
@@ -148,7 +121,7 @@ export default function Header() {
         aria-modal="true"
         aria-label="Menu"
         inert={!isOpen}
-        className={`absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col bg-white shadow-[-12px_0_40px_rgba(23,23,26,0.18)] transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col bg-white transition-[transform,box-shadow] duration-300 ease-out ${isOpen ? "translate-x-0 shadow-[-12px_0_40px_rgba(23,23,26,0.18)]" : "translate-x-full shadow-none"}`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
           <span className="text-sm font-semibold text-ink/70">Menu</span>
