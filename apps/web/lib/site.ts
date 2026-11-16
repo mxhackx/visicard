@@ -3,7 +3,7 @@ import { CONTACT } from "./contact";
 /**
  * Identité du site pour le référencement : adresse canonique, titres, données
  * structurées. L'adresse publique vient de NEXT_PUBLIC_SITE_URL (à définir en
- * production) ; à défaut, l'URL de déploiement actuelle.
+ * production) ; à défaut, le domaine officiel https://moncode.bj.
  */
 /** Ajoute `https://` si la variable n'a pas de schéma (`monsite.com` → `https://monsite.com`). */
 export function withScheme(url: string): string {
@@ -11,13 +11,13 @@ export function withScheme(url: string): string {
   return /^https?:\/\//i.test(t) ? t : `${t.startsWith("localhost") ? "http" : "https"}://${t}`;
 }
 
-export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://moncode-web.vercel.app").replace(/\/+$/, "");
+export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://moncode.bj").replace(/\/+$/, "");
 
 export const SITE = {
   name: CONTACT.brand,
   title: "Moncode — QR code, menu digital et pages pour votre commerce",
   description:
-    "Créez votre QR code en quelques minutes : menu digital, page d’établissement, PDF, vidéo, Wi-Fi ou carte de visite. Au Bénin, paiement Mobile Money ou carte.",
+    "Créez votre QR code en quelques secondes : menu digital, page d’établissement, PDF, vidéo, Wi-Fi ou carte de visite. Au Bénin, paiement Mobile Money ou carte.",
   locale: "fr_BJ",
   keywords: [
     "QR code",

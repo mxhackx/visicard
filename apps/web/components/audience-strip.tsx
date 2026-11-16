@@ -48,7 +48,7 @@ export default function AudienceStrip() {
               <div className="relative aspect-[3/2] overflow-hidden bg-cream">
                 <Image
                   src={photo}
-                  alt=""
+                  alt={`Illustration : ${label}`}
                   fill
                   unoptimized
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"

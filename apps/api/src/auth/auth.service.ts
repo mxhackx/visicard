@@ -6,6 +6,7 @@ import { createLocalToken, readLocalToken } from './jetons-locaux';
 import { verifyGoogleCredential } from './google';
 import { createHash, randomBytes } from 'node:crypto';
 import { sendPasswordReset } from '../account/notify';
+import { primaryAppUrl } from '../app-url';
 
 export interface AuthSessionUser {
   id: string;
@@ -304,7 +305,7 @@ export class AuthService {
       where: { id: account.id },
       data: { resetTokenHash: createHash('sha256').update(token).digest('hex'), resetExpiresAt: new Date(Date.now() + 60 * 60 * 1000) },
     });
-    const app = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+    const app = primaryAppUrl();
     const link = `${app}/?reinit=${encodeURIComponent(token)}`;
     const sent = await sendPasswordReset(account.email, account.name, link);
     // Sans service e-mail (développement), le lien est consigné pour pouvoir tester.

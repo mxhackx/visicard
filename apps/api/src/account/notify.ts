@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { primaryAppUrl } from '../app-url';
 
 const logger = new Logger('Notifications');
 const LABEL: Record<string, string> = { booking: 'réservation', order: 'commande', contact: 'message' };
@@ -21,14 +22,14 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 export async function notifyOwner(email: string | null | undefined, n: Notice): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key || !email) return;
-  const app = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+  const app = primaryAppUrl();
   const label = LABEL[n.kind] ?? 'demande';
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <notifications@moncode.app>',
+        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
         to: [email],
         subject: `Nouvelle ${label} : ${n.title}`,
         html: `<p>Nouvelle <strong>${label}</strong> de <strong>${esc(n.name)}</strong> (${esc(n.phone)}) pour « ${esc(n.title)} ».</p>${n.message ? `<p>${esc(n.message)}</p>` : ''}<p><a href="${app}/compte/demandes">Ouvrir mes demandes</a></p>`,
@@ -53,7 +54,7 @@ export async function sendQrToOwner(email: string, input: { title: string; targe
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <notifications@moncode.app>',
+        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
         to: [email],
         subject: `Votre QR code : ${input.title}`,
         html: `<p>Voici votre QR code <strong>${esc(input.title)}</strong>, en pièce jointe (PNG).</p><p>Contenu : ${esc(input.target)}</p><p>Retrouvez tous vos QR codes dans votre espace Moncode.</p>`,
@@ -94,7 +95,7 @@ export async function sendContactMessage(m: ContactMessage): Promise<{ ok: boole
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <notifications@moncode.app>',
+        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
         to: [to],
         reply_to: m.email,
         subject: `Contact Moncode : ${m.name}${m.business ? ` (${m.business})` : ''}`,
@@ -122,7 +123,7 @@ export async function sendPasswordReset(email: string, name: string | null | und
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.MAIL_FROM || 'Moncode <notifications@moncode.app>',
+        from: process.env.MAIL_FROM || 'Moncode <onboarding@resend.dev>',
         to: [email],
         subject: 'Réinitialisez votre mot de passe Moncode',
         html: `<p>Bonjour${name ? ` ${esc(name)}` : ''},</p><p>Vous avez demandé à réinitialiser votre mot de passe. Ce lien est valable <strong>une heure</strong> :</p><p><a href="${esc(link)}">Choisir un nouveau mot de passe</a></p><p>Si vous n’êtes pas à l’origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.</p>`,

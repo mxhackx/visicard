@@ -14,7 +14,7 @@ export default function Hero() {
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-10 lg:px-8 lg:py-16">
         <div data-reveal className="hero-copy">
           <h1 className="text-[2.2rem] font-bold leading-[1.08] tracking-[-0.03em] text-ink min-[400px]:text-[2.5rem] sm:text-5xl lg:text-[3.1rem] xl:text-[3.4rem]">
-            <span className="block whitespace-nowrap">Créez votre QR code</span>
+            <span className="block whitespace-nowrap">Créez votre QR code</span>{" "}
             <span className="block whitespace-nowrap text-forest">en quelques secondes</span>
           </h1>
 

@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { primaryAppUrl } from '../app-url';
 import * as QRCode from 'qrcode';
 import { normalizeQrStyle, parseQrStyle, printableColors } from './qr-style';
 import * as fs from 'fs';
@@ -250,7 +251,7 @@ export class CardsService {
       }
     }
 
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const appUrl = primaryAppUrl();
     const cardUrl = `${appUrl}/c/${slug}`;
 
     let logoUrl: string | null = null;
@@ -413,7 +414,7 @@ export class CardsService {
   async getQrCode(slug: string): Promise<{ qrCode: string; cardUrl: string }> {
     const card = await this.prisma.card.findUnique({ where: { slug } });
     if (!card) throw new NotFoundException(`Carte introuvable pour le slug "${slug}"`);
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const appUrl = primaryAppUrl();
     const cardUrl = `${appUrl}/c/${slug}`;
     const target = card.serviceType === 'direct' && card.contentUrl ? card.contentUrl : cardUrl;
     return { qrCode: await this.generateStyledQrCode(target, card.qrStyle), cardUrl: target };
@@ -589,7 +590,7 @@ export class CardsService {
     if ((card.status === 'draft' || card.status === 'rejected') && !options.includeDraft) {
       return { slug: card.slug, status: card.status as 'draft' | 'rejected', serviceType: card.serviceType };
     }
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const appUrl = primaryAppUrl();
     let menuImages: string[] = [];
     if (card.menuImages) {
       try {
@@ -651,7 +652,7 @@ export class CardsService {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { scans: true } } },
     });
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const appUrl = primaryAppUrl();
     return cards.map((card) => {
       let menuImages: string[] = [];
       if (card.menuImages) {
@@ -697,7 +698,7 @@ export class CardsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const appUrl = primaryAppUrl();
 
     return Promise.all(
       cards.map(async (card) => {

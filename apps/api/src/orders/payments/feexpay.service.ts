@@ -97,7 +97,10 @@ export class FeexpayService {
     }
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      this.logger.warn(`FeexPay ${method} ${path} → ${res.status} ${JSON.stringify(data).slice(0, 300)}`);
+      // FeexPay renvoie parfois la clé API dans ses erreurs : elle ne doit jamais atterrir dans les journaux.
+      const safe = { ...data } as Record<string, unknown>;
+      for (const k of ['api_key', 'apiKey', 'token', 'secret']) if (k in safe) safe[k] = '[masquée]';
+      this.logger.warn(`FeexPay ${method} ${path} → ${res.status} ${JSON.stringify(safe).slice(0, 300)}`);
       if (res.status === 400) {
         const code = typeof data.code === 'string' ? data.code : '';
         // Messages de FeexPay (en anglais) traduits et expliqués ; le mode test n'accepte que des numéros de test.
@@ -112,7 +115,16 @@ export class FeexpayService {
         const message = typeof data.message === 'string' ? data.message : typeof data.error === 'string' ? data.error : '';
         throw new BadRequestException(message || 'FeexPay a refusé la demande : vérifiez le numéro et le réseau.');
       }
-      throw new BadGatewayException('Le service de paiement FeexPay a refusé la demande.');
+      // Autres refus : la cause probable est écrite dans les journaux du serveur (pour vous) ; le client voit un message neutre.
+      const code = typeof data.code === 'string' ? data.code : '';
+      if (res.status === 401 || res.status === 403) {
+        const hint = code === 'API_KEY_BLOCKED'
+          ? 'la clé API est BLOQUÉE par FeexPay : contactez leur support ou régénérez la clé dans leur tableau de bord'
+          : 'clé ou identifiant de boutique refusés : vérifiez FEEXPAY_API_KEY, FEEXPAY_SHOP_ID et FEEXPAY_ENV (live ou sandbox), ainsi que l’activation du compte';
+        this.logger.error(`FeexPay refuse l’accès (${res.status}${code ? ` ${code}` : ''}) : ${hint}.`);
+        throw new BadGatewayException('Le paiement Mobile Money est momentanément indisponible. Réessayez plus tard ou écrivez-nous sur WhatsApp.');
+      }
+      throw new BadGatewayException('Le service de paiement FeexPay a refusé la demande. Réessayez dans un instant.');
     }
     return data as T;
   }

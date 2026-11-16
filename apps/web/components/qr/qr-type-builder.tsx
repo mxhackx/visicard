@@ -287,7 +287,7 @@ function QrScreen({
     <div className="relative rounded-[28px] bg-white p-6 shadow-[0_24px_60px_rgba(23,23,26,0.14)] ring-1 ring-black/5">
       {/* Payant : aperçu flouté tant que la commande n'est pas payée (le QR net est livré après paiement). */}
       <div className={locked || !ready ? "blur-[9px]" : undefined} aria-hidden={locked || !ready || undefined}>
-        <StyledQr data={ready && !locked ? payload : "https://moncode.app"} style={style} logoUrl={logo} size={size} />
+        <StyledQr data={ready && !locked ? payload : "https://moncode.bj"} style={style} logoUrl={logo} size={size} />
       </div>
       {(locked || !ready) && (
         <span className="absolute inset-0 flex items-center justify-center">

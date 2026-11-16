@@ -1,4 +1,5 @@
 import './env';
+import { allowedOrigins } from './app-url';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -22,12 +23,8 @@ async function bootstrap() {
   // personnes partageraient alors le même quota. On lit l'adresse réelle (en-tête X-Forwarded-For).
   app.set('trust proxy', 1);
 
-  // APP_URL, localhost:3000 et, au besoin, des origines supplémentaires séparées par des virgules (CORS_ORIGINS).
-  const allowedOrigins = [
-    process.env.APP_URL,
-    'http://localhost:3000',
-    ...(process.env.CORS_ORIGINS ?? '').split(',').map((o) => o.trim()),
-  ].filter(Boolean) as string[];
+  // Origines web autorisées : APP_URL (une ou plusieurs adresses, avec et sans « www. »), localhost:3000 et CORS_ORIGINS.
+  const allowed = allowedOrigins();
 
   // En développement, le front tombe sur le premier port libre (Next décale de
   // 3000 à 3001, 3100… sitôt qu'un port est déjà pris) : toute origine locale
@@ -37,7 +34,7 @@ async function bootstrap() {
 
 app.enableCors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowed.includes(origin)) {
       callback(null, true);
       return;
     }

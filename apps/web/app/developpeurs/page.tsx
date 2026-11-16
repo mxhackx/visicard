@@ -13,7 +13,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/developpeurs",
 });
 
-const BASE = API_URL.startsWith("http://localhost") ? "https://api.moncode.app" : API_URL;
+const BASE = API_URL.startsWith("http://localhost") ? "https://api.moncode.bj" : API_URL;
 
 const TYPES: [string, string][] = [
   ["url", "data (http:// ou https://) · gratuit"],
@@ -87,7 +87,7 @@ export default function DeveloppeursPage() {
         <Code>{`curl -X POST ${BASE}/v1/qr \\
   -H "X-API-Key: mck_live_votre_cle" \\
   -H "Content-Type: application/json" \\
-  -d '{"type":"url","data":"https://moncode.app","fg":"#e3051d","size":600}' \\
+  -d '{"type":"url","data":"https://moncode.bj","fg":"#e3051d","size":600}' \\
   -o qr.png`}</Code>
         <p className="mt-6 text-sm font-semibold text-ink">Wi-Fi, en SVG</p>
         <Code>{`curl -X POST ${BASE}/v1/qr \\
@@ -99,7 +99,7 @@ export default function DeveloppeursPage() {
         <Code>{`const res = await fetch("${BASE}/v1/qr", {
   method: "POST",
   headers: { "X-API-Key": process.env.MONCODE_KEY, "Content-Type": "application/json" },
-  body: JSON.stringify({ type: "url", data: "https://moncode.app", encoding: "json" }),
+  body: JSON.stringify({ type: "url", data: "https://moncode.bj", encoding: "json" }),
 });
 const { dataUrl } = await res.json(); // "data:image/png;base64,…"`}</Code>
 
