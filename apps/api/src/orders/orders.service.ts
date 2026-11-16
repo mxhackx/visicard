@@ -443,27 +443,27 @@ export class OrdersService {
     const recentBy = new Map(recents.map((t) => [String(t.cardId), t._count._all]));
     // QR codes créés dans le créateur sans commande (liens gratuits) : eux aussi sont enregistrés dans l'espace du compte.
     const free = await this.prisma.card.findMany({
-      where: { ownerId: userId, serviceType: 'direct', status: 'active', id: { notIn: orders.map((o) => o.cardId) } },
+      where: { ownerId: userId, serviceType: 'direct', status: { in: ['active', 'draft'] }, id: { notIn: orders.map((o) => o.cardId) } },
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: { slug: true, title: true, contentUrl: true, qrStyle: true, createdAt: true },
+      select: { slug: true, title: true, contentUrl: true, qrStyle: true, createdAt: true, status: true },
     });
     const freeRows = free.map((c) => ({
       scans: null,
       reference: '',
       slug: c.slug,
       serviceType: 'direct' as const,
-      serviceLabel: 'QR code gratuit',
-      status: 'paid',
+      serviceLabel: c.status === 'draft' ? 'QR code Premium' : 'QR code gratuit',
+      status: c.status === 'draft' ? 'quote' : 'paid',
       amount: 0,
       currency: 'XOF',
       createdAt: c.createdAt,
       paidAt: c.createdAt,
       title: c.title || 'QR code',
-      cardStatus: 'active',
+      cardStatus: c.status,
       free: true,
       invoiceNumber: null as string | null,
-      payload: c.contentUrl,
+      payload: c.status === 'draft' ? null : c.contentUrl,
       qrStyle: c.qrStyle,
     }));
     const paidRows = orders.map((o) => {

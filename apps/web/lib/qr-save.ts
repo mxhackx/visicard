@@ -21,3 +21,27 @@ export async function saveQr(payload: string, qrStyle: string, token?: string | 
     saved.delete(key);
   }
 }
+
+/**
+ * « Payer » : le QR code Premium est enregistré dans l'espace du compte mais reste inaccessible (brouillon)
+ * jusqu'au paiement ; le paiement le débloque. Sans jeton fourni, on reprend celui de la session.
+ */
+export async function saveDraftQr(payload: string, qrStyle: string, title?: string, token?: string | null): Promise<boolean> {
+  let t = token ?? null;
+  if (!t) {
+    try {
+      t = sessionStorage.getItem("moncode_token");
+    } catch {}
+  }
+  if (!t) return false;
+  try {
+    const res = await fetch(`${API_URL}/cards/direct`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ payload, qrStyle, title, draft: true }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

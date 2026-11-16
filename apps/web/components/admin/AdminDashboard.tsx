@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import AdminCardsList, { CardSummary } from "./AdminCardsList";
 import AdminSettingsForm from "./AdminSettingsForm";
 import AdminAccounts from "./AdminAccounts";
@@ -29,12 +28,6 @@ export default function AdminDashboard({ tab }: { tab: AdminTab }) {
       active={tab}
       title={heading.title}
       hint={heading.hint}
-      actions={
-        <Link href="/admin/nouveau" className="btn btn-primary btn-sm">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nouveau QR code</span>
-        </Link>
-      }
     >
       {(token) => <DashboardBody tab={tab} adminToken={token} />}
     </AdminShell>

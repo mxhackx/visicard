@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings } from "lucide-react";
+import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "./auth-dialog";
 import { fetchMyOrders, fetchPremiumHistory, updateProfile, type AccountOrder, type PremiumReceipt } from "@/lib/account";
-import { usePremium } from "@/lib/premium";
+import { PREMIUM_PRICE, usePremium } from "@/lib/premium";
 import { formatPhone, toPhone } from "./auth-form";
 import { STATUS_LABELS, fcfa, formatDate } from "@/lib/orders";
 import StyledQr from "@/components/qr/styled-qr";
@@ -27,7 +27,7 @@ export default function AccountSpace() {
   const router = useRouter();
   const tabParam = useSearchParams().get("onglet");
   const tab = tabParam === "factures" || tabParam === "parametres" ? tabParam : "codes";
-  const { openAuth } = useDialogs();
+  const { openAuth, openPremium } = useDialogs();
   const { authToken, authUser, logoutSession } = useFile();
   const [orders, setOrders] = useState<AccountOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +135,22 @@ export default function AccountSpace() {
               <ul className="mt-6 space-y-3">
             {orders.map((o) => {
               const Icon = ICONS[o.serviceType] ?? QrCode;
+              // QR code enregistré avant le paiement : visible dans la liste, mais inaccessible jusqu'au règlement.
+              if (o.free && o.cardStatus === "draft") {
+                return (
+                  <li key={`draft-${o.slug}`} className="surface flex flex-wrap items-center gap-4 p-4 sm:p-5">
+                    <span className="icon-tile h-11 w-11 shrink-0"><Lock className="h-5 w-5" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-ink">{o.title}</span>
+                      <span className="block text-xs text-sage">QR code Premium · {formatDate(o.createdAt)} · verrouillé jusqu’au paiement</span>
+                    </span>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${BADGE.quote}`}>En attente de paiement</span>
+                    <button type="button" onClick={() => openPremium({ label: "Débloquer mon QR code", suite: "/compte" })} className="btn btn-primary btn-sm w-full sm:w-auto">
+                      Payer {PREMIUM_PRICE} FCFA
+                    </button>
+                  </li>
+                );
+              }
               if (o.free && o.payload) {
                 return (
                   <li key={`free-${o.slug}`} className="surface flex flex-wrap items-center gap-4 p-4 sm:p-5">

@@ -134,6 +134,8 @@ export class PremiumService {
     await this.prisma.$transaction([
       this.prisma.adminUser.update({ where: { id: userId }, data: { premiumUntil: until } }),
       this.prisma.premiumPurchase.update({ where: { id: purchaseId }, data: { expiresAt: until } }),
+      // Les QR codes enregistrés avant le paiement (brouillons directs) sont débloqués.
+      this.prisma.card.updateMany({ where: { ownerId: userId, serviceType: 'direct', status: 'draft' }, data: { status: 'active' } }),
     ]);
     this.logger.log(`Premium activé pour ${userId} jusqu'au ${until.toISOString()}`);
   }

@@ -169,25 +169,36 @@ export class CardsService {
    */
   async createDirect(
     user: { id: string; role?: string } | null,
-    input: { payload?: string; qrStyle?: string; title?: string },
+    input: { payload?: string; qrStyle?: string; title?: string; draft?: boolean },
   ) {
     const payload = (input.payload ?? '').trim();
     if (!payload || payload.length > 1500) throw new BadRequestException('Contenu du QR code manquant ou trop long.');
     const isLink = /^https?:\/\/\S+$/i.test(payload);
-    if (!isLink) {
-      let premium = user?.role === 'admin';
-      if (user && !premium) {
-        const owner = await this.prisma.adminUser.findUnique({ where: { id: user.id }, select: { premiumUntil: true } });
-        premium = Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
-      }
-      if (!premium) throw new ForbiddenException('Ce contenu exige un compte Premium : seuls les liens sont gratuits.');
+    let premium = user?.role === 'admin';
+    if (user && !premium) {
+      const owner = await this.prisma.adminUser.findUnique({ where: { id: user.id }, select: { premiumUntil: true } });
+      premium = Boolean(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now());
+    }
+    // « Payer » : le QR code Premium est enregistré mais reste inaccessible (brouillon) jusqu'au paiement.
+    const asDraft = Boolean(input.draft) && !premium;
+    if (asDraft && !user) throw new ForbiddenException('Connectez-vous pour enregistrer ce QR code.');
+    if (!isLink && !premium && !asDraft) {
+      throw new ForbiddenException('Ce contenu exige un compte Premium : seuls les liens sont gratuits.');
     }
     if (user) {
       const same = await this.prisma.card.findFirst({
-        where: { ownerId: user.id, serviceType: 'direct', contentUrl: payload, status: 'active' },
+        where: { ownerId: user.id, serviceType: 'direct', contentUrl: payload, status: { in: ['active', 'draft'] } },
         orderBy: { id: 'desc' },
       });
-      if (same) return { slug: same.slug, saved: false };
+      if (same) {
+        // Le compte est devenu Premium entre-temps : le brouillon est débloqué.
+        if (same.status === 'draft' && !asDraft) {
+          await this.prisma.card.update({ where: { id: same.id }, data: { status: 'active', qrStyle: input.qrStyle ?? same.qrStyle } });
+        } else if (same.status === 'draft' && input.qrStyle && input.qrStyle !== same.qrStyle) {
+          await this.prisma.card.update({ where: { id: same.id }, data: { qrStyle: input.qrStyle } });
+        }
+        return { slug: same.slug, saved: false, draft: same.status === 'draft' && asDraft };
+      }
     }
     let title = (input.title ?? '').trim().slice(0, 80);
     if (!title) {
@@ -201,9 +212,9 @@ export class CardsService {
       {},
       { serviceType: 'direct', directPayload: payload, title, qrStyle: input.qrStyle, clientName: title },
       user?.id ?? null,
-      { status: 'active' },
+      { status: asDraft ? 'draft' : 'active' },
     );
-    return { slug: created.slug, saved: true };
+    return { slug: created.slug, saved: true, draft: asDraft };
   }
 
   async createCard(
@@ -414,6 +425,8 @@ export class CardsService {
   async getQrCode(slug: string): Promise<{ qrCode: string; cardUrl: string }> {
     const card = await this.prisma.card.findUnique({ where: { slug } });
     if (!card) throw new NotFoundException(`Carte introuvable pour le slug "${slug}"`);
+    // QR code non payé : l'image n'est pas délivrée.
+    if (card.status === 'draft') throw new ForbiddenException('Ce QR code sera disponible après le paiement.');
     const appUrl = primaryAppUrl();
     const cardUrl = `${appUrl}/c/${slug}`;
     const target = card.serviceType === 'direct' && card.contentUrl ? card.contentUrl : cardUrl;

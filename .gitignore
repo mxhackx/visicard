@@ -9,3 +9,7 @@ node_modules
 !.env.*.example
 *.tsbuildinfo
 ./apps/api/uploads
+# Fichiers temporaires d'éditeur (sauvegardes, verrous)
+\#*#
+.#*
+*~

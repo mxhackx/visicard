@@ -9,7 +9,7 @@ import { type PremiumOffer } from "./premium-modal";
 import PremiumModal from "./premium-modal";
 import { useDialogs } from "@/components/account/auth-dialog";
 import { usePremium, useTrial } from "@/lib/premium";
-import { saveQr } from "@/lib/qr-save";
+import { saveDraftQr, saveQr } from "@/lib/qr-save";
 import { draftStore } from "@/lib/draft-store";
 import { useFile } from "@/app/context/FileContext";
 import StyledQr from "./styled-qr";
@@ -97,7 +97,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const [device, setDevice] = useState<Device>("phone");
   const [offer, setOffer] = useState<PremiumOffer | null>(null);
   const premium = usePremium();
-  const { openPremium } = useDialogs();
+  const { openPremium, openAuth } = useDialogs();
   const { authToken } = useFile();
   const [trial, startTrial] = useTrial();
   const locked = !premium.active && !trial;
@@ -128,7 +128,13 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
     try {
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ all, qrStyle, logo: logo ? await toDataUrl(logo) : null }));
     } catch {}
-    openPremium({ label: "Télécharger mon QR code", suite });
+    // Le QR code est enregistré dès maintenant, mais reste inaccessible jusqu'au paiement.
+    const go = () => {
+      if (!media && payload) void saveDraftQr(payload, qrStyle, meta.label);
+      openPremium({ label: "Télécharger mon QR code", suite });
+    };
+    if (authToken) go();
+    else openAuth({ mode: "login", onDone: go });
   };
 
   const data = all[dtype];

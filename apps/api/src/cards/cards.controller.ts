@@ -131,7 +131,7 @@ export class CardsController {
   async saveDirect(
     @Req() req: Request,
     @Headers('authorization') authHeader: string | undefined,
-    @Body() body: { payload?: string; qrStyle?: string; title?: string },
+    @Body() body: { payload?: string; qrStyle?: string; title?: string; draft?: boolean },
   ) {
     let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
     if (!token) token = cookieOf(req, 'access_token');
