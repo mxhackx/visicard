@@ -1,7 +1,7 @@
 "use client";
 
 import { API_URL } from "@/lib/api-url";
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 export type UserRole = "user" | "admin" | null;
 export type AuthRole = "admin" | "user" | null;
@@ -141,6 +141,30 @@ interface FileContextType {
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
+/** Date d'expiration (en secondes) d'un jeton JWT, lue sans vérifier sa signature ; 0 si illisible. */
+function tokenExpiry(token: string | null): number {
+  try {
+    const part = token?.split(".")[1];
+    if (!part) return 0;
+    const json = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json.exp === "number" ? json.exp : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Au chargement : un jeton d'accès expiré avec un jeton de rafraîchissement valide se renouvelle avant tout appel. */
+function startupNeedsRefresh(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const access = localStorage.getItem("moncode_token") || localStorage.getItem("moncode_admin_token");
+    const refresh = localStorage.getItem("moncode_refresh_token");
+    return Boolean(refresh) && tokenExpiry(access) * 1000 < Date.now() + 30_000;
+  } catch {
+    return false;
+  }
+}
+
 export function FileProvider({ children }: { children: ReactNode }) {
   const [file, setFileState] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -150,13 +174,13 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo>(initialRestaurantInfo);
   const [customization, setCustomization] = useState<CustomizationInfo>(initialCustomization);
 
-  // Authentification initialisée depuis sessionStorage
+  // Authentification initialisée depuis localStorage : la session survit à la fermeture du navigateur
   const [authToken, setAuthToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       try {
         return (
-          sessionStorage.getItem("moncode_token") ||
-          sessionStorage.getItem("moncode_admin_token")
+          localStorage.getItem("moncode_token") ||
+          localStorage.getItem("moncode_admin_token")
         );
       } catch {
         return null;
@@ -168,10 +192,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [authRole, setAuthRole] = useState<AuthRole>(() => {
     if (typeof window !== "undefined") {
       try {
-        const storedRole = sessionStorage.getItem("moncode_role") as AuthRole;
+        const storedRole = localStorage.getItem("moncode_role") as AuthRole;
         const storedToken =
-          sessionStorage.getItem("moncode_token") ||
-          sessionStorage.getItem("moncode_admin_token");
+          localStorage.getItem("moncode_token") ||
+          localStorage.getItem("moncode_admin_token");
         return storedRole || (storedToken ? "admin" : null);
       } catch {
         return null;
@@ -183,10 +207,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
     if (typeof window !== "undefined") {
       try {
-        const storedEmail = sessionStorage.getItem("moncode_user_email");
-        const picture = sessionStorage.getItem("moncode_user_picture");
-        const name = sessionStorage.getItem("moncode_user_name");
-        const phone = sessionStorage.getItem("moncode_user_phone");
+        const storedEmail = localStorage.getItem("moncode_user_email");
+        const picture = localStorage.getItem("moncode_user_picture");
+        const name = localStorage.getItem("moncode_user_name");
+        const phone = localStorage.getItem("moncode_user_phone");
         return storedEmail ? { email: storedEmail, picture: picture || null, name: name || null, phone: phone || null } : null;
       } catch {
         return null;
@@ -198,7 +222,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       try {
-        return sessionStorage.getItem("moncode_refresh_token");
+        return localStorage.getItem("moncode_refresh_token");
       } catch {
         return null;
       }
@@ -206,7 +230,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  const [isAuthLoading] = useState<boolean>(false);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(startupNeedsRefresh);
 
   const loginSession = (
     token: string,
@@ -225,24 +249,24 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      sessionStorage.setItem("moncode_token", token);
-      sessionStorage.setItem("moncode_role", role);
+      localStorage.setItem("moncode_token", token);
+      localStorage.setItem("moncode_role", role);
       if (role === "admin") {
-        sessionStorage.setItem("moncode_admin_token", token);
+        localStorage.setItem("moncode_admin_token", token);
       }
       if (user?.email) {
-        sessionStorage.setItem("moncode_user_email", user.email);
+        localStorage.setItem("moncode_user_email", user.email);
       }
       if (user) {
-        if (user.picture) sessionStorage.setItem("moncode_user_picture", user.picture);
-        else sessionStorage.removeItem("moncode_user_picture");
-        if (user.name) sessionStorage.setItem("moncode_user_name", user.name);
-        else sessionStorage.removeItem("moncode_user_name");
-        if (user.phone) sessionStorage.setItem("moncode_user_phone", user.phone);
-        else sessionStorage.removeItem("moncode_user_phone");
+        if (user.picture) localStorage.setItem("moncode_user_picture", user.picture);
+        else localStorage.removeItem("moncode_user_picture");
+        if (user.name) localStorage.setItem("moncode_user_name", user.name);
+        else localStorage.removeItem("moncode_user_name");
+        if (user.phone) localStorage.setItem("moncode_user_phone", user.phone);
+        else localStorage.removeItem("moncode_user_phone");
       }
       if (newRefreshToken) {
-        sessionStorage.setItem("moncode_refresh_token", newRefreshToken);
+        localStorage.setItem("moncode_refresh_token", newRefreshToken);
       }
     } catch {
       // ignore
@@ -253,12 +277,12 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setAuthUser((prev) => ({ ...(prev ?? {}), ...patch }));
     try {
       if (patch.name !== undefined) {
-        if (patch.name) sessionStorage.setItem("moncode_user_name", patch.name);
-        else sessionStorage.removeItem("moncode_user_name");
+        if (patch.name) localStorage.setItem("moncode_user_name", patch.name);
+        else localStorage.removeItem("moncode_user_name");
       }
       if (patch.phone !== undefined) {
-        if (patch.phone) sessionStorage.setItem("moncode_user_phone", patch.phone);
-        else sessionStorage.removeItem("moncode_user_phone");
+        if (patch.phone) localStorage.setItem("moncode_user_phone", patch.phone);
+        else localStorage.removeItem("moncode_user_phone");
       }
     } catch {
       // ignore
@@ -273,85 +297,110 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setAuthUser(null);
 
     try {
-      sessionStorage.removeItem("moncode_token");
-      sessionStorage.removeItem("moncode_refresh_token");
-      sessionStorage.removeItem("moncode_role");
-      sessionStorage.removeItem("moncode_admin_token");
-      sessionStorage.removeItem("moncode_user_email");
-      sessionStorage.removeItem("moncode_user_picture");
-      sessionStorage.removeItem("moncode_user_name");
-      sessionStorage.removeItem("moncode_user_phone");
-      sessionStorage.removeItem("genqr_admin_token");
-      sessionStorage.removeItem("visitcard_admin_token");
+      localStorage.removeItem("moncode_token");
+      localStorage.removeItem("moncode_refresh_token");
+      localStorage.removeItem("moncode_role");
+      localStorage.removeItem("moncode_admin_token");
+      localStorage.removeItem("moncode_user_email");
+      localStorage.removeItem("moncode_user_picture");
+      localStorage.removeItem("moncode_user_name");
+      localStorage.removeItem("moncode_user_phone");
+      localStorage.removeItem("genqr_admin_token");
+      localStorage.removeItem("visitcard_admin_token");
     } catch {
       // ignore
     }
   };
 
-  const refreshAccessToken = async (): Promise<string | null> => {
-    const currentRefreshToken =
-      refreshToken ||
-      (typeof window !== "undefined"
-        ? sessionStorage.getItem("moncode_refresh_token")
-        : null);
+  const refreshing = useRef<Promise<string | null> | null>(null);
+  const refreshAccessToken = (): Promise<string | null> => {
+    // Un seul renouvellement à la fois : les appels simultanés partagent le même résultat.
+    if (refreshing.current) return refreshing.current;
+    const run = (async (): Promise<string | null> => {
+      const currentRefreshToken =
+        refreshToken ||
+        (typeof window !== "undefined" ? localStorage.getItem("moncode_refresh_token") : null);
 
-    if (!currentRefreshToken) {
-      logoutSession();
-      return null;
-    }
-
-    try {
-      const apiUrl = API_URL;
-      const res = await fetch(`${apiUrl}/auth/refresh`, {
-      credentials: 'include',
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: currentRefreshToken }),
-      });
-
-      if (!res.ok) {
+      if (!currentRefreshToken) {
         logoutSession();
         return null;
       }
 
-      const data = await res.json();
-      const newAccessToken: string = data.access_token;
-      const nextRefreshToken: string | undefined = data.refresh_token;
+      try {
+        const res = await fetch(`${API_URL}/auth/refresh`, {
+          credentials: "include",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: currentRefreshToken }),
+        });
 
-      if (newAccessToken) {
-        setAuthToken(newAccessToken);
-        try {
-          sessionStorage.setItem("moncode_token", newAccessToken);
-          if (authRole === "admin") {
-            sessionStorage.setItem("moncode_admin_token", newAccessToken);
+        // Refus de l'API (jeton expiré, révoqué, compte supprimé) : session terminée. Une panne passagère, non.
+        if (res.status === 401 || res.status === 403 || res.status === 400) {
+          logoutSession();
+          return null;
+        }
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        const newAccessToken: string = data.access_token;
+        const nextRefreshToken: string | undefined = data.refresh_token;
+
+        if (newAccessToken) {
+          setAuthToken(newAccessToken);
+          try {
+            localStorage.setItem("moncode_token", newAccessToken);
+            if ((data.user?.role ?? authRole) === "admin") {
+              localStorage.setItem("moncode_admin_token", newAccessToken);
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
-      }
-
-      if (nextRefreshToken) {
-        setRefreshToken(nextRefreshToken);
-        try {
-          sessionStorage.setItem("moncode_refresh_token", nextRefreshToken);
-        } catch {
-          // ignore
+        if (nextRefreshToken) {
+          setRefreshToken(nextRefreshToken);
+          try {
+            localStorage.setItem("moncode_refresh_token", nextRefreshToken);
+          } catch {
+            // ignore
+          }
         }
-      }
-
-      if (data.user) {
-        setAuthUser(data.user);
-        if (data.user.role) {
-          setAuthRole(data.user.role);
+        if (data.user) {
+          setAuthUser((prev) => ({ ...(prev ?? {}), ...data.user }));
+          if (data.user.role) setAuthRole(data.user.role);
         }
+        return newAccessToken ?? null;
+      } catch {
+        // Réseau instable : on garde la session, le prochain essai se fera plus tard.
+        return null;
       }
-
-      return newAccessToken;
-    } catch {
-      logoutSession();
-      return null;
-    }
+    })().finally(() => {
+      refreshing.current = null;
+      setIsAuthLoading(false);
+    });
+    refreshing.current = run;
+    return run;
   };
+
+  // Renouvellement automatique : une minute avant l'expiration du jeton d'accès, et au retour sur l'onglet.
+  useEffect(() => {
+    if (!authToken && !refreshToken) return;
+    const check = () => {
+      const left = tokenExpiry(authToken) * 1000 - Date.now();
+      if (!authToken || left < 60_000) void refreshAccessToken();
+    };
+    check();
+    const left = tokenExpiry(authToken) * 1000 - Date.now();
+    const timer = left > 60_000 ? window.setTimeout(() => void refreshAccessToken(), Math.min(left - 60_000, 2_000_000_000)) : undefined;
+    const onVisible = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, refreshToken]);
 
   const setFile = (newFile: File | null) => {
     setFileState(newFile);

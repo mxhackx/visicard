@@ -4,7 +4,8 @@ import { useOrderKey } from "@/lib/use-order-key";
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ImagePlus, Loader2, UploadCloud } from "lucide-react";
+import { ArrowRight, Check, ImagePlus, Loader2, UploadCloud } from "lucide-react";
+import { usePremium } from "@/lib/premium";
 import {
   fcfa,
   fetchOrder,
@@ -29,6 +30,9 @@ const PAGE_FIELDS: { name: PageFields; label: string; multiline?: boolean }[] = 
 
 export default function ModificationForm({ reference }: { reference: string }) {
   const router = useRouter();
+  const premium = usePremium();
+  // Avec Premium, les modifications sont incluses et mises en ligne tout de suite.
+  const included = premium.ready && premium.active;
   const [order, setOrder] = useState<OrderView | null>(null);
   const key = useOrderKey(reference);
   const [fetchError, setError] = useState<string | null>(null);
@@ -107,11 +111,19 @@ export default function ModificationForm({ reference }: { reference: string }) {
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
-      <h1 className="page-title">Modifier le contenu</h1>
-      <p className="mt-3 text-base leading-7 text-sage">
-        Changez ce qui doit l’être : un nouveau devis de {fcfa(MODIFICATION_PRICE[order.serviceType])} est émis, et les
-        changements sont mis en ligne dès son paiement. Le QR code imprimé ne change pas.
-      </p>
+      <Link href={`/commande/${reference}`} className="text-sm font-medium text-sage hover:text-ink">← Retour à la commande</Link>
+      <h1 className="page-title mt-4">Modifier le contenu</h1>
+      {included ? (
+        <p className="mt-3 flex items-start gap-2 text-base leading-7 text-sage">
+          <Check className="mt-1.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <span>Changez ce qui doit l’être : c’est <strong className="text-ink">inclus avec votre Premium</strong> et mis en ligne tout de suite. Le QR code imprimé ne change pas.</span>
+        </p>
+      ) : (
+        <p className="mt-3 text-base leading-7 text-sage">
+          Changez ce qui doit l’être : un nouveau devis de {fcfa(MODIFICATION_PRICE[order.serviceType])} est émis, et les
+          changements sont mis en ligne dès son paiement. Le QR code imprimé ne change pas. (Les modifications sont incluses avec Premium.)
+        </p>
+      )}
 
       <form onSubmit={submit} className="surface mt-8 space-y-6 p-6 sm:p-8">
         {order.serviceType === "page" ? (
@@ -167,7 +179,7 @@ export default function ModificationForm({ reference }: { reference: string }) {
 
         <button type="submit" disabled={submitting} className="btn btn-primary w-full">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {submitting ? "Création du devis…" : "Obtenir le devis de modification"}
+          {submitting ? (included ? "Enregistrement…" : "Création du devis…") : included ? "Enregistrer les modifications" : "Obtenir le devis de modification"}
           {!submitting && <ArrowRight className="h-4 w-4" />}
         </button>
       </form>

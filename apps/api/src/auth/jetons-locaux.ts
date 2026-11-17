@@ -29,7 +29,7 @@ export interface LocalTokenPayload {
 
 // Durées alignées sur les maxAge des cookies posés par `AuthController`.
 const ACCESS_TTL = 60 * 60;
-const REFRESH_TTL = 7 * 24 * 60 * 60;
+const REFRESH_TTL = 30 * 24 * 60 * 60;
 /** Jeton d'étape intermédiaire (code reçu par e-mail) : valable le temps de saisir le code. */
 const CHALLENGE_TTL = 10 * 60;
 

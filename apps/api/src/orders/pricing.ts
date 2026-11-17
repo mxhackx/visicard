@@ -49,6 +49,9 @@ export function itemsFor(kind: 'creation' | 'modification', service: ServiceType
       { label: `${SERVICE_LABELS[service]} : création, hébergement et QR code`, quantity: 1, unitPrice: CREATION_PRICES[service] },
     ];
   }
+  if (includedInPremium) {
+    return [{ label: `${SERVICE_LABELS[service]} : modification du contenu (incluse dans Premium)`, quantity: 1, unitPrice: 0 }];
+  }
   return [{ label: `${SERVICE_LABELS[service]} : modification du contenu`, quantity: 1, unitPrice: MODIFICATION_PRICES[service] }];
 }
 

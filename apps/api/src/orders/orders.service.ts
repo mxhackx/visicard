@@ -118,16 +118,20 @@ export class OrdersService {
     const service = (isServiceType(card.serviceType) ? card.serviceType : 'page') as ServiceType;
     const changes = await this.cards.prepareChanges(card, files, metadata);
 
-    return this.insertOrder({
+    // Premium actif : les modifications sont incluses et mises en ligne tout de suite, sans devis ni paiement.
+    const included = parent.userId ? await this.premium.isActive({ id: parent.userId }) : false;
+    const placed = await this.insertOrder({
       kind: 'modification',
       serviceType: service,
       cardId: card.id,
       parentId: parent.id,
       buyer: { name: parent.customerName, phone: parent.customerPhone, email: parent.customerEmail },
       userId: parent.userId,
-      items: itemsFor('modification', service),
+      items: itemsFor('modification', service, included),
       pendingChanges: toJson(changes),
     });
+    if (included) await this.markPaid(placed.id);
+    return { ...placed, applied: included };
   }
 
   private async insertOrder(input: {

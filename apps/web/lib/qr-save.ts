@@ -30,7 +30,7 @@ export async function saveDraftQr(payload: string, qrStyle: string, title?: stri
   let t = token ?? null;
   if (!t) {
     try {
-      t = sessionStorage.getItem("moncode_token");
+      t = localStorage.getItem("moncode_token");
     } catch {}
   }
   if (!t) return false;

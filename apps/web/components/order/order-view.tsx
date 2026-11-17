@@ -240,7 +240,7 @@ function ModifyCard({ order }: { order: Order }) {
           <div>
             <h2 className="text-base font-semibold text-ink/90">Besoin de changer le contenu ?</h2>
             <p className="mt-1 text-sm text-sage">
-              Chaque modification fait l’objet d’un nouveau devis. Le QR code imprimé reste le même.
+              Modifiez le texte, les photos ou le fichier quand vous voulez : c’est inclus avec Premium et mis en ligne tout de suite. Le QR code imprimé reste le même.
             </p>
             {order.modifications.length > 0 && (
               <ul className="mt-3 space-y-1 text-sm">
@@ -254,7 +254,7 @@ function ModifyCard({ order }: { order: Order }) {
           </div>
           <Link href={`/commande/${order.reference}/modifier`} className="btn btn-outline shrink-0">
             <PencilLine className="h-4 w-4" />
-            Demander une modification
+            Modifier le contenu
           </Link>
         </div>
       

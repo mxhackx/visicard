@@ -831,6 +831,10 @@ export class AuthService {
       if (!account) {
         throw new UnauthorizedException("Session révoquée : le compte local n'existe plus");
       }
+      // Mot de passe changé ou « Se déconnecter partout » depuis l'émission du jeton : il ne renouvelle plus rien.
+      if (account.passwordChangedAt && claims.iat < Math.floor(account.passwordChangedAt.getTime() / 1000)) {
+        throw new UnauthorizedException('Session révoquée : reconnectez-vous.');
+      }
 
       return this.issueLocalSession(account);
     }

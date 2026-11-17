@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, PencilLine, TriangleAlert } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "./auth-dialog";
 import { fetchMyOrders, fetchPremiumHistory, updateProfile, type AccountOrder, type PremiumReceipt } from "@/lib/account";
@@ -78,50 +78,69 @@ export default function AccountSpace() {
     );
   }
 
+  const hasPhoto = Boolean(authUser?.picture && /^https:\/\//.test(authUser.picture));
+  // Google fournit la photo en 96 px : on demande une version plus grande, pour qu'elle reste nette en grand.
+  const photo = hasPhoto ? authUser!.picture!.replace(/=s\d+-c/, "=s400-c") : null;
+  const initial = ((authUser?.name || authUser?.email || "M").trim()[0] ?? "M").toUpperCase();
+  const isPremiumNow = premium.ready && (premium.admin || premium.active);
+
   return (
-    <section className="mx-auto flex min-h-[calc(100svh-var(--header-h)-1px)] w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-[radial-gradient(70%_120%_at_100%_0%,rgba(227,5,29,0.08),transparent_70%),linear-gradient(#fff,#fbf5f5)] p-5 sm:p-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest text-2xl font-semibold text-white ring-4 ring-white">
-            {authUser?.picture && /^https:\/\//.test(authUser.picture) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={authUser.picture} alt="" width={64} height={64} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-            ) : (
-              ((authUser?.name || authUser?.email || "M").trim()[0] ?? "M").toUpperCase()
+    // Pleine largeur, comme l'administration : barre latérale à gauche (profil et sections), contenu à droite.
+    <section className="flex min-h-[calc(100svh-var(--header-h)-1px)] w-full flex-1 flex-col lg:flex-row">
+      <aside className="shrink-0 border-b border-line bg-white lg:sticky lg:top-0 lg:w-80 lg:self-start lg:border-b-0 lg:border-r lg:min-h-[calc(100svh-var(--header-h)-1px)]">
+        {/* Le profil, en grand : la photo est mise en valeur. */}
+        <div className="relative overflow-hidden px-5 pb-6 pt-8 text-center">
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(227,5,29,0.12),transparent_72%),linear-gradient(#fdf1f2,#fff)]" />
+          <div className="relative mx-auto h-28 w-28 lg:h-32 lg:w-32">
+            <span className={`absolute inset-0 rounded-full ${isPremiumNow ? "bg-[conic-gradient(from_200deg,#f9e29c,#e8b43c,#b9791a,#f9e29c)] p-[3px]" : "bg-line p-[3px]"}`}>
+              <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-forest text-4xl font-semibold text-white ring-4 ring-white">
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo} alt={authUser?.name ? `Photo de ${authUser.name}` : "Photo de profil"} width={128} height={128} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                ) : (
+                  initial
+                )}
+              </span>
+            </span>
+            {isPremiumNow && (
+              <span className="premium-gold absolute -bottom-1 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full ring-4 ring-white" title="Premium">
+                <Crown className="h-4 w-4" />
+              </span>
             )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="page-title truncate">{authUser?.name || "Mon espace"}</h1>
-            <p className="truncate text-sm text-sage">{authUser?.email}</p>
           </div>
-          {premium.ready && (premium.admin || premium.active) && (
-            <span className="premium-pill"><Crown className="h-3 w-3" /> {premium.admin ? "Administrateur" : `Premium · jusqu’au ${formatDate(premium.until)}`}</span>
+          <h1 className="mt-5 truncate text-xl font-semibold tracking-[-0.01em] text-ink">{authUser?.name || "Mon espace"}</h1>
+          <p className="mt-0.5 truncate text-sm text-sage">{authUser?.email}</p>
+          {isPremiumNow && (
+            <span className="premium-pill mt-3"><Crown className="h-3 w-3" /> {premium.admin ? "Administrateur" : `Premium · jusqu’au ${formatDate(premium.until)}`}</span>
           )}
         </div>
-      </div>
 
-      <VerifyEmailNotice className="mt-4" />
-      <PremiumNotice className="mt-4" />
-
-      <div className="mt-8 grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-stretch">
-        <nav aria-label="Mon espace" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 lg:h-fit lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-line lg:bg-white lg:p-2 lg:pb-2">
+        <nav aria-label="Mon espace" className="flex gap-2 overflow-x-auto px-4 pb-4 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-4 lg:pb-6">
           {TABS.map(({ id, label, icon: Icon }) => (
             <Link
               key={id}
               href={id === "codes" ? "/compte" : `/compte?onglet=${id}`}
               scroll={false}
               aria-current={tab === id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition max-lg:border ${tab === id ? "bg-cream-deep text-forest max-lg:border-forest/30" : "text-ink/70 hover:bg-cream-deep hover:text-ink max-lg:border-line max-lg:bg-white"}`}
+              className={`inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-[15px] font-medium transition max-lg:border ${tab === id ? "bg-cream-deep text-forest max-lg:border-forest/30" : "text-ink/70 hover:bg-cream-deep hover:text-ink max-lg:border-line max-lg:bg-white"}`}
             >
-              <Icon className="h-4 w-4" /> {label}
+              <Icon className="h-[18px] w-[18px]" /> {label}
             </Link>
           ))}
-          <button type="button" onClick={logout} className="inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-ink/70 transition hover:bg-cream-deep hover:text-ink max-lg:border max-lg:border-line max-lg:bg-white lg:mt-2 lg:border-t lg:border-line lg:rounded-t-none lg:pt-4">
-            <LogOut className="h-4 w-4" /> Déconnexion
+          <button type="button" onClick={logout} className="inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-[15px] font-medium text-ink/70 transition hover:bg-cream-deep hover:text-ink max-lg:border max-lg:border-line max-lg:bg-white lg:mt-3 lg:border-t lg:border-line lg:rounded-t-none lg:pt-4">
+            <LogOut className="h-[18px] w-[18px]" /> Déconnexion
           </button>
         </nav>
+      </aside>
 
-        <div className="flex min-w-0 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink">{TAB_TITLES[tab]}</h2>
+        </div>
+        <VerifyEmailNotice className="mb-4" />
+        <PremiumNotice className="mb-4" />
+
+        <div className="flex min-w-0 flex-1 flex-col">
           {error ? (
             <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
           ) : !orders ? (
@@ -172,7 +191,7 @@ export default function AccountSpace() {
                     <span className="icon-tile h-11 w-11 shrink-0"><QrCode className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink">{o.title}</span>
-                      <span className="block text-xs text-sage">Lien gratuit · {formatDate(o.createdAt)}</span>
+                      <span className="block text-xs text-sage">Lien gratuit · {formatDate(o.createdAt)} · contenu inscrit dans le QR code (non modifiable)</span>
                     </span>
                     <StyledQr data={o.payload} style={o.qrStyle} downloadName={`moncode-${o.slug}`} hideQr className="w-full sm:w-44" />
                     {o.slug && <div className="w-full"><SendQrButton slug={o.slug} /></div>}
@@ -205,7 +224,16 @@ export default function AccountSpace() {
                     </span>
                     <ArrowRight className="hidden h-4 w-4 shrink-0 text-sage sm:block" />
                   </Link>
-                  {o.slug && o.status === "paid" && <div className="ml-1"><SendQrButton slug={o.slug} /></div>}
+                  {o.slug && o.status === "paid" && (
+                    <div className="ml-1 flex flex-wrap items-center gap-x-5 gap-y-1">
+                      <SendQrButton slug={o.slug} />
+                      {o.serviceType !== "direct" && o.cardStatus === "active" && (
+                        <Link href={`/commande/${o.reference}/modifier`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest hover:underline">
+                          <PencilLine className="h-4 w-4" /> Modifier le contenu
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -218,6 +246,8 @@ export default function AccountSpace() {
     </section>
   );
 }
+
+const TAB_TITLES: Record<string, string> = { codes: "Mes QR codes", stats: "Statistiques", factures: "Factures", parametres: "Paramètres" };
 
 const TABS = [
   { id: "codes", label: "Mes QR codes", icon: QrCode },

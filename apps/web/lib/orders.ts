@@ -84,7 +84,7 @@ export const ACCOUNT_KEY = "__account__";
 
 function sessionToken(): string | null {
   try {
-    return sessionStorage.getItem("moncode_token");
+    return localStorage.getItem("moncode_token");
   } catch {
     return null;
   }
