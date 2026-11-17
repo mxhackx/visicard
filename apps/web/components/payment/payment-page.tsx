@@ -56,59 +56,84 @@ export default function PaymentPage() {
 
   const total = Number(PREMIUM_PRICE.replace(/\s/g, ""));
 
+  const signedIn = premium.signedIn;
+  const stepNow = signedIn ? 2 : 1;
+
   return (
-    <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+    <section className="mx-auto max-w-5xl px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pt-16">
       <Link href={suite} className="inline-flex items-center gap-1.5 text-sm font-medium text-sage transition-colors hover:text-ink">
         <ArrowLeft className="h-4 w-4" /> {renew ? "Retour à Mon espace" : "Retour à ma création"}
       </Link>
-      <h1 className="page-title mt-4">{renew ? "Renouveler Premium" : "Paiement"}</h1>
-      <p className="mt-1 text-sm text-sage">{renew ? `Une année de plus pour ${PREMIUM_PRICE} FCFA, ajoutée à la fin de votre Premium actuel.` : `Un seul paiement de ${PREMIUM_PRICE} FCFA pour tout débloquer.`}</p>
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div>
+          <h1 className="page-title">{renew ? "Renouveler Premium" : "Paiement"}</h1>
+          <p className="mt-1 text-sm text-sage">{renew ? `Une année de plus pour ${PREMIUM_PRICE} FCFA, ajoutée à la fin de votre Premium actuel.` : `Un seul paiement de ${PREMIUM_PRICE} FCFA pour tout débloquer.`}</p>
+        </div>
+        {/* Où j'en suis : le compte d'abord, puis le règlement. */}
+        <ol className="flex items-center gap-3 text-sm font-medium" aria-label="Étapes">
+          {[["Compte", 1], ["Paiement", 2]].map(([label, n], i) => {
+            const done = stepNow > (n as number);
+            const current = stepNow === n;
+            return (
+              <li key={label as string} className="flex items-center gap-3" aria-current={current ? "step" : undefined}>
+                {i > 0 && <span className={`h-px w-8 ${done || current ? "bg-forest" : "bg-line"}`} aria-hidden="true" />}
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${done ? "bg-forest text-white" : current ? "bg-forest text-white ring-4 ring-forest/15" : "bg-cream-deep text-sage"}`}>
+                  {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : (n as number)}
+                </span>
+                <span className={current || done ? "text-ink" : "text-sage"}>{label}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-start">
+      {/* Récapitulatif compact sur téléphone ; la carte complète est à droite sur grand écran. */}
+      <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3.5 lg:hidden">
         <div className="min-w-0">
-          {!premium.signedIn ? (
-            <div className="surface p-5 sm:p-7">
-              <h2 className="flex items-center gap-3 text-base font-semibold text-ink/90">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">1</span>
-                Votre compte
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-sage">Avec Google ou votre e-mail. Le paiement vient juste après.</p>
-              <AuthForm className="mt-5 max-w-md" />
+          <span className="premium-pill"><Crown className="h-3 w-3" /> Premium</span>
+          <p className="mt-1.5 truncate text-sm font-semibold text-ink">Moncode Premium · 1 an</p>
+        </div>
+        <p className="shrink-0 text-xl font-semibold tracking-[-0.02em] text-ink">{PREMIUM_PRICE} <span className="text-xs font-medium text-sage">FCFA</span></p>
+      </div>
+
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:items-start">
+        <div className="min-w-0">
+          {!signedIn ? (
+            <div className="surface p-5 sm:p-8">
+              <h2 className="text-lg font-semibold text-ink">Créez votre compte ou connectez-vous</h2>
+              <p className="mt-1 text-sm leading-6 text-sage">Avec Google ou votre e-mail. Le paiement vient juste après.</p>
+              <AuthForm className="mt-6 max-w-md" />
             </div>
           ) : !premium.ready ? (
             <div className="surface flex items-center justify-center gap-2 p-10 text-sm text-sage" role="status">
               <Loader2 className="h-4 w-4 animate-spin" /> Vérification de votre compte…
             </div>
           ) : (
-            <div className="surface p-5 sm:p-7">
-              <VerifyEmailNotice className="mb-5" />
-              <h2 className="flex items-center gap-3 text-base font-semibold text-ink/90">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">1</span>
-                Paiement Mobile Money
-              </h2>
-              <div className="mt-5 max-w-lg">
-                <PaymentForm
-                  amount={total}
-                  defaults={{ phone: authUser?.phone }}
-                  sandbox={premium.sandbox}
-                  pay={async (v) => {
-                    if (!authToken) throw new Error("Connectez-vous pour continuer.");
-                    await payPremium(authToken, v);
-                  }}
-                  check={check}
-                  onPaid={() => {
-                    notifyPremiumChanged();
-                    router.replace(suite);
-                  }}
-                />
-              </div>
+            <div className="surface p-5 sm:p-8">
+              <VerifyEmailNotice className="mb-6" />
+              <h2 className="text-lg font-semibold text-ink">Payer par Mobile Money</h2>
+              <p className="mb-6 mt-1 text-sm leading-6 text-sage">MTN, Moov ou Celtiis : vous validez la demande sur votre téléphone, avec votre code secret.</p>
+              <PaymentForm
+                amount={total}
+                defaults={{ phone: authUser?.phone }}
+                sandbox={premium.sandbox}
+                pay={async (v) => {
+                  if (!authToken) throw new Error("Connectez-vous pour continuer.");
+                  await payPremium(authToken, v);
+                }}
+                check={check}
+                onPaid={() => {
+                  notifyPremiumChanged();
+                  router.replace(suite);
+                }}
+              />
             </div>
           )}
         </div>
 
-        <aside className="min-w-0">
+        <aside className="hidden min-w-0 lg:block lg:sticky lg:top-6">
           <div className="premium-bar">
-            <div className="rounded-[15px] bg-white p-5 sm:p-6">
+            <div className="rounded-[15px] bg-white p-6">
               <span className="premium-pill"><Crown className="h-3 w-3" /> Premium</span>
               <h2 className="mt-3 text-lg font-semibold text-ink/90">Moncode Premium · 1 an</h2>
               <p className="mt-2 flex items-baseline gap-2">
