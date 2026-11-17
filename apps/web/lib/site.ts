@@ -11,7 +11,7 @@ export function withScheme(url: string): string {
   return /^https?:\/\//i.test(t) ? t : `${t.startsWith("localhost") ? "http" : "https"}://${t}`;
 }
 
-export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://moncode.bj").replace(/\/+$/, "");
+export const SITE_URL = withScheme(process.env.NEXT_PUBLIC_SITE_URL || "https://www.moncode.bj").replace(/\/+$/, "");
 
 export const SITE = {
   name: CONTACT.brand,
@@ -36,7 +36,7 @@ export const SITE = {
     "Moncode",
   ],
   /** Dernière mise à jour du contenu public (sitemap). */
-  updated: "2026-11-06",
+  updated: "2026-11-17",
 };
 
 /** Chemins publics à référencer (le reste est privé : admin, commandes, étapes de création). */
