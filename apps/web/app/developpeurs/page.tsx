@@ -88,9 +88,9 @@ function SectionHead({ title, subtitle }: { title: string; subtitle: string }) {
 }
 
 /** Une bande de la page : grande respiration, fond alterné. */
-function Band({ id, tint, children }: { id: string; tint?: boolean; children: React.ReactNode }) {
+function Band({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <section id={id} className={`anchor ${tint ? "border-y border-line bg-[linear-gradient(#fff,#fbf5f5)]" : "bg-white"}`}>
+    <section id={id} className="anchor">
       <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">{children}</div>
     </section>
   );
@@ -98,13 +98,13 @@ function Band({ id, tint, children }: { id: string; tint?: boolean; children: Re
 
 export default function DeveloppeursPage() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-[radial-gradient(70%_36rem_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_44rem_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
       <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["API développeurs", "/developpeurs"]])} />
       <Header />
       {/* Pas d'espaceur : le fond du hero passe derrière l'en-tête, qui est transparent (même fond, sans coupure). */}
 
       {/* En-tête simple : un titre, un sous-titre, une image, sur toute la hauteur de l'écran. */}
-      <section className="relative flex min-h-[100svh] items-center overflow-hidden border-b border-line pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_80%_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
+      <section className="relative flex min-h-[100svh] items-center overflow-hidden pt-[calc(var(--header-h)+1px)]">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-12 sm:px-6 lg:grid-cols-[1fr_minmax(0,560px)] lg:gap-14 lg:px-8">
           <div className="text-center lg:text-left">
             <h1 className="text-[clamp(2.6rem,11vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[4.2rem]">
@@ -113,6 +113,9 @@ export default function DeveloppeursPage() {
             <p className="mx-auto mt-5 max-w-md text-lg leading-8 text-sage lg:mx-0 lg:max-w-lg lg:text-xl lg:leading-9">
               Une requête HTTP, un QR code en retour. Directement depuis votre site ou votre application.
             </p>
+            <div className="mt-8">
+              <Link href="/compte/cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto sm:px-8"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
+            </div>
           </div>
           <div className="relative mx-auto w-full max-w-xl">
             <Image src="/illustrations/api-qr.svg" alt="Une requête de code envoie un QR code en retour" width={640} height={460} priority unoptimized className="h-auto w-full" />
@@ -140,7 +143,7 @@ export default function DeveloppeursPage() {
         </p>
       </Band>
 
-      <Band id="exemples" tint>
+      <Band id="exemples">
         <SectionHead title="Un appel, un QR code" subtitle="Envoyez une requête, recevez l’image en PNG ou en SVG." />
         <p className="mt-8 text-center">
           <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2.5 rounded-2xl border border-line bg-white px-4 py-2.5 text-sm shadow-[0_8px_22px_rgba(23,23,26,0.06)]">
@@ -170,7 +173,7 @@ export default function DeveloppeursPage() {
         </ul>
       </Band>
 
-      <Band id="options" tint>
+      <Band id="options">
         <SectionHead title="Réglez le rendu" subtitle="Format, taille, couleurs : tout est facultatif." />
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {OPTIONS.map(([o, v, d]) => (
@@ -200,7 +203,7 @@ export default function DeveloppeursPage() {
       </Band>
 
       {/* Appel à l'action final */}
-      <section className="bg-[radial-gradient(60%_120%_at_50%_0%,rgba(227,5,29,0.12),transparent_70%),linear-gradient(#fbf5f5,#fff)]">
+      <section>
         <div className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-6 sm:py-24">
           <h2 className="text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">Prêt à générer ?</h2>
           <p className="mx-auto mt-4 max-w-md text-lg leading-8 text-sage">Créez votre clé gratuite en une minute.</p>
