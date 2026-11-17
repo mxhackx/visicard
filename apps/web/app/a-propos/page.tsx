@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Minus } from "lucide-react";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
@@ -11,20 +10,6 @@ export const metadata: Metadata = pageMetadata({
   description: "Moncode est un outil en libre-service pour créer des QR codes et des pages digitales, les modifier à tout moment et suivre les scans.",
   path: "/a-propos",
 });
-
-const weHandle = [
-  "Un créateur en ligne : lien, Wi-Fi, carte de visite, PDF, image, vidéo ou page digitale",
-  "Un QR code net, prêt à imprimer en PNG et SVG, avec vos couleurs et votre logo",
-  "L’hébergement de vos contenus et un espace pour les retrouver et les modifier",
-  "Des statistiques de scans par QR code : jours, appareils, pays",
-];
-
-const youKeep = [
-  "Vos contenus, vos prix, vos photos et votre ton",
-  "La relation client : commandes, réservations, fidélité",
-  "Le choix de modifier le contenu quand vous voulez, en autonomie",
-  "Vos données : le contenu vous appartient, aucune revente",
-];
 
 export default function AboutPage() {
   return (
@@ -78,38 +63,6 @@ export default function AboutPage() {
               className="object-contain p-10"
             />
           </div>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-24">
-          <div className="surface p-6 sm:p-8" data-reveal>
-            <h2 className="page-title">
-              Ce que Moncode vous apporte
-            </h2>
-            <ul className="mt-6 space-y-3 border-t border-line pt-6">
-              {weHandle.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-6 text-sage">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="surface p-6 sm:p-8" data-reveal style={{ "--d": "100ms" } as React.CSSProperties}>
-            <h2 className="page-title">
-              Ce qui reste chez vous
-            </h2>
-            <ul className="mt-6 space-y-3 border-t border-line pt-6">
-              {youKeep.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-6 text-sage">
-                  <Minus className="mt-0.5 h-4 w-4 shrink-0 text-sage/60" />
-                  {item}
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </section>
