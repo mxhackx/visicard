@@ -91,7 +91,6 @@ export default function AccountSpace() {
       <aside className="shrink-0 border-b border-line bg-white lg:sticky lg:top-0 lg:w-80 lg:self-start lg:border-b-0 lg:border-r lg:min-h-[calc(100svh-var(--header-h)-1px)]">
         {/* Le profil, en grand : la photo est mise en valeur. */}
         <div className="relative overflow-hidden px-5 pb-6 pt-8 text-center">
-          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(227,5,29,0.12),transparent_72%),linear-gradient(#fdf1f2,#fff)]" />
           <div className="relative mx-auto h-28 w-28 lg:h-32 lg:w-32">
             <span className={`absolute inset-0 rounded-full ${isPremiumNow ? "bg-[conic-gradient(from_200deg,#f9e29c,#e8b43c,#b9791a,#f9e29c)] p-[3px]" : "bg-line p-[3px]"}`}>
               <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-forest text-4xl font-semibold text-white ring-4 ring-white">
