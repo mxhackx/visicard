@@ -106,7 +106,7 @@ export function MediaFields({
 }
 
 /** Étape finale pour un compte Premium : un seul bouton, au nom du compte (la commande est à 0, déjà couverte). */
-export function MediaOrder({ kind, title, file, qrStyle }: { kind: MediaKind; title: string; file: File | null; qrStyle: string }) {
+export function MediaOrder({ kind, title, file, qrStyle, logo }: { kind: MediaKind; title: string; file: File | null; qrStyle: string; logo?: string | null }) {
   const router = useRouter();
   const contact = useAccountContact();
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +125,8 @@ export function MediaOrder({ kind, title, file, qrStyle }: { kind: MediaKind; ti
     if (contact.email) body.append("customerEmail", contact.email);
     if (qrStyle) body.append("qrStyle", qrStyle);
     try {
+      // Logo au centre du QR code : le fichier choisi est envoyé avec la commande.
+      if (logo) body.append("logo", new File([await (await fetch(logo)).blob()], "logo.png"));
       const order = await createOrder(body);
       // Couverte par Premium : la commande est déjà payée, on ouvre sa page.
       rememberOrder(order);

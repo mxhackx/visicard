@@ -209,7 +209,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             </div>
             <div className="mt-5 lg:min-h-0 lg:flex-1">
               <DevicePreview device={device} fit>
-                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={media ? null : shownLogo} locked={media || needsPay} media={media} />
+                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={shownLogo} locked={media || needsPay} media={media} />
               </DevicePreview>
             </div>
             {payload ? (
@@ -283,7 +283,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             )}
           </Step>
 
-          <Step id="qr-style" n={2} title="Style" aside={media ? undefined : <LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
+          <Step id="qr-style" n={2} title="Style" aside={<LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
             <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} badges={!premium.active} onStep={(next) => goTo(next === "fin" ? "qr-final" : next)} />
           </Step>
 
@@ -301,7 +301,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           {!isUrl && !needsPay && (
             <Step id="qr-final" n={3} title="Obtenir le QR code">
               {media ? (
-                <MediaOrder kind={type as "media" | "document"} title={mediaTitle} file={mediaFile} qrStyle={qrStyle} />
+                <MediaOrder kind={type as "media" | "document"} title={mediaTitle} file={mediaFile} qrStyle={qrStyle} logo={logo} />
               ) : payload ? (
                 <>
                   {payload.length > DENSE_PAYLOAD && (

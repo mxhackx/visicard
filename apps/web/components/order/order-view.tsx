@@ -16,8 +16,11 @@ import {
   Receipt,
   ShieldAlert,
   QrCode,
+  Images,
+  PanelsTopLeft,
 } from "lucide-react";
 import PaymentForm from "@/components/payment/payment-form";
+import Stepper from "@/components/order/stepper";
 import DirectResult from "@/components/order/direct-result";
 import StyledQr from "@/components/qr/styled-qr";
 import { useOrderKey } from "@/lib/use-order-key";
@@ -130,25 +133,40 @@ export default function OrderView({
 
   return (
     <Shell>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
-          <QrCode className="h-7 w-7" />
-        </span>
-        <div className="min-w-[12rem] flex-1">
-          <p className="text-sm font-medium text-sage">
-            {order.kind === "modification" ? "Modification" : order.serviceLabel} · {order.reference}
-          </p>
-          <h1 className="page-title">
-            {paid
-              ? order.kind === "modification"
-                ? "Modification en ligne"
-                : "Votre QR code est actif"
-              : order.status === "cancelled"
-                ? "Commande annulée"
-                : "Il ne reste que le paiement"}
-          </h1>
+      {/* En-tête : où en est la commande, d'un coup d'œil. */}
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-[radial-gradient(70%_120%_at_100%_0%,rgba(227,5,29,0.08),transparent_70%),linear-gradient(#fff,#fbf5f5)] p-5 sm:p-7">
+        <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-forest shadow-[0_8px_22px_rgba(23,23,26,0.08)] ring-1 ring-line">
+            <ServiceIcon type={order.serviceType} />
+          </span>
+          <div className="min-w-[12rem] flex-1">
+            <p className="text-sm font-medium text-sage">
+              {order.kind === "modification" ? "Modification" : order.serviceLabel} · <span className="font-mono text-xs">{order.reference}</span> · {formatDate(order.createdAt)}
+            </p>
+            <h1 className="page-title mt-1">
+              {paid
+                ? order.kind === "modification"
+                  ? "Modification en ligne"
+                  : "Votre QR code est actif"
+                : order.status === "cancelled"
+                  ? "Commande annulée"
+                  : "Il ne reste que le paiement"}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-sage">
+              {paid
+                ? "Téléchargez votre QR code et imprimez-le : il fonctionne dès maintenant."
+                : order.status === "cancelled"
+                  ? "Cette commande n’est plus active."
+                  : `Réglez ${fcfa(order.amount)} par Mobile Money : votre QR code est activé et votre facture émise dès la confirmation.`}
+            </p>
+          </div>
+          <StatusBadge status={order.status} />
         </div>
-        <StatusBadge status={order.status} />
+        {order.status !== "cancelled" && order.card.status !== "rejected" && (
+          <div className="mt-6 border-t border-line/70 pt-5">
+            <Stepper current={paid ? 4 : 2} />
+          </div>
+        )}
       </div>
 
       {paid && order.serviceType === "direct" && order.card.preview?.contentUrl ? (
@@ -164,7 +182,7 @@ export default function OrderView({
           extra={!adminToken ? <PrivateLink reference={order.reference} orderKey={key} /> : undefined}
         />
       ) : (
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-start">
         <div className="min-w-0 space-y-6">
           {order.card.status === "rejected" && <RejectedNotice order={order} />}
           {adminToken && <AdminOrderPanel order={order} adminToken={adminToken} onDone={() => load()} />}
@@ -175,7 +193,7 @@ export default function OrderView({
           {!adminToken && <PrivateLink reference={order.reference} orderKey={key} />}
         </div>
 
-        <aside className="order-first min-w-0 space-y-6 lg:order-none">
+        <aside className="order-first min-w-0 space-y-6 lg:sticky lg:top-6 lg:order-none">
           {paid ? (
             <QrPanel order={order} admin={Boolean(adminToken)} />
           ) : adminToken ? (
@@ -197,7 +215,7 @@ export default function OrderView({
 function Details({ order }: { order: Order }) {
   return (
     <div className="surface p-5 sm:p-6">
-      <h2 className="text-base font-semibold text-ink/90">Détails de la commande</h2>
+      <h2 className="text-lg font-semibold text-ink">Détails de la commande</h2>
       <dl className="mt-4 divide-y divide-line text-sm">
         {([
           ["Référence", order.reference],
@@ -241,6 +259,11 @@ function ModifyCard({ order }: { order: Order }) {
         </div>
       
   );
+}
+
+function ServiceIcon({ type }: { type: Order["serviceType"] }) {
+  const Icon = type === "page" ? PanelsTopLeft : type === "media" ? Images : type === "document" ? FileText : QrCode;
+  return <Icon className="h-8 w-8" />;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -367,10 +390,8 @@ function PaymentPanel({ order, orderKey, onRefresh }: { order: Order; orderKey: 
 
   return (
     <div className="surface p-5 sm:p-6">
-      <h2 className="text-base font-semibold text-ink/90">Paiement par Mobile Money</h2>
-      <p className="mt-1 mb-4 text-sm leading-6 text-sage">
-        Votre QR code est activé et votre facture émise dès la confirmation du paiement.
-      </p>
+      <h2 className="text-lg font-semibold text-ink">Payer par Mobile Money</h2>
+      <p className="mb-5 mt-1 text-sm leading-6 text-sage">MTN, Moov ou Celtiis : vous validez la demande sur votre téléphone.</p>
       <PaymentForm
         amount={order.amount}
         defaults={{ phone: order.customer.phone }}
@@ -402,7 +423,11 @@ function QrPanel({ order, admin }: { order: Order; admin?: boolean }) {
   const qrData = direct ? (order.card.preview?.contentUrl ?? null) : order.cardUrl;
   return (
     <div className="surface overflow-hidden">
-      <div className="flex flex-col items-center gap-4 p-6 text-center">
+      <div className="flex items-center justify-between border-b border-line px-6 py-3.5">
+        <p className="text-sm font-semibold text-ink/90">Votre QR code</p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Actif</span>
+      </div>
+      <div className="flex flex-col items-center gap-4 bg-cream/50 p-6 text-center">
         {qrData && (
           <StyledQr
             data={qrData}

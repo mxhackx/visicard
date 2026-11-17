@@ -304,11 +304,14 @@ export class CardsService {
       if (stored.type.startsWith('image/')) {
         primaryImageUrl = stored.url;
       }
+      // Logo placé au centre du QR code (facultatif).
+      if (files.logo) logoUrl = await this.processAndUploadImage(files.logo.buffer, `${slug}-logo.webp`);
     } else if (serviceType === 'document' && files.document) {
       const stored = await this.storeRawFile(files.document, `${slug}-doc`);
       contentUrl = stored.url;
       contentType = stored.type;
       fileName = stored.name;
+      if (files.logo) logoUrl = await this.processAndUploadImage(files.logo.buffer, `${slug}-logo.webp`);
       primaryImageUrl = logoUrl || '';
     }
 

@@ -6,6 +6,18 @@ import type { Options } from "qr-code-styling";
 import { Download, Loader2 } from "lucide-react";
 import { parseQrStyle, type QrStyle } from "@/lib/qr-style";
 
+/** Un logo introuvable ne doit pas faire disparaître le QR code : sans lui, le QR s'affiche quand même. */
+const usableLogo = (url?: string | null) =>
+  new Promise<string | null>((resolve) => {
+    if (!url) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const timer = window.setTimeout(() => resolve(null), 5000);
+    img.onload = () => (window.clearTimeout(timer), resolve(url));
+    img.onerror = () => (window.clearTimeout(timer), resolve(null));
+    img.src = url;
+  });
+
 function optionsFor(data: string, style: QrStyle, size: number, logoUrl?: string | null): Partial<Options> {
   const withLogo = Boolean(style.logo && logoUrl);
   return {
@@ -58,9 +70,9 @@ export default function StyledQr({
 
   useEffect(() => {
     let cancelled = false;
-    import("qr-code-styling").then(({ default: QRCodeStylingClass }) => {
+    Promise.all([import("qr-code-styling"), usableLogo(logoUrl)]).then(([{ default: QRCodeStylingClass }, logo]) => {
       if (cancelled || !container.current) return;
-      const options = optionsFor(data, JSON.parse(key) as QrStyle, size, logoUrl);
+      const options = optionsFor(data, JSON.parse(key) as QrStyle, size, logo);
       if (instance.current) {
         instance.current.update(options);
       } else {
@@ -78,9 +90,10 @@ export default function StyledQr({
     setBusy(extension);
     try {
       const { default: QRCodeStylingClass } = await import("qr-code-styling");
+      const logo = await usableLogo(logoUrl);
       // Fichier d'impression : 1200 px, indépendamment de la taille affichée.
       const file = new QRCodeStylingClass({
-        ...optionsFor(data, resolved, 1200, logoUrl),
+        ...optionsFor(data, resolved, 1200, logo),
         type: extension === "svg" ? "svg" : "canvas",
       });
       await file.download({ name: downloadName || "qr-code", extension });
