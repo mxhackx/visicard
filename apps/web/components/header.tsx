@@ -109,7 +109,7 @@ export default function Header() {
             aria-expanded={isOpen}
             aria-controls="menu-mobile"
             onClick={() => setIsOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-ink transition-colors active:scale-95 hover:border-forest hover:text-forest"
+            className="inline-flex h-10 w-10 items-center justify-center border border-line bg-white text-ink transition-colors active:scale-95 hover:border-forest hover:text-forest"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -134,7 +134,7 @@ export default function Header() {
         aria-modal="true"
         aria-label="Menu"
         inert={!isOpen}
-        className={`absolute right-0 top-0 flex h-full w-[min(88vw,380px)] flex-col rounded-l-[28px] bg-white transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? "translate-x-0 shadow-[-18px_0_50px_rgba(23,23,26,0.22)]" : "translate-x-full shadow-none"}`}
+        className={`absolute right-0 top-0 flex h-full w-[min(88vw,380px)] flex-col bg-white transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? "translate-x-0 shadow-[-18px_0_50px_rgba(23,23,26,0.22)]" : "translate-x-full shadow-none"}`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between px-5">
           <Logo variant="dark" />
