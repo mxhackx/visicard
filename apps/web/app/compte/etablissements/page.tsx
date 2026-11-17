@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import Establishments from "@/components/account/establishments";
+import AccountTopBar from "@/components/account/account-top-bar";
 
 export const metadata: Metadata = { title: "Établissements", robots: { index: false } };
 
 export default function Page() {
   return (
     <main className="page-hero-bg min-h-screen">
-      <Header />
-      <div className="header-spacer"></div>
+      <AccountTopBar />
       <Establishments />
-      <Footer />
     </main>
   );
 }

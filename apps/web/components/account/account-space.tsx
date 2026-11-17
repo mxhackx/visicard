@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Check, CalendarClock, FileText, Images, KeyRound, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, PencilLine, TriangleAlert } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "./auth-dialog";
+import Logo from "@/components/logo";
 import { fetchMyOrders, fetchPremiumHistory, updateProfile, type AccountOrder, type PremiumReceipt } from "@/lib/account";
 import { PREMIUM_PRICE, usePremium } from "@/lib/premium";
 import { formatPhone, toPhone } from "./auth-form";
@@ -64,12 +65,12 @@ export default function AccountSpace() {
   };
 
   // La session vit dans le navigateur : tant que la page n'est pas hydratée, on n'affiche rien (même rendu serveur et navigateur).
-  if (!ready) return <section className="mx-auto min-h-[calc(100svh-var(--header-h)-1px)] max-w-4xl px-4 py-12 sm:px-6 lg:py-16" aria-busy="true" />;
+  if (!ready) return <section className="mx-auto min-h-[100svh] max-w-4xl px-4 py-12 sm:px-6 lg:py-16" aria-busy="true" />;
 
   // Sans compte, « Mon espace » ne montre rien : seulement la fenêtre de connexion.
   if (!authToken) {
     return (
-      <section className="mx-auto flex min-h-[calc(100svh-var(--header-h)-1px)] max-w-md flex-col items-center justify-center px-4 text-center">
+      <section className="mx-auto flex min-h-[100svh] max-w-md flex-col items-center justify-center px-4 text-center">
         <h1 className="text-lg font-semibold text-ink/90">Connexion requise</h1>
         <p className="mt-1 text-sm text-sage">Connectez-vous pour retrouver vos QR codes.</p>
         <button type="button" onClick={() => openAuth({ mode: "login" })} className="btn btn-primary mt-5">
@@ -87,8 +88,14 @@ export default function AccountSpace() {
 
   return (
     // Pleine largeur, comme l'administration : barre latérale à gauche (profil et sections), contenu à droite.
-    <section className="flex min-h-[calc(100svh-var(--header-h)-1px)] w-full flex-1 flex-col lg:flex-row">
-      <aside className="shrink-0 border-b border-line bg-white lg:sticky lg:top-0 lg:w-80 lg:self-start lg:border-b-0 lg:border-r lg:min-h-[calc(100svh-var(--header-h)-1px)]">
+    <section className="flex min-h-[100svh] w-full flex-1 flex-col lg:flex-row">
+      <aside className="shrink-0 border-b border-line bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-80 lg:flex-col lg:self-start lg:border-b-0 lg:border-r">
+        {/* L'espace n'affiche ni en-tête ni pied de page du site : le logo suffit pour revenir. */}
+        <div className="flex items-center justify-between border-b border-line px-4 py-3 lg:block lg:border-b-0 lg:px-5 lg:py-5">
+          <Link href="/" aria-label="Moncode — accueil" className="inline-flex">
+            <Logo variant="dark" />
+          </Link>
+        </div>
         {/* Le profil, en grand : la photo est mise en valeur. */}
         <div className="relative overflow-hidden px-5 pb-6 pt-8 text-center">
           <div className="relative mx-auto h-28 w-28 lg:h-32 lg:w-32">
@@ -115,7 +122,7 @@ export default function AccountSpace() {
           )}
         </div>
 
-        <nav aria-label="Mon espace" className="flex gap-2 overflow-x-auto px-4 pb-4 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-4 lg:pb-6">
+        <nav aria-label="Mon espace" className="flex gap-2 overflow-x-auto px-4 pb-4 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:px-4 lg:pb-6">
           {TABS.map(({ id, label, icon: Icon }) => (
             <Link
               key={id}

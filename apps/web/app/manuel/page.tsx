@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight, Check, Printer } from "lucide-react";
 import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
 import JsonLd from "@/components/json-ld";
-import Header from "@/components/header";
 import Footer from "@/components/footer";
 import TypeArt from "@/components/qr/type-art";
 import ManuelNav from "@/components/manuel-nav";
@@ -46,14 +45,11 @@ export default function ManuelPage() {
   return (
     <main className="page-hero-bg min-h-screen">
       <JsonLd data={[breadcrumbJsonLd([["Accueil", "/"], ["Manuel d’utilisation", "/manuel"]]), faqJsonLd(FAQ.map(([q, a]) => [q, a] as [string, string]))]} />
-      <Header />
-      <div className="header-spacer"></div>
+      {/* Colonne fixe à gauche (logo + « Manuel d'utilisation » + sommaire) ; le contenu et le pied suivent à droite. */}
+      <ManuelNav items={TOC} />
 
-      {/* Comme l'administration : menu fixe à gauche, contenu à droite sur toute la largeur. */}
-      <div className="flex w-full flex-col lg:flex-row">
-        <ManuelNav items={TOC} />
-
-        <section className="min-w-0 flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-10 lg:pt-12">
+      <div className="min-w-0 lg:pl-72">
+        <section className="px-4 pb-16 pt-[6.75rem] sm:px-6 lg:px-10 lg:pt-12">
           <p className="eyebrow">Manuel d’utilisation</p>
           <h1 className="page-title mt-3">Votre QR code, pas à pas</h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-sage">
@@ -204,9 +200,9 @@ export default function ManuelPage() {
             </Block>
           </div>
         </section>
-      </div>
 
-      <Footer />
+        <Footer />
+      </div>
     </main>
   );
 }

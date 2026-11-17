@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Logo from "@/components/logo";
 
 /**
- * Sommaire du manuel : barre latérale fixe comme l'administration (colonne à gauche qui reste en place),
- * la section en cours a un fond gris, et un clic fait glisser la page vers la section avec un défilement doux.
- * Sur mobile : barre de pastilles collée en haut.
+ * Sommaire du manuel : colonne fixe à gauche (elle ne défile jamais avec la page),
+ * qui ne dépasse jamais la hauteur de l'écran — la liste des sections défile à l'intérieur.
+ * Première ligne : le logo du site et « Manuel d'utilisation » côte à côte.
+ * Sur mobile : barre fixe en haut (logo + titre sur la même ligne, pastilles en dessous).
  */
 export default function ManuelNav({ items }: { items: readonly (readonly [string, string])[] }) {
   const [active, setActive] = useState(items[0]?.[0] ?? "");
@@ -47,9 +49,18 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
 
   return (
     <>
-      {/* Mobile : barre de pastilles collée en haut */}
-      <nav aria-label="Sommaire du manuel" className="sticky top-0 z-30 border-b border-line bg-white/90 px-4 backdrop-blur lg:hidden">
-        <div ref={bar} className="flex gap-2 overflow-x-auto py-2.5">
+      {/* Mobile : barre fixe en haut — logo et titre sur la même ligne, sommaire en pastilles dessous. */}
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-line bg-white/95 backdrop-blur lg:hidden">
+        <div className="flex h-14 items-center justify-between gap-3 px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link href="/" aria-label="Moncode — accueil" className="inline-flex shrink-0">
+              <Logo variant="dark" />
+            </Link>
+            <span className="min-w-0 truncate text-sm font-semibold text-ink">Manuel d’utilisation</span>
+          </div>
+          <Link href="/creer" className="btn btn-primary btn-sm shrink-0">Créer</Link>
+        </div>
+        <nav ref={bar} aria-label="Sommaire du manuel" className="flex gap-2 overflow-x-auto px-4 pb-2.5">
           {items.map(([id, label]) => (
             <a
               key={id}
@@ -62,17 +73,19 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
               {label}
             </a>
           ))}
-        </div>
-      </nav>
+        </nav>
+      </div>
 
-      {/* Ordinateur : barre latérale fixe, comme l'administration */}
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-line bg-white px-4 py-6 lg:flex">
-        <p className="flex items-center gap-2.5 px-3 text-sm font-semibold text-ink">
-          <span className="icon-tile h-9 w-9"><BookOpen className="h-[18px] w-[18px]" /></span>
-          Manuel d’utilisation
-        </p>
-        <p className="mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sage">Sommaire</p>
-        <nav aria-label="Sommaire du manuel" className="mt-1.5 min-h-0 flex-1 space-y-1 overflow-y-auto">
+      {/* Ordinateur : colonne fixe, jamais plus haute que l'écran (la liste défile à l'intérieur). */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 shrink-0 flex-col border-r border-line bg-white lg:flex">
+        <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-line px-4">
+          <Link href="/" aria-label="Moncode — accueil" className="inline-flex shrink-0">
+            <Logo variant="dark" />
+          </Link>
+          <span className="min-w-0 truncate text-sm font-semibold text-ink">Manuel d’utilisation</span>
+        </div>
+        <p className="mt-6 shrink-0 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sage">Sommaire</p>
+        <nav aria-label="Sommaire du manuel" className="mt-1.5 min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-2">
           {items.map(([id, label], i) => (
             <a
               key={id}
@@ -87,7 +100,7 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
             </a>
           ))}
         </nav>
-        <div className="mt-4 space-y-2 border-t border-line pt-4">
+        <div className="mt-4 shrink-0 space-y-2 border-t border-line p-4">
           <Link href="/creer" className="btn btn-primary w-full justify-center">Créer un QR code <ArrowRight className="h-4 w-4" /></Link>
           <Link href="/contact" className="block py-1.5 text-center text-sm font-medium text-sage transition hover:text-ink">Une question ? Contactez-nous</Link>
         </div>
