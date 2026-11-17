@@ -204,7 +204,7 @@ export default function DeveloppeursPage() {
 
       {/* Appel à l'action final */}
       <section>
-        <div className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-6 sm:py-24">
+        <div className="mx-auto max-w-3xl px-5 pb-6 pt-20 text-center sm:px-6 sm:pt-24">
           <h2 className="text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">Prêt à générer ?</h2>
           <p className="mx-auto mt-4 max-w-md text-lg leading-8 text-sage">Créez votre clé gratuite en une minute.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

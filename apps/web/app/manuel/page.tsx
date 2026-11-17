@@ -7,6 +7,7 @@ import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import TypeArt from "@/components/qr/type-art";
+import ManuelNav from "@/components/manuel-nav";
 import { DIRECT_QR_TYPES } from "@/lib/qr-payloads";
 
 export const metadata: Metadata = pageMetadata({
@@ -15,7 +16,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/manuel",
 });
 
-const TOC = [
+const TOC: readonly (readonly [string, string])[] = [
   ["demarrer", "Démarrer"],
   ["lien-gratuit", "QR code gratuit (lien)"],
   ["qr-direct", "QR codes directs"],
@@ -48,29 +49,19 @@ export default function ManuelPage() {
       <Header />
       <div className="header-spacer"></div>
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <section className="w-full px-4 pb-16 pt-12 sm:px-6 lg:px-10 lg:pt-16">
         <p className="eyebrow">Manuel d’utilisation</p>
-        <h1 className="page-title mt-3 max-w-3xl">
+        <h1 className="page-title mt-3">
           Votre QR code, pas à pas
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-sage">
+        <p className="mt-4 max-w-3xl text-base leading-7 text-sage">
           Tout ce qu’il faut savoir pour créer, payer, télécharger, modifier et imprimer votre QR code.
         </p>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14">
-          <nav aria-label="Sommaire" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_88%,transparent)] lg:[mask-image:none] lg:sticky lg:top-24 lg:mx-0 lg:block lg:space-y-1 lg:self-start lg:overflow-visible lg:px-0">
-            {TOC.map(([id, label]) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                className="shrink-0 rounded-full border border-line bg-white px-3.5 py-2 text-sm font-medium text-ink/75 transition-colors hover:border-forest hover:text-forest lg:block lg:rounded-lg lg:border-0 lg:bg-transparent lg:px-3 lg:py-1.5 lg:hover:bg-cream"
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-10 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12">
+          <ManuelNav items={TOC} />
 
-          <div className="min-w-0 space-y-14">
+          <div className="min-w-0 space-y-16 lg:space-y-20">
             <Block id="demarrer" title="Démarrer">
               <p>Choisissez ce que votre QR code doit faire, remplissez deux ou trois informations, puis payez et téléchargez.</p>
               <Steps
@@ -111,7 +102,7 @@ export default function ManuelPage() {
                   </li>
                 ))}
               </ul>
-              <p className="text-sm text-sage">Aucun compte n’est nécessaire. Le contenu est écrit dans le QR code : il ne se modifie pas après impression.</p>
+              <p className="text-sm text-sage">Ces contenus font partie de Premium. Le contenu est écrit dans le QR code : il ne se modifie pas après impression.</p>
             </Block>
 
             <Block id="page" title="Page digitale">
@@ -144,8 +135,8 @@ export default function ManuelPage() {
               <List
                 items={[
                   "Un compte est demandé pour tout contenu mis en ligne (page, image, vidéo, PDF) : nom, e-mail, mot de passe, au moment de payer.",
-                  "Le lien gratuit et les QR directs se passent de compte.",
-                  "Paiement par Mobile Money ou carte sur une page sécurisée. Le prix s’affiche juste avant le bouton « Payer ».",
+                  "Le lien gratuit se passe de compte. Les autres contenus et les options Premium demandent un compte Premium.",
+                  "Paiement par Mobile Money (MTN, Moov, Celtiis) sur une page sécurisée. Le prix s’affiche avant de payer.",
                   "Votre facture et votre QR code sont dans « Mon compte », pour toujours.",
                 ]}
               />
@@ -173,8 +164,8 @@ export default function ManuelPage() {
               <List
                 items={[
                   "Ouvrez « Mon compte », puis le QR code concerné.",
-                  "Choisissez « Modifier », changez le texte, les photos ou le fichier.",
-                  "Les changements sont en ligne après confirmation du paiement de la modification.",
+                  "Choisissez « Modifier le contenu », changez le texte, les photos ou le fichier.",
+                  "Avec Premium, la modification est incluse et mise en ligne tout de suite. Sans Premium actif, un devis de modification est émis.",
                   "Le QR code déjà imprimé ne change jamais : seul son contenu évolue.",
                 ]}
               />

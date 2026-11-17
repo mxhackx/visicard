@@ -37,7 +37,7 @@ export default function Footer() {
   return (
     <footer className="footer-surface relative overflow-hidden pt-10 md:pt-24">
       {/* L'espace blanc est au-dessus de la ligne : celle-ci sépare le pied de page du contenu. */}
-      <div className="border-t border-line">
+      <div className="border-t border-line bg-white">
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-x-4 gap-y-6 border-b border-line py-7 text-center md:grid-cols-2 md:gap-12 md:py-14 md:text-left lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-10">
           <div className="col-span-2 flex flex-col items-center md:col-span-1 md:items-start" data-reveal>

@@ -343,8 +343,8 @@
   }
 
   /* Pied de page : blanc, filet gris en tête. */
+  /* Le fond blanc est sur la partie sous la ligne (voir footer.tsx) : l'espace au-dessus garde le fond de la page. */
   .footer-surface {
-    background-color: #ffffff;
     color: var(--color-ink);
   }
 
