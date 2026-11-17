@@ -153,7 +153,8 @@ export default function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-line bg-white">
+        {/* Barre de titre : seulement sur mobile (elle porte la navigation et la déconnexion, que la barre latérale assure sur ordinateur). */}
+        <header className="sticky top-0 z-30 border-b border-line bg-white lg:hidden">
           <div className="flex min-h-16 flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="min-w-0">
               <h1 className="truncate text-lg font-semibold text-ink/90">{title}</h1>

@@ -34,6 +34,19 @@ export class AuthController {
     return req.cookies?.['access_token'] ?? req.cookies?.['refresh_token'] ?? null;
   }
 
+  /** Adresse IP et navigateur de l'appelant (derrière le proxy de l'hébergeur : `trust proxy` est activé). */
+  private context(req: Request) {
+    return { ip: req.ip, userAgent: String(req.headers['user-agent'] ?? '').slice(0, 200) };
+  }
+
+  /** Identifiant du compte connecté, ou 401. */
+  private async userIdOf(req: Request, authHeader?: string): Promise<string> {
+    const token = this.sessionToken(req, authHeader);
+    const result = token ? await this.authService.validateToken(token) : { valid: false, user: undefined };
+    if (!result.valid || !result.user) throw new UnauthorizedException('Session expirée ou invalide.');
+    return result.user.id;
+  }
+
   /** Pose les deux cookies de session et renvoie la charge utile inchangée. */
   private applySessionCookies(
     res: Response,
@@ -66,13 +79,63 @@ export class AuthController {
       email?: string;
       password?: string;
     },
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const identifier = body?.identifier ?? body?.email ?? '';
     const password = body?.password ?? '';
-    const result = await this.authService.login(identifier, password);
+    const result = await this.authService.login(identifier, password, this.context(req));
 
+    // Première étape d'une connexion protégée : pas encore de session, seulement le code envoyé par e-mail.
+    if ('requiresCode' in result) return result;
     this.applySessionCookies(res, result);
+    return result;
+  }
+
+  /** Seconde étape de la connexion : le code à 6 chiffres reçu par e-mail ouvre la session. */
+  @Throttle({ default: { limit: 8, ttl: 60000 } })
+  @Post('login/code')
+  async loginCode(
+    @Req() req: Request,
+    @Body() body: { challenge?: string; code?: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.loginWithCode(body?.challenge ?? '', body?.code ?? '', this.context(req));
+    this.applySessionCookies(res, result);
+    return result;
+  }
+
+  /** Réglages de sécurité du compte connecté. */
+  @Get('security')
+  async security(@Req() req: Request, @Headers('authorization') authHeader?: string) {
+    return this.authService.securityInfo(await this.userIdOf(req, authHeader));
+  }
+
+  /** Envoie un code de test par e-mail pour activer la vérification en deux étapes. */
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('2fa/request')
+  async twoFactorRequest(@Req() req: Request, @Headers('authorization') authHeader?: string) {
+    return this.authService.requestTwoFactorCode(await this.userIdOf(req, authHeader));
+  }
+
+  /** Active (avec le code reçu) ou désactive (avec le mot de passe) la vérification en deux étapes. */
+  @Throttle({ default: { limit: 6, ttl: 60000 } })
+  @Post('2fa')
+  async twoFactorSet(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() body: { enabled?: boolean; code?: string; currentPassword?: string },
+  ) {
+    return this.authService.setTwoFactor(await this.userIdOf(req, authHeader), Boolean(body?.enabled), { code: body?.code, currentPassword: body?.currentPassword });
+  }
+
+  /** « Se déconnecter partout » : ferme toutes les sessions du compte, celle-ci comprise. */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('logout-all')
+  async logoutAll(@Req() req: Request, @Headers('authorization') authHeader: string | undefined, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.logoutEverywhere(await this.userIdOf(req, authHeader));
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
     return result;
   }
 
@@ -294,7 +357,8 @@ export class AuthController {
   async updateCredentials(
     @Req() req: Request,
     @Headers('authorization') authHeader: string,
-    @Body() body: { email?: string; newEmail?: string; password?: string; newPassword?: string },
+    @Body() body: { email?: string; newEmail?: string; password?: string; newPassword?: string; currentPassword?: string },
+    @Res({ passthrough: true }) res: Response,
   ) {
     const token = this.sessionToken(req, authHeader);
     if (!token) {
@@ -303,7 +367,9 @@ export class AuthController {
     const emailToUpdate = body?.email ?? body?.newEmail;
     const passwordToUpdate = body?.password ?? body?.newPassword;
 
-    return this.authService.updateCredentials(token, emailToUpdate, passwordToUpdate);
+    const result = await this.authService.updateCredentials(token, emailToUpdate, passwordToUpdate, body?.currentPassword, this.context(req));
+    if ('access_token' in result && result.access_token) this.applySessionCookies(res, result as { access_token: string; refresh_token: string });
+    return result;
   }
 
   /** Même opération en PUT : certains formulaires existants utilisent ce verbe. */
@@ -311,7 +377,8 @@ export class AuthController {
   async updateCredentialsPut(
     @Req() req: Request,
     @Headers('authorization') authHeader: string,
-    @Body() body: { email?: string; newEmail?: string; password?: string; newPassword?: string },
+    @Body() body: { email?: string; newEmail?: string; password?: string; newPassword?: string; currentPassword?: string },
+    @Res({ passthrough: true }) res: Response,
   ) {
     const token = this.sessionToken(req, authHeader);
     if (!token) {
@@ -320,6 +387,8 @@ export class AuthController {
     const emailToUpdate = body?.email ?? body?.newEmail;
     const passwordToUpdate = body?.password ?? body?.newPassword;
 
-    return this.authService.updateCredentials(token, emailToUpdate, passwordToUpdate);
+    const result = await this.authService.updateCredentials(token, emailToUpdate, passwordToUpdate, body?.currentPassword, this.context(req));
+    if ('access_token' in result && result.access_token) this.applySessionCookies(res, result as { access_token: string; refresh_token: string });
+    return result;
   }
 }

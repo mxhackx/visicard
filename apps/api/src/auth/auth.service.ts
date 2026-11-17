@@ -4,8 +4,9 @@ import { PrismaService } from '../database/prisma.service';
 import { hashPassword, verifyPassword } from './mot-de-passe';
 import { createLocalToken, readLocalToken } from './jetons-locaux';
 import { verifyGoogleCredential } from './google';
-import { createHash, randomBytes } from 'node:crypto';
-import { sendEmailVerification, sendPasswordReset } from '../account/notify';
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { sendEmailVerification, sendLoginCode, sendPasswordReset, sendSecurityEmail } from '../account/notify';
+import { assertStrongPassword } from './password-policy';
 import { primaryAppUrl } from '../app-url';
 
 export interface AuthSessionUser {
@@ -32,6 +33,24 @@ export interface AuthResult {
   user: AuthSessionUser;
   redirect: string;
 }
+
+/** Première étape d'une connexion protégée par la vérification en deux étapes : un code vient d'être envoyé par e-mail. */
+export interface ChallengeResult {
+  requiresCode: true;
+  challenge: string;
+  /** Adresse masquée où le code a été envoyé (ex. a•••@gmail.com). */
+  sentTo: string;
+}
+
+export interface LoginContext {
+  ip?: string;
+  userAgent?: string;
+}
+
+const LOCK_AFTER = 5;
+const LOCK_MINUTES = 15;
+const maskEmail = (e: string) => e.replace(/^(.).*(@.*)$/, '$1•••$2');
+const sha = (v: string) => createHash('sha256').update(v).digest('hex');
 
 export interface RefreshResult {
   access_token: string;
@@ -132,7 +151,7 @@ export class AuthService {
     };
   }
 
-  async login(identifier: string, password: string): Promise<AuthResult> {
+  async login(identifier: string, password: string, ctx: LoginContext = {}): Promise<AuthResult | ChallengeResult> {
     const cleanId = (identifier || '').trim().toLowerCase();
     const adminEmail = (process.env.ADMIN_EMAIL || 'admin@moncode.com').toLowerCase();
     const userEmail = (process.env.USER_EMAIL || 'user@moncode.com').toLowerCase();
@@ -152,19 +171,29 @@ export class AuthService {
     const account = await this.findLocalAccount(targetEmail);
 
     if (account) {
+      // Compte verrouillé après trop d'échecs : on ne teste même pas le mot de passe.
+      if (account.lockedUntil && account.lockedUntil.getTime() > Date.now()) {
+        const minutes = Math.max(1, Math.ceil((account.lockedUntil.getTime() - Date.now()) / 60000));
+        throw new UnauthorizedException(`Trop de tentatives : ce compte est bloqué pendant encore ${minutes} min. Un e-mail d'alerte a été envoyé à son propriétaire.`);
+      }
+
       const valid = await verifyPassword(password, account.passwordHash);
 
       if (!valid) {
         this.logger.warn(`Mot de passe incorrect pour le compte local ${targetEmail}`);
+        await this.registerFailure(account);
         throw new UnauthorizedException('Identifiant ou mot de passe incorrect');
       }
 
-      const session = this.issueLocalSession(account);
-      const redirect = session.user.role === 'admin' ? '/admin' : '/compte';
+      // Vérification en deux étapes (activée dans les réglages) : un code est envoyé par e-mail.
+      if (account.twoFactorEmail) {
+        const sent = await this.issueLoginCode(account, 'login');
+        if (!sent) throw new ServiceUnavailableException("Le code de vérification n'a pas pu être envoyé par e-mail. Réessayez dans un instant.");
+        const challenge = createLocalToken({ id: account.id, email: account.email, role: account.role === 'admin' ? 'admin' : 'user' }, 'challenge');
+        return { requiresCode: true, challenge, sentTo: maskEmail(account.email) };
+      }
 
-      this.logger.log(`Connexion locale : ${targetEmail} (${session.user.role})`);
-
-      return { ...session, redirect };
+      return this.completeLogin(account, ctx);
     }
 
     // 2) Aucun compte local pour cette adresse : on retombe sur Supabase.
@@ -296,6 +325,136 @@ export class AuthService {
     return `+${full}`;
   }
 
+  /** Termine une connexion locale : remet les échecs à zéro, retient la connexion, alerte si l'adresse IP change. */
+  private async completeLogin(
+    account: { id: string; email: string; role: string; name?: string | null; pictureUrl?: string | null; phone?: string | null; emailVerified?: boolean; lastLoginIp?: string | null; lastLoginAt?: Date | null },
+    ctx: LoginContext,
+  ): Promise<AuthResult> {
+    const ip = (ctx.ip ?? '').slice(0, 64) || null;
+    const isNewPlace = account.role === 'admin' && Boolean(account.lastLoginIp) && Boolean(ip) && account.lastLoginIp !== ip;
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date(), lastLoginIp: ip, loginCodeHash: null, loginCodeExpires: null, loginCodeAttempts: 0 },
+    });
+    if (isNewPlace) {
+      void sendSecurityEmail(account.email, {
+        subject: 'Nouvelle connexion à l\'administration Moncode',
+        title: 'Nouvelle connexion détectée',
+        intro: `Une connexion à l'administration vient d'avoir lieu depuis une nouvelle adresse (${ip}) le ${new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Porto-Novo' })}.`,
+        note: "Si c'était vous, ignorez ce message. Sinon, changez votre mot de passe tout de suite et utilisez « Se déconnecter partout » dans les réglages.",
+      });
+    }
+    const session = this.issueLocalSession(account);
+    const redirect = session.user.role === 'admin' ? '/admin' : '/compte';
+    this.logger.log(`Connexion locale : ${account.email} (${session.user.role})`);
+    return { ...session, redirect };
+  }
+
+  /** Compte un échec de connexion ; au bout de 5, le compte est bloqué 15 minutes et son propriétaire est prévenu. */
+  private async registerFailure(account: { id: string; email: string; role: string; failedLogins: number }) {
+    const failures = account.failedLogins + 1;
+    if (failures >= LOCK_AFTER) {
+      await this.prisma.adminUser.update({ where: { id: account.id }, data: { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000) } });
+      void sendSecurityEmail(account.email, {
+        subject: 'Votre compte Moncode est bloqué quelques minutes',
+        title: 'Compte temporairement bloqué',
+        intro: `Il y a eu ${LOCK_AFTER} tentatives de connexion échouées sur votre compte. Par précaution, il est bloqué pendant ${LOCK_MINUTES} minutes.`,
+        note: "Si ce n'était pas vous, changez votre mot de passe dès que possible (lien « Mot de passe oublié »).",
+      });
+    } else {
+      await this.prisma.adminUser.update({ where: { id: account.id }, data: { failedLogins: failures } });
+    }
+  }
+
+  /** Génère un code à 6 chiffres (10 minutes, 5 essais), l'enregistre sous forme d'empreinte et l'envoie par e-mail. */
+  private async issueLoginCode(account: { id: string; email: string; name?: string | null }, purpose: 'login' | 'enable'): Promise<boolean> {
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { loginCodeHash: sha(`${account.id}:${code}`), loginCodeExpires: new Date(Date.now() + 10 * 60_000), loginCodeAttempts: 0 },
+    });
+    const sent = await sendLoginCode(account.email, account.name, code, purpose);
+    // Sans service e-mail (développement), le code est consigné pour pouvoir tester.
+    if (!sent) this.logger.warn(`Code de vérification pour ${account.email} (e-mail non envoyé) : ${code}`);
+    return sent || process.env.NODE_ENV !== 'production';
+  }
+
+  /** Vérifie le code reçu ; 5 essais au plus, puis il faut en demander un nouveau. */
+  private async checkLoginCode(accountId: string, code: string): Promise<void> {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: accountId } });
+    if (!account || !account.loginCodeHash || !account.loginCodeExpires || account.loginCodeExpires.getTime() < Date.now()) {
+      throw new UnauthorizedException('Ce code a expiré : recommencez la connexion pour en recevoir un nouveau.');
+    }
+    if (account.loginCodeAttempts >= 5) {
+      throw new UnauthorizedException('Trop d\'essais : recommencez la connexion pour recevoir un nouveau code.');
+    }
+    const expected = Buffer.from(account.loginCodeHash, 'hex');
+    const given = Buffer.from(sha(`${account.id}:${String(code ?? '').replace(/\D/g, '')}`), 'hex');
+    if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
+      await this.prisma.adminUser.update({ where: { id: account.id }, data: { loginCodeAttempts: { increment: 1 } } });
+      throw new UnauthorizedException('Code incorrect.');
+    }
+  }
+
+  /** Seconde étape de la connexion : le code reçu par e-mail ouvre la session. */
+  async loginWithCode(challenge: string, code: string, ctx: LoginContext = {}): Promise<AuthResult> {
+    const claims = readLocalToken(challenge, 'challenge');
+    if (!claims) throw new UnauthorizedException('Cette étape a expiré : recommencez la connexion.');
+    await this.checkLoginCode(claims.sub, code);
+    const account = await this.prisma.adminUser.findUnique({ where: { id: claims.sub } });
+    if (!account) throw new UnauthorizedException('Compte introuvable.');
+    return this.completeLogin(account, ctx);
+  }
+
+  /** Réglages de sécurité du compte connecté : dernière connexion, étapes de vérification, dernier changement de mot de passe. */
+  async securityInfo(userId: string) {
+    const a = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!a) throw new BadRequestException('Compte introuvable.');
+    const ip = a.lastLoginIp ?? null;
+    return {
+      email: a.email,
+      twoFactorEmail: a.twoFactorEmail,
+      lastLoginAt: a.lastLoginAt,
+      lastLoginIp: ip ? ip.replace(/(\d+\.\d+)\.\d+\.\d+$/, '$1.•.•').replace(/(:[0-9a-f]*){4}$/i, ':••••') : null,
+      passwordChangedAt: a.passwordChangedAt,
+      emailVerified: a.emailVerified,
+    };
+  }
+
+  /** Envoie un code de test pour activer la vérification en deux étapes (prouve que l'e-mail arrive bien). */
+  async requestTwoFactorCode(userId: string) {
+    const a = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!a) throw new BadRequestException('Compte introuvable.');
+    const sent = await this.issueLoginCode(a, 'enable');
+    if (!sent) throw new ServiceUnavailableException("Le code n'a pas pu être envoyé : vérifiez la configuration de l'envoi d'e-mails (Resend).");
+    return { sentTo: maskEmail(a.email) };
+  }
+
+  /** Active (avec le code reçu) ou désactive (avec le mot de passe) la vérification en deux étapes. */
+  async setTwoFactor(userId: string, enabled: boolean, proof: { code?: string; currentPassword?: string }) {
+    const a = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!a) throw new BadRequestException('Compte introuvable.');
+    if (enabled) {
+      await this.checkLoginCode(a.id, proof.code ?? '');
+    } else if (!(await verifyPassword(proof.currentPassword ?? '', a.passwordHash))) {
+      throw new UnauthorizedException('Mot de passe incorrect.');
+    }
+    await this.prisma.adminUser.update({ where: { id: a.id }, data: { twoFactorEmail: enabled, loginCodeHash: null, loginCodeExpires: null, loginCodeAttempts: 0 } });
+    void sendSecurityEmail(a.email, {
+      subject: enabled ? 'Vérification en deux étapes activée' : 'Vérification en deux étapes désactivée',
+      title: enabled ? 'Vérification en deux étapes activée' : 'Vérification en deux étapes désactivée',
+      intro: enabled ? 'À chaque connexion, un code à 6 chiffres vous sera envoyé par e-mail.' : 'Votre compte n\'est plus protégé que par son mot de passe.',
+      note: "Si ce n'était pas vous, changez votre mot de passe immédiatement.",
+    });
+    return { twoFactorEmail: enabled };
+  }
+
+  /** Invalide toutes les sessions ouvertes du compte (tous les appareils). */
+  async logoutEverywhere(userId: string) {
+    await this.prisma.adminUser.update({ where: { id: userId }, data: { passwordChangedAt: new Date() } });
+    return { success: true };
+  }
+
   /**
    * Mot de passe oublié : envoie un lien valable une heure. La réponse est toujours la même, que l'adresse existe ou non
    * (on ne révèle pas quels comptes existent). Un seul lien actif par compte : un nouveau remplace l'ancien.
@@ -319,17 +478,23 @@ export class AuthService {
 
   /** Choisit un nouveau mot de passe avec le lien reçu ; le lien est consommé et ne sert qu'une fois. */
   async resetPassword(token: string, password: string): Promise<void> {
-    if (!token || (password || '').length < 8) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
-    }
+    if (!token) throw new BadRequestException('Ce lien est invalide ou a expiré : demandez-en un nouveau.');
     const hash = createHash('sha256').update(token).digest('hex');
     const account = await this.prisma.adminUser.findFirst({ where: { resetTokenHash: hash } });
     if (!account || !account.resetExpiresAt || account.resetExpiresAt.getTime() < Date.now()) {
       throw new BadRequestException('Ce lien est invalide ou a expiré : demandez-en un nouveau.');
     }
+    assertStrongPassword(password, { email: account.email, admin: account.role === 'admin' });
+    // Les sessions ouvertes sont fermées, le compte est débloqué et son propriétaire est prévenu par e-mail.
     await this.prisma.adminUser.update({
       where: { id: account.id },
-      data: { passwordHash: await hashPassword(password), resetTokenHash: null, resetExpiresAt: null },
+      data: { passwordHash: await hashPassword(password), resetTokenHash: null, resetExpiresAt: null, passwordChangedAt: new Date(), failedLogins: 0, lockedUntil: null },
+    });
+    void sendSecurityEmail(account.email, {
+      subject: 'Votre mot de passe Moncode a été modifié',
+      title: 'Mot de passe modifié',
+      intro: 'Le mot de passe de votre compte vient d\'être réinitialisé. Toutes vos sessions ouvertes ont été fermées.',
+      note: "Si ce n'était pas vous, utilisez tout de suite « Mot de passe oublié » et écrivez-nous.",
     });
     this.logger.log(`Mot de passe réinitialisé : ${account.email}`);
   }
@@ -387,7 +552,7 @@ export class AuthService {
     return { id: account.id, email: account.email, name: account.name, phone: account.phone, picture: account.pictureUrl ?? null };
   }
 
-  async loginAdmin(password: string): Promise<AuthResult> {
+  async loginAdmin(password: string): Promise<AuthResult | ChallengeResult> {
     return this.login('admin', password);
   }
 
@@ -406,9 +571,7 @@ export class AuthService {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       throw new BadRequestException('Adresse e-mail invalide.');
     }
-    if (cleanPassword.length < 8) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères.');
-    }
+    assertStrongPassword(cleanPassword, { email: cleanEmail });
 
     const existing = await this.findLocalAccount(cleanEmail);
     if (existing) {
@@ -706,6 +869,14 @@ export class AuthService {
     const claims = readLocalToken(token, 'access');
 
     if (claims) {
+      // Compte supprimé, ou mot de passe changé / « Se déconnecter partout » depuis l'émission du jeton : session refusée.
+      try {
+        const acc = await this.prisma.adminUser.findUnique({ where: { id: claims.sub }, select: { passwordChangedAt: true } });
+        if (!acc) return { valid: false };
+        if (acc.passwordChangedAt && claims.iat < Math.floor(acc.passwordChangedAt.getTime() / 1000)) return { valid: false };
+      } catch {
+        /* base indisponible : on garde le comportement sans état */
+      }
       return {
         valid: true,
         user: {
@@ -758,7 +929,7 @@ export class AuthService {
     return valid && (user?.role === 'user' || user?.role === 'admin');
   }
 
-  async updateCredentials(token: string, newEmail?: string, newPassword?: string) {
+  async updateCredentials(token: string, newEmail?: string, newPassword?: string, currentPassword?: string, ctx: LoginContext = {}) {
     const { valid, user } = await this.validateToken(token);
     if (!valid || !user) {
       throw new UnauthorizedException('Session expirée ou non autorisée');
@@ -772,13 +943,32 @@ export class AuthService {
     }
 
     if (user.provider === 'local') {
-      const data: { email?: string; passwordHash?: string } = {};
+      const account = await this.prisma.adminUser.findUnique({ where: { id: user.id } });
+      if (!account) throw new UnauthorizedException('Session expirée ou non autorisée');
+      // Le mot de passe actuel est exigé : un jeton volé ne suffit plus à prendre le compte.
+      if (!(await verifyPassword(currentPassword ?? '', account.passwordHash))) {
+        throw new UnauthorizedException('Le mot de passe actuel est incorrect.');
+      }
+      const data: { email?: string; passwordHash?: string; passwordChangedAt?: Date; emailVerified?: boolean } = {};
 
-      if (trimmedEmail) data.email = trimmedEmail.toLowerCase();
-      if (trimmedPassword) data.passwordHash = await hashPassword(trimmedPassword);
+      if (trimmedEmail) {
+        const next = trimmedEmail.toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) throw new BadRequestException('Adresse e-mail invalide.');
+        if (next !== account.email) {
+          data.email = next;
+          data.emailVerified = account.role === 'admin' ? true : false;
+        }
+      }
+      if (trimmedPassword) {
+        assertStrongPassword(trimmedPassword, { email: data.email ?? account.email, admin: account.role === 'admin' });
+        data.passwordHash = await hashPassword(trimmedPassword);
+      }
+      // Toute modification d'identifiants ferme les autres sessions ; celle-ci en reçoit une neuve.
+      data.passwordChangedAt = new Date();
 
+      let updated;
       try {
-        await this.prisma.adminUser.update({ where: { id: user.id }, data });
+        updated = await this.prisma.adminUser.update({ where: { id: user.id }, data });
       } catch (error) {
         this.logger.error(
           `Mise à jour du compte local impossible : ${(error as Error).message}`,
@@ -788,10 +978,37 @@ export class AuthService {
         );
       }
 
+      // Alertes : l'ancienne adresse est toujours prévenue, la nouvelle aussi si elle change.
+      if (trimmedPassword) {
+        void sendSecurityEmail(account.email, {
+          subject: 'Votre mot de passe Moncode a été modifié',
+          title: 'Mot de passe modifié',
+          intro: `Le mot de passe de votre compte vient d'être modifié depuis ${ctx.ip ?? 'un appareil'}. Vos autres sessions ont été fermées.`,
+          note: "Si ce n'était pas vous, utilisez tout de suite « Mot de passe oublié » et écrivez-nous.",
+        });
+      }
+      if (data.email) {
+        void sendSecurityEmail(account.email, {
+          subject: 'L\'adresse de votre compte Moncode a changé',
+          title: 'Adresse e-mail modifiée',
+          intro: `L'adresse de connexion de votre compte est maintenant ${data.email}.`,
+          note: "Si ce n'était pas vous, écrivez-nous immédiatement.",
+        });
+        void sendSecurityEmail(data.email, {
+          subject: 'Bienvenue sur cette adresse — compte Moncode',
+          title: 'Adresse e-mail mise à jour',
+          intro: 'Cette adresse est désormais celle de votre compte Moncode : c\'est elle qui recevra les codes, factures et alertes.',
+        });
+        if (updated.role !== 'admin') await this.sendVerification(updated);
+      }
+
+      const fresh = this.issueLocalSession(updated);
       return {
         success: true,
         message: 'Identifiants mis à jour dans la base.',
         user: { ...user, email: data.email ?? user.email },
+        access_token: fresh.access_token,
+        refresh_token: fresh.refresh_token,
       };
     }
 

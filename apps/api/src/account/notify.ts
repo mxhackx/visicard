@@ -255,3 +255,36 @@ export async function sendEmailVerification(email: string, name: string | null |
     return false;
   }
 }
+
+/** Message de sécurité simple (mot de passe modifié, nouvelle connexion, compte bloqué…). */
+export async function sendSecurityEmail(to: string, o: { subject: string; title: string; intro: string; note?: string; button?: { label: string; href: string } }): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !to) return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
+        to: [to],
+        subject: o.subject,
+        html: emailLayout({ title: o.title, preheader: o.subject, intro: o.intro, button: o.button, note: o.note }),
+      }),
+    });
+    if (!res.ok) logger.warn(`Message de sécurité refusé (${res.status})`);
+    return res.ok;
+  } catch (error) {
+    logger.warn(`Message de sécurité impossible : ${(error as Error).message}`);
+    return false;
+  }
+}
+
+/** Code à 6 chiffres de la vérification en deux étapes (valable 10 minutes). */
+export async function sendLoginCode(to: string, name: string | null | undefined, code: string, purpose: 'login' | 'enable'): Promise<boolean> {
+  return sendSecurityEmail(to, {
+    subject: `Votre code Moncode : ${code}`,
+    title: purpose === 'login' ? 'Votre code de connexion' : 'Activer la vérification en deux étapes',
+    intro: `Bonjour${name ? ` ${esc(name)}` : ''}, voici votre code à saisir dans Moncode : <br><span style="display:inline-block;margin:14px 0 4px;padding:12px 22px;background:#faf6f6;border:1px solid #ece4e4;border-radius:12px;font:700 30px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:8px;color:#17171a">${esc(code)}</span><br>Il est valable <strong>10 minutes</strong> et ne sert qu'une fois.`,
+    note: 'Ne le communiquez à personne : l’équipe Moncode ne vous le demandera jamais. Si vous n’êtes pas à l’origine de cette demande, changez votre mot de passe.',
+  });
+}

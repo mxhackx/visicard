@@ -81,10 +81,10 @@ export default function DeveloppeursPage() {
     <main className="min-h-screen">
       <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["API développeurs", "/developpeurs"]])} />
       <Header />
-      <div className="header-spacer"></div>
+      {/* Pas d'espaceur : le fond du hero passe derrière l'en-tête, qui est transparent (même fond, sans coupure). */}
 
       {/* En-tête : promesse, une action, et la requête en exemple avec sa réponse. */}
-      <section className="relative overflow-hidden border-b border-line bg-[radial-gradient(70%_60%_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_80%_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
+      <section className="relative overflow-hidden border-b border-line pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_80%_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-14 pt-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-12 lg:px-8 lg:py-24">
           <div className="text-center lg:text-left">
             <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink/80 shadow-[0_4px_14px_rgba(23,23,26,0.06)]">

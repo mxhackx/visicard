@@ -15,7 +15,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
  * Format : `base64url(entete).base64url(charge).base64url(signature)`
  */
 
-export type LocalTokenType = 'access' | 'refresh';
+export type LocalTokenType = 'access' | 'refresh' | 'challenge';
 
 export interface LocalTokenPayload {
   sub: string;
@@ -30,6 +30,8 @@ export interface LocalTokenPayload {
 // Durées alignées sur les maxAge des cookies posés par `AuthController`.
 const ACCESS_TTL = 60 * 60;
 const REFRESH_TTL = 7 * 24 * 60 * 60;
+/** Jeton d'étape intermédiaire (code reçu par e-mail) : valable le temps de saisir le code. */
+const CHALLENGE_TTL = 10 * 60;
 
 const ISSUER = 'moncode-local';
 const MIN_SECRET_LENGTH = 16;
@@ -83,7 +85,7 @@ export function createLocalToken(
     iss: ISSUER,
     typ: type,
     iat: now,
-    exp: now + (type === 'access' ? ACCESS_TTL : REFRESH_TTL),
+    exp: now + (type === 'access' ? ACCESS_TTL : type === 'challenge' ? CHALLENGE_TTL : REFRESH_TTL),
   };
 
   const header = toBase64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));

@@ -162,6 +162,18 @@ model AdminUser {
   role         String   @default("user")
   /// Adresse e-mail confirmée. Les comptes existants et Google comptent comme confirmés ; une inscription par e-mail ne l'est qu'après le clic sur le lien reçu.
   emailVerified Boolean @default(true) @map("email_verified")
+  /// Sécurité de la connexion : date du dernier changement de mot de passe (les sessions plus anciennes sont refusées),
+  /// échecs consécutifs et verrouillage temporaire, dernière connexion, vérification en deux étapes par e-mail.
+  passwordChangedAt DateTime? @map("password_changed_at")
+  failedLogins Int @default(0) @map("failed_logins")
+  lockedUntil DateTime? @map("locked_until")
+  lastLoginAt DateTime? @map("last_login_at")
+  lastLoginIp String? @map("last_login_ip")
+  twoFactorEmail Boolean @default(false) @map("two_factor_email")
+  /// Code à 6 chiffres envoyé par e-mail (empreinte SHA-256), sa limite et ses essais.
+  loginCodeHash String? @map("login_code_hash")
+  loginCodeExpires DateTime? @map("login_code_expires")
+  loginCodeAttempts Int @default(0) @map("login_code_attempts")
   /// Lien de confirmation : empreinte SHA-256 et date limite (le lien lui-même n'est jamais stocké).
   verifyTokenHash String? @map("verify_token_hash")
   verifyExpiresAt DateTime? @map("verify_expires_at")

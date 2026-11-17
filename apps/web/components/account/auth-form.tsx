@@ -5,7 +5,8 @@ import GoogleButton from "./google-button";
 import { Loader2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import Link from "next/link";
-import { forgotPassword, loginAccount, registerAccount, resetPassword, updateProfile } from "@/lib/account";
+import { forgotPassword, loginAccount, registerAccount, resetPassword, updateProfile, type CodeChallenge, type SessionResult } from "@/lib/account";
+import LoginCodeForm from "./login-code-form";
 
 type Mode = "register" | "login";
 type Info = { token: string; role: "admin" | "user" };
@@ -63,6 +64,7 @@ export default function AuthForm({
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [codeStep, setCodeStep] = useState<CodeChallenge | null>(null);
   // Connexion réussie mais profil incomplet : on demande le nom et le numéro avant de continuer.
   const [pending, setPending] = useState<(Info & { name: string }) | null>(null);
   // Mot de passe oublié : demande du lien (« forgot »), puis nouveau mot de passe (« reset », via le lien de l'e-mail).
@@ -92,10 +94,16 @@ export default function AuthForm({
     }
     setBusy(true);
     try {
-      const session =
+      const result =
         mode === "register"
           ? await registerAccount(name.trim(), email.trim(), password, toPhone(phone)!)
           : await loginAccount(email.trim(), password);
+      // Compte protégé par la vérification en deux étapes : un code vient d'être envoyé par e-mail.
+      if ("requiresCode" in result) {
+        setCodeStep(result);
+        return;
+      }
+      const session = result;
       loginSession(session.access_token, session.user.role, { id: session.user.id, email: session.user.email, name: session.user.name, picture: session.user.picture, phone: session.user.phone }, session.refresh_token);
       finish({ token: session.access_token, role: session.user.role }, session.user);
     } catch (err) {
@@ -215,6 +223,15 @@ export default function AuthForm({
       </>,
       saveNewPassword,
     );
+  }
+
+  const finishWithSession = (session: SessionResult) => {
+    loginSession(session.access_token, session.user.role, { id: session.user.id, email: session.user.email, name: session.user.name, picture: session.user.picture, phone: session.user.phone }, session.refresh_token);
+    finish({ token: session.access_token, role: session.user.role }, session.user);
+  };
+
+  if (codeStep) {
+    return wrap(<LoginCodeForm step={codeStep} onSession={finishWithSession} onBack={() => setCodeStep(null)} />, () => undefined);
   }
 
   if (pending) {

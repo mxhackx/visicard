@@ -71,8 +71,18 @@ export const updateProfile = (token: string, body: { name?: string; phone?: stri
     body: JSON.stringify(body),
   });
 
+/** Première étape d'une connexion protégée par la vérification en deux étapes : un code vient d'être envoyé par e-mail. */
+export interface CodeChallenge {
+  requiresCode: true;
+  challenge: string;
+  sentTo: string;
+}
+
 export const loginAccount = (email: string, password: string) =>
-  call<SessionResult>("/auth/login", json({ email, password }));
+  call<SessionResult | CodeChallenge>("/auth/login", json({ email, password }));
+
+/** Seconde étape : le code à 6 chiffres reçu par e-mail ouvre la session. */
+export const loginWithCode = (challenge: string, code: string) => call<SessionResult>("/auth/login/code", json({ challenge, code }));
 
 export const loginWithGoogle = (credential: string) =>
   call<SessionResult>("/auth/google", json({ credential }));

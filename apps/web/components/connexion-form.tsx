@@ -17,6 +17,8 @@ import {
   PanelsTopLeft,
 } from "lucide-react";
 import Logo, { LogoMark } from "@/components/logo";
+import LoginCodeForm from "@/components/account/login-code-form";
+import type { CodeChallenge, SessionResult } from "@/lib/account";
 import { useFile } from "@/app/context/FileContext";
 
 const perks = [
@@ -34,6 +36,7 @@ export default function ConnexionForm({ next }: { next: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [codeStep, setCodeStep] = useState<CodeChallenge | null>(null);
 
   const target = next.startsWith("/admin") ? next : "/admin";
 
@@ -41,6 +44,17 @@ export default function ConnexionForm({ next }: { next: string }) {
     if (isAuthLoading || !authToken || authRole !== "admin") return;
     router.replace(target);
   }, [authToken, authRole, isAuthLoading, router, target]);
+
+  const finishSession = (data: SessionResult) => {
+    const role: "admin" | "user" = data.user?.role === "admin" ? "admin" : "user";
+    loginSession(data.access_token, role, { id: data.user?.id, email: data.user?.email }, data.refresh_token);
+    if (role !== "admin") {
+      setCodeStep(null);
+      setError("Accès réservé à l’administration. Les clients n’ont pas besoin de compte : créez votre QR code directement.");
+      return;
+    }
+    router.replace("/admin");
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -70,18 +84,12 @@ export default function ConnexionForm({ next }: { next: string }) {
         );
       }
 
-      const role: "admin" | "user" = data.user?.role === "admin" ? "admin" : "user";
-      loginSession(
-        data.access_token,
-        role,
-        { id: data.user?.id, email: data.user?.email },
-        data.refresh_token,
-      );
-
-      if (role !== "admin") {
-        throw new Error("Accès réservé à l’administration. Les clients n’ont pas besoin de compte : créez votre QR code directement.");
+      // Vérification en deux étapes : un code vient d'être envoyé par e-mail.
+      if (data.requiresCode) {
+        setCodeStep(data as CodeChallenge);
+        return;
       }
-      router.replace("/admin");
+      finishSession(data as SessionResult);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -163,6 +171,12 @@ export default function ConnexionForm({ next }: { next: string }) {
               .
             </p>
 
+            {codeStep ? (
+              <div className="mt-6">
+                <LoginCodeForm step={codeStep} onSession={finishSession} onBack={() => setCodeStep(null)} />
+              </div>
+            ) : (
+              <>
             <GoogleButton
               onDone={({ role }) => (role === "admin" ? router.replace("/admin") : setError("Accès réservé à l’administration : ce compte Google n’est pas administrateur."))}
               onError={setError}
@@ -236,6 +250,8 @@ export default function ConnexionForm({ next }: { next: string }) {
               </button>
 
             </form>
+              </>
+            )}
           </div>
         </div>
       </section>
