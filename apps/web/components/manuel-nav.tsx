@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, BookOpen } from "lucide-react";
 
 /**
- * Sommaire du manuel : la section en cours est surlignée (fond rouge), un clic fait glisser la page
- * vers la section avec un défilement doux. Colonne collante sur ordinateur, barre défilante sur mobile.
+ * Sommaire du manuel : barre latérale fixe comme l'administration (colonne à gauche qui reste en place),
+ * la section en cours a un fond gris, et un clic fait glisser la page vers la section avec un défilement doux.
+ * Sur mobile : barre de pastilles collée en haut.
  */
 export default function ManuelNav({ items }: { items: readonly (readonly [string, string])[] }) {
   const [active, setActive] = useState(items[0]?.[0] ?? "");
@@ -43,43 +46,52 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
   };
 
   return (
-    <nav aria-label="Sommaire du manuel" className="max-lg:sticky max-lg:top-0 max-lg:z-30 max-lg:-mx-4 max-lg:border-b max-lg:border-line max-lg:bg-white/90 max-lg:px-4 max-lg:backdrop-blur lg:sticky lg:top-4 lg:self-start">
-      {/* Mobile : barre de pastilles */}
-      <div ref={bar} className="flex gap-2 overflow-x-auto py-2.5 lg:hidden">
-        {items.map(([id, label]) => (
-          <a
-            key={id}
-            data-id={id}
-            href={`#${id}`}
-            onClick={(e) => go(e, id)}
-            aria-current={active === id ? "true" : undefined}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-300 ${active === id ? "border-forest bg-forest text-white shadow-[0_8px_20px_rgba(227,5,29,0.25)]" : "border-line bg-white text-ink/75 hover:bg-cream-deep"}`}
-          >
-            {label}
-          </a>
-        ))}
-      </div>
-
-      {/* Ordinateur : carte de sommaire */}
-      <div className="hidden rounded-2xl border border-line bg-white p-3 shadow-[0_14px_36px_rgba(23,23,26,0.07)] lg:block">
-        <p className="px-3 pb-2 pt-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sage">Dans ce manuel</p>
-        <ul className="max-h-[calc(100svh-9rem)] space-y-0.5 overflow-y-auto">
-          {items.map(([id, label], i) => (
-            <li key={id}>
-              <a
-                data-id={id}
-                href={`#${id}`}
-                onClick={(e) => go(e, id)}
-                aria-current={active === id ? "true" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors duration-300 ${active === id ? "bg-forest text-white shadow-[0_8px_20px_rgba(227,5,29,0.22)]" : "text-ink/75 hover:bg-cream-deep hover:text-ink"}`}
-              >
-                <span className={`w-5 shrink-0 text-xs font-bold tabular-nums transition-colors duration-300 ${active === id ? "text-white/80" : "text-sage"}`}>{String(i + 1).padStart(2, "0")}</span>
-                <span className="min-w-0">{label}</span>
-              </a>
-            </li>
+    <>
+      {/* Mobile : barre de pastilles collée en haut */}
+      <nav aria-label="Sommaire du manuel" className="sticky top-0 z-30 border-b border-line bg-white/90 px-4 backdrop-blur lg:hidden">
+        <div ref={bar} className="flex gap-2 overflow-x-auto py-2.5">
+          {items.map(([id, label]) => (
+            <a
+              key={id}
+              data-id={id}
+              href={`#${id}`}
+              onClick={(e) => go(e, id)}
+              aria-current={active === id ? "true" : undefined}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-300 ${active === id ? "border-line bg-cream-deep text-forest" : "border-line bg-white text-ink/75 hover:bg-cream"}`}
+            >
+              {label}
+            </a>
           ))}
-        </ul>
-      </div>
-    </nav>
+        </div>
+      </nav>
+
+      {/* Ordinateur : barre latérale fixe, comme l'administration */}
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-line bg-white px-4 py-6 lg:flex">
+        <p className="flex items-center gap-2.5 px-3 text-sm font-semibold text-ink">
+          <span className="icon-tile h-9 w-9"><BookOpen className="h-[18px] w-[18px]" /></span>
+          Manuel d’utilisation
+        </p>
+        <p className="mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sage">Sommaire</p>
+        <nav aria-label="Sommaire du manuel" className="mt-1.5 min-h-0 flex-1 space-y-1 overflow-y-auto">
+          {items.map(([id, label], i) => (
+            <a
+              key={id}
+              data-id={id}
+              href={`#${id}`}
+              onClick={(e) => go(e, id)}
+              aria-current={active === id ? "true" : undefined}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors duration-300 ${active === id ? "bg-cream-deep text-forest" : "text-ink/70 hover:bg-cream hover:text-ink"}`}
+            >
+              <span className={`w-5 shrink-0 text-xs font-bold tabular-nums transition-colors duration-300 ${active === id ? "text-forest" : "text-sage"}`}>{String(i + 1).padStart(2, "0")}</span>
+              <span className="min-w-0">{label}</span>
+            </a>
+          ))}
+        </nav>
+        <div className="mt-4 space-y-2 border-t border-line pt-4">
+          <Link href="/creer" className="btn btn-primary w-full justify-center">Créer un QR code <ArrowRight className="h-4 w-4" /></Link>
+          <Link href="/contact" className="block py-1.5 text-center text-sm font-medium text-sage transition hover:text-ink">Une question ? Contactez-nous</Link>
+        </div>
+      </aside>
+    </>
   );
 }

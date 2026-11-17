@@ -49,19 +49,19 @@ export default function ManuelPage() {
       <Header />
       <div className="header-spacer"></div>
 
-      <section className="w-full px-4 pb-16 pt-12 sm:px-6 lg:px-10 lg:pt-16">
-        <p className="eyebrow">Manuel d’utilisation</p>
-        <h1 className="page-title mt-3">
-          Votre QR code, pas à pas
-        </h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-sage">
-          Tout ce qu’il faut savoir pour créer, payer, télécharger, modifier et imprimer votre QR code.
-        </p>
+      {/* Comme l'administration : menu fixe à gauche, contenu à droite sur toute la largeur. */}
+      <div className="flex w-full flex-col lg:flex-row">
+        <ManuelNav items={TOC} />
 
-        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-10 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12">
-          <ManuelNav items={TOC} />
+        <section className="min-w-0 flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-10 lg:pt-12">
+          <p className="eyebrow">Manuel d’utilisation</p>
+          <h1 className="page-title mt-3">Votre QR code, pas à pas</h1>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-sage">
+            Tout ce qu’il faut savoir pour créer, payer, télécharger, modifier et imprimer votre QR code.
+          </p>
 
-          <div className="min-w-0 space-y-16 lg:space-y-20">
+          <div className="mt-8 min-w-0 space-y-6 lg:mt-10">
+
             <Block id="demarrer" title="Démarrer">
               <p>Choisissez ce que votre QR code doit faire, remplissez deux ou trois informations, puis payez et téléchargez.</p>
               <Steps
@@ -203,8 +203,8 @@ export default function ManuelPage() {
               </p>
             </Block>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <Footer />
     </main>
@@ -212,9 +212,13 @@ export default function ManuelPage() {
 }
 
 function Block({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  const n = TOC.findIndex(([i]) => i === id) + 1;
   return (
-    <section id={id} className="anchor space-y-4 text-[15px] leading-7 text-ink/80">
-      <h2 className="page-title">{title}</h2>
+    <section id={id} className="surface anchor space-y-4 p-6 text-[15px] leading-7 text-ink/80 sm:p-8">
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-leaf text-sm font-bold text-ambre-deep">{String(n).padStart(2, "0")}</span>
+        <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink">{title}</h2>
+      </div>
       {children}
     </section>
   );
@@ -224,7 +228,7 @@ function Steps({ items }: { items: readonly (readonly [string, string])[] }) {
   return (
     <ol className="space-y-3">
       {items.map(([t, d], i) => (
-        <li key={t} className="flex gap-4 rounded-xl bg-white p-4 ring-1 ring-line">
+        <li key={t} className="flex gap-4 rounded-xl border border-line bg-cream/50 p-4">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{i + 1}</span>
           <span>
             <span className="block font-semibold text-ink">{t}</span>
