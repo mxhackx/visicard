@@ -401,14 +401,14 @@ export function PagePreview({ fill = false }: { fill?: boolean }) {
   const { restaurantInfo, customization, layout, layoutMeta, paletteLabel } = useAppearance();
   const [device, setDevice] = useState<Device>("phone");
   return (
-    <div className={`surface p-4 sm:p-5 ${fill ? "flex flex-col lg:h-full" : ""}`}>
+    <div className={`surface p-4 sm:p-5 ${fill ? "flex h-full flex-col" : ""}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink/80">
           Aperçu · <span className="font-normal text-sage">{layoutMeta.name} · {paletteLabel}</span>
         </p>
         <DeviceSwitch value={device} onChange={setDevice} devices={["phone", "tablet", "laptop"]} />
       </div>
-      <div className={`mt-5 ${fill ? "lg:min-h-0 lg:flex-1" : ""}`}>
+      <div className={`mt-4 sm:mt-5 ${fill ? "min-h-0 flex-1" : ""}`}>
         <DevicePreview device={device} scrollable fit={fill}>
           <RestaurantCardLayout
             restaurantName={restaurantInfo.restaurantName}

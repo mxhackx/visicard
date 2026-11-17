@@ -19,7 +19,7 @@ export default function PreviewPopover({ children, label = "Aperçu" }: { childr
   }, [open]);
 
   return (
-    <div className="sticky top-2 z-40 mt-4 flex justify-end lg:hidden">
+    <div className="sticky top-2 z-40 mt-4 flex justify-start sm:justify-end lg:hidden">
       {open && <button type="button" tabIndex={-1} aria-label="Réduire l’aperçu" onClick={() => setOpen(false)} className="fixed inset-0 z-0 cursor-default bg-ink/45 backdrop-blur-[2px]" />}
       <div className="relative z-10">
         <button
@@ -38,10 +38,11 @@ export default function PreviewPopover({ children, label = "Aperçu" }: { childr
             id="apercu-flottant"
             role="dialog"
             aria-label={label}
-            className="fixed left-1/2 top-1/2 max-h-[86svh] w-[min(90vw,340px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl shadow-[0_24px_60px_rgba(23,23,26,0.28)] [&_[role=radio][aria-checked=false]_.device-label]:hidden"
+            className="fixed left-1/2 top-1/2 flex h-[min(86svh,640px)] w-[min(90vw,340px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_rgba(23,23,26,0.28)] sm:block sm:h-auto sm:max-h-[86svh] sm:overflow-y-auto [&_[role=radio][aria-checked=false]_.device-label]:hidden"
           >
-            {children}
-            <button type="button" onClick={() => setOpen(false)} className="sticky bottom-0 block w-full rounded-b-2xl border-t border-line bg-white py-3 text-sm font-semibold text-forest">
+            {/* Sur téléphone, l'aperçu s'adapte à la hauteur du panneau : il n'a pas besoin de défiler. */}
+            <div className="min-h-0 flex-1 [&>*]:h-full sm:flex-none sm:[&>*]:h-auto">{children}</div>
+            <button type="button" onClick={() => setOpen(false)} className="block w-full shrink-0 border-t border-line bg-white py-3 text-sm font-semibold text-forest sm:sticky sm:bottom-0">
               Réduire l’aperçu
             </button>
           </div>

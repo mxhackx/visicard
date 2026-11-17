@@ -28,7 +28,7 @@ export default function PageCreator() {
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
-      <PreviewPopover><PagePreview /></PreviewPopover>
+      <PreviewPopover><PagePreview fill /></PreviewPopover>
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
         {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}

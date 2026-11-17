@@ -201,12 +201,12 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   }, [type]);
 
   const previewCard = (
-          <div className="surface flex flex-col p-4 sm:p-5 lg:h-full">
+          <div className="surface flex h-full flex-col p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-ink/80">Aperçu</p>
               <DeviceSwitch value={device} onChange={setDevice} devices={DEVICES} />
             </div>
-            <div className="mt-5 lg:min-h-0 lg:flex-1">
+            <div className="mt-4 min-h-0 flex-1 sm:mt-5">
               <DevicePreview device={device} fit>
                 <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={shownLogo} locked={media || needsPay} media={media} />
               </DevicePreview>

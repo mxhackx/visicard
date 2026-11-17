@@ -61,7 +61,8 @@ export default function DevicePreview({ device, children, scrollable = false, fi
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
       setAvailable(entry.contentRect.width);
-      setAvailableH(fit && window.matchMedia("(min-width: 1024px)").matches ? entry.contentRect.height : 0);
+      // Hauteur bornée seulement sur téléphone (panneau d'aperçu) et grand écran (colonne fixe) ; sur iPad, le panneau défile.
+      setAvailableH(fit && window.matchMedia("(max-width: 639px), (min-width: 1024px)").matches ? entry.contentRect.height : 0);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -88,7 +89,7 @@ export default function DevicePreview({ device, children, scrollable = false, fi
   );
 
   return (
-    <div ref={host} className={`flex w-full justify-center ${fit ? "lg:h-full lg:items-center" : ""}`}>
+    <div ref={host} className={`flex w-full justify-center ${fit ? "max-sm:h-full max-sm:items-center lg:h-full lg:items-center" : ""}`}>
       {scale > 0 && device === "phone" && (
         <div className="relative rounded-[2.6rem] bg-ink p-[10px] shadow-[0_30px_60px_rgba(15,23,42,0.25)]">
           <div className="absolute left-1/2 top-[10px] z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-ink" />
