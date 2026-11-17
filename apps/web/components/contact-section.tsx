@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Clock, Loader2, Mail, MapPin, MessageCircle, Navigation, Send } from "lucide-react";
 import { sendContact } from "@/lib/contact-send";
 import { CONTACT, directionsUrl, mapEmbedUrl, whatsappUrl } from "@/lib/contact";
+import ConsentEmbed from "@/components/consent-embed";
 import SectionHeading from "@/components/section-heading";
 
 type Draft = {
@@ -217,13 +218,15 @@ ${draft.message}`;
             </div>
 
             <div className="relative mx-3 mb-3 mt-auto overflow-hidden rounded-2xl border border-line shadow-[0_8px_24px_rgba(23,23,26,0.1)]">
-              <iframe
-                title={`Carte : ${CONTACT.address}`}
-                src={mapEmbedUrl()}
-                className="block h-56 w-full sm:h-64"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+              <ConsentEmbed label="La carte" className="h-56 sm:h-64">
+                <iframe
+                  title={`Carte : ${CONTACT.address}`}
+                  src={mapEmbedUrl()}
+                  className="block h-56 w-full sm:h-64"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </ConsentEmbed>
               <a
                 href={directionsUrl()}
                 target="_blank"

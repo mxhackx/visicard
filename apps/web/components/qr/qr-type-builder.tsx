@@ -269,7 +269,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             )}
           </Step>
 
-          <Step id="qr-style" n={2} title="Style" aside={<LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
+          <Step id="qr-style" title="Style" aside={<LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
             <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} badges={!premium.active} onStep={(next) => goTo(next === "fin" ? "qr-final" : next)} />
           </Step>
 

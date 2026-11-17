@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { loginWithGoogle } from "@/lib/account";
 import { GOOGLE_CLIENT_ID, loadGoogle, onGoogleCredential } from "@/lib/google-gsi";
 import { useFile } from "@/app/context/FileContext";
+import { useConsent } from "@/lib/consent";
 
 /**
  * Fenêtre contextuelle « Se connecter avec Google » de Chrome (One Tap), proposée aux visiteurs non connectés.
@@ -14,6 +15,7 @@ import { useFile } from "@/app/context/FileContext";
 export default function GoogleOneTap() {
   const { authToken, loginSession } = useFile();
   const pathname = usePathname();
+  const consent = useConsent();
   const login = useRef(loginSession);
   const prompted = useRef(false);
   useEffect(() => {
@@ -23,7 +25,8 @@ export default function GoogleOneTap() {
   const blocked = pathname.startsWith("/admin") || pathname.startsWith("/connexion") || pathname.startsWith("/c/");
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || authToken || blocked) return;
+    // Les services de Google (qui posent leurs propres cookies) ne se chargent qu'avec l'accord du visiteur.
+    if (!GOOGLE_CLIENT_ID || authToken || blocked || consent !== "all") return;
     let alive = true;
     let timer = 0;
     const off = onGoogleCredential(async (credential) => {
@@ -47,7 +50,7 @@ export default function GoogleOneTap() {
       window.clearTimeout(timer);
       off();
     };
-  }, [authToken, blocked]);
+  }, [authToken, blocked, consent]);
 
   // La fenêtre n'est retirée que lorsqu'elle n'a plus lieu d'être (connecté, ou page sans One Tap) : annuler à chaque
   // changement de page interrompait la requête FedCM de Chrome (erreur « AbortError » dans la console).

@@ -7,6 +7,7 @@ import WhatsAppButton from "@/components/whatsapp-button";
 import ScrollProgress from "@/components/scroll-progress";
 import RevealObserver from "@/components/reveal-observer";
 import GoogleOneTap from "@/components/account/google-one-tap";
+import CookieBanner from "@/components/cookie-banner";
 import IntroScript from "@/components/intro-script";
 import { DialogsProvider } from "@/components/account/auth-dialog";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ScrollProgress />
             <RevealObserver />
             <GoogleOneTap />
+            <CookieBanner />
             {children}
             <WhatsAppButton />
           </DialogsProvider>

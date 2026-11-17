@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Mail, MapPin, MessageCircle } from "lucide-react";
 import Logo from "@/components/logo";
 import { CONTACT, whatsappUrl } from "@/lib/contact";
+import CookieSettingsLink from "@/components/cookie-settings-link";
 
 /* Pied de page : centré sur mobile, aligné à gauche dès tablette ; marque et appel à l'action, trois colonnes, mentions. */
 
@@ -83,6 +84,7 @@ export default function Footer() {
 
         <div className="flex flex-col gap-2 py-5 pb-20 max-sm:items-center max-sm:text-center text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-sm">
           <p>© {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.</p>
+          <CookieSettingsLink className="font-medium transition-colors hover:text-forest" />
         </div>
       </div>
       </div>

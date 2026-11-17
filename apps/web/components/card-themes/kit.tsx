@@ -1,5 +1,6 @@
 "use client";
 
+import ConsentEmbed from "@/components/consent-embed";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, FileImage, X } from "lucide-react";
 
@@ -246,11 +247,13 @@ export function MapFrame({ coords, className = "" }: { coords: { lat: number; ln
   const d = 0.006;
   const bbox = [coords.lng - d, coords.lat - d / 1.6, coords.lng + d, coords.lat + d / 1.6].join(",");
   return (
-    <iframe
-      title="Carte"
-      loading="lazy"
-      className={`block w-full border-0 ${className}`}
-      src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lng}`}
-    />
+    <ConsentEmbed label="La carte" className={className}>
+      <iframe
+        title="Carte"
+        loading="lazy"
+        className={`block w-full border-0 ${className}`}
+        src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lng}`}
+      />
+    </ConsentEmbed>
   );
 }

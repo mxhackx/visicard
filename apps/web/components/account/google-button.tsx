@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { loginWithGoogle } from "@/lib/account";
 import { GOOGLE_CLIENT_ID, loadGoogle, onGoogleCredential } from "@/lib/google-gsi";
 import { useFile } from "@/app/context/FileContext";
+import { setConsent, useConsent } from "@/lib/consent";
 
 /** Bouton « Continuer avec Google ». Absent tant que NEXT_PUBLIC_GOOGLE_CLIENT_ID n'est pas défini. */
 export default function GoogleButton({ onDone, onError }: { onDone?: (info: { token: string; role: "admin" | "user"; user: { name?: string | null; phone?: string | null } }) => void; onError?: (message: string) => void }) {
   const { loginSession } = useFile();
+  const consent = useConsent();
   const box = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const cb = useRef({ loginSession, onDone, onError });
@@ -16,7 +18,8 @@ export default function GoogleButton({ onDone, onError }: { onDone?: (info: { to
   });
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+    // Le script de Google (et ses cookies) ne se charge qu'avec l'accord du visiteur.
+    if (!GOOGLE_CLIENT_ID || consent !== "all") return;
     let alive = true;
     const off = onGoogleCredential(async (credential) => {
       try {
@@ -37,9 +40,19 @@ export default function GoogleButton({ onDone, onError }: { onDone?: (info: { to
       alive = false;
       off();
     };
-  }, []);
+  }, [consent]);
 
   if (!GOOGLE_CLIENT_ID) return null;
+  if (consent !== "all") {
+    return (
+      <div className="mt-5">
+        <button type="button" onClick={() => setConsent("all")} className="btn btn-outline w-full justify-center">
+          Continuer avec Google
+        </button>
+        <p className="mt-1.5 text-center text-xs text-sage">Active les services de Google (cookies) pour vous connecter en un clic.</p>
+      </div>
+    );
+  }
   return (
     <div className="mt-5">
       <div ref={box} className={`flex min-h-11 justify-center ${ready ? "" : "opacity-0"}`} />
