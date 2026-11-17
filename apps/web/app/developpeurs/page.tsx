@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Gauge, KeyRound, QrCode, ShieldCheck, Zap } from "lucide-react";
 import CodeBlock from "@/components/code-block";
 import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
@@ -83,76 +83,19 @@ export default function DeveloppeursPage() {
       <Header />
       {/* Pas d'espaceur : le fond du hero passe derrière l'en-tête, qui est transparent (même fond, sans coupure). */}
 
-      {/* En-tête : promesse, une action, et la requête en exemple avec sa réponse. */}
-      <section className="relative overflow-hidden border-b border-line pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_80%_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-14 pt-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-12 lg:px-8 lg:py-24">
+      {/* En-tête simple : un titre, un sous-titre, une image, sur toute la hauteur de l'écran. */}
+      <section className="relative flex min-h-[100svh] items-center overflow-hidden border-b border-line pt-[calc(var(--header-h)+1px)] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_80%_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-12 sm:px-6 lg:grid-cols-[1fr_minmax(0,560px)] lg:gap-14 lg:px-8">
           <div className="text-center lg:text-left">
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink/80 shadow-[0_4px_14px_rgba(23,23,26,0.06)]">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> API REST · PNG et SVG
-            </span>
-            <h1 className="mt-5 text-[clamp(2.4rem,11vw,3.25rem)] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[3.4rem]">
+            <h1 className="text-[clamp(2.6rem,11vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.035em] text-ink lg:text-[4.2rem]">
               L’API <span className="text-forest">Moncode</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-sm text-[17px] leading-7 text-sage sm:max-w-xl lg:mx-0">
+            <p className="mx-auto mt-5 max-w-md text-lg leading-8 text-sage lg:mx-0 lg:max-w-lg lg:text-xl lg:leading-9">
               Une requête HTTP, un QR code en retour. Directement depuis votre site ou votre application.
             </p>
-
-            <ul className="mt-6 flex justify-center gap-1 lg:hidden">
-              {[
-                [Zap, "Une requête"],
-                [ShieldCheck, "Clé sécurisée"],
-                [Gauge, "Quotas clairs"],
-              ].map(([Icon, label]) => {
-                const I = Icon as typeof Zap;
-                return (
-                  <li key={label as string} className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white px-2 py-1.5 text-[11.5px] font-medium text-ink/80 ring-1 ring-line">
-                    <I className="h-3.5 w-3.5 text-forest" /> {label as string}
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <Link href="/compte/cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
-              <a href="#exemples" className="inline-flex items-center gap-1.5 py-2 text-[15px] font-semibold text-ink/80 transition hover:text-forest">Voir les exemples <ArrowRight className="h-4 w-4 rotate-90 lg:rotate-0" /></a>
-            </div>
-
-            <ul className="mt-11 hidden gap-4 text-sm text-ink/80 lg:grid xl:grid-cols-3">
-              {[
-                [Zap, "Une seule requête"],
-                [ShieldCheck, "Clé API sécurisée"],
-                [Gauge, "Quotas clairs"],
-              ].map(([Icon, label]) => {
-                const I = Icon as typeof Zap;
-                return (
-                  <li key={label as string} className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-forest ring-1 ring-line"><I className="h-4 w-4" /></span>
-                    {label as string}
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-
-          <div className="min-w-0 text-left">
-            <CodeBlock
-              label="Requête"
-              code={`curl -X POST ${BASE}/v1/qr \\
-  -H "X-API-Key: mck_live_votre_cle" \\
-  -H "Content-Type: application/json" \\
-  -d '{"type":"url",
-       "data":"https://moncode.bj"}' \\
-  -o qr.png`}
-            />
-            {/* La réponse, juste dessous : on comprend d'un coup d'œil ce que l'API renvoie. */}
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_8px_22px_rgba(23,23,26,0.07)]">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cream-deep text-ink"><QrCode className="h-6 w-6" /></span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink">qr.png</p>
-                <p className="truncate text-xs text-sage">image/png · 512 × 512 px</p>
-              </div>
-              <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">200 OK</span>
-            </div>
+          <div className="relative mx-auto w-full max-w-xl">
+            <Image src="/illustrations/api-qr.svg" alt="Une requête de code envoie un QR code en retour" width={640} height={460} priority unoptimized className="h-auto w-full" />
           </div>
         </div>
       </section>
