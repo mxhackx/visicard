@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Ht
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import * as QRCode from 'qrcode';
+import { primaryAppUrl } from '../app-url';
 import { ApiKeyGuard, type ApiRequest } from './api-key.guard';
 import { buildPayload } from './payloads';
 import { DevelopersService } from './developers.service';
@@ -44,7 +45,13 @@ export class V1Controller {
     const type = typeof input.type === 'string' && input.type ? input.type : 'url';
     if (!(await this.developers.canGenerate(req.apiKey!, type))) {
       throw new HttpException(
-        { statusCode: 402, error: 'Payment Required', message: 'Les liens (type=url) sont gratuits ; les autres contenus (wifi, tel, sms, email, geo, text…) exigent un compte Premium.' },
+        {
+          statusCode: 402,
+          error: 'Payment Required',
+          message: 'Les liens (type=url) sont gratuits ; les autres contenus (wifi, tel, sms, email, geo, text…) exigent un compte Premium.',
+          /** Où activer Premium (5 000 FCFA, Mobile Money) : le compte, pas la clé, porte l'offre. */
+          upgradeUrl: `${primaryAppUrl()}/paiement?suite=%2Fdeveloppeurs`,
+        },
         HttpStatus.PAYMENT_REQUIRED,
       );
     }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import CodeTabs from "@/components/code-tabs";
-import { KeyRound, Link2, Mail, MapPin, MessageSquare, Phone, Type, Wifi, ArrowRight } from "lucide-react";
+import { Crown, KeyRound, Link2, Mail, MapPin, MessageSquare, Phone, Type, Wifi, ArrowRight } from "lucide-react";
 import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -39,7 +39,7 @@ const OPTIONS: [string, string, string][] = [
 const ERRORS: [string, string, string][] = [
   ["400", "Requête invalide", "Paramètre manquant ou invalide : le message l’explique."],
   ["401", "Clé refusée", "Clé absente, invalide ou révoquée."],
-  ["402", "Premium requis", "Ce contenu est réservé aux comptes Premium (tout sauf les liens)."],
+  ["402", "Premium requis", "Ce contenu est réservé aux comptes Premium (tout sauf les liens). La réponse renvoie upgradeUrl, le lien du paiement (5 000 FCFA par Mobile Money)."],
   ["429", "Trop de requêtes", "Quota mensuel atteint ou trop d’appels à la minute."],
 ];
 
@@ -128,7 +128,7 @@ export default function DeveloppeursPage() {
         <div className="mt-12 grid gap-5 sm:grid-cols-3">
           {[
             ["1 000", "requêtes par mois", "gratuites, pour les liens simples"],
-            ["50 000", "requêtes par mois", "avec Premium, tous les contenus"],
+            ["5 000", "requêtes par mois", "avec Premium, tous les contenus"],
             ["5", "clés actives", "par compte"],
           ].map(([v, l, d]) => (
             <div key={l + v} className="rounded-3xl border border-line bg-white p-7 text-center shadow-[0_18px_44px_rgba(23,23,26,0.07)]">
@@ -141,6 +141,20 @@ export default function DeveloppeursPage() {
         <p className="mx-auto mt-8 max-w-2xl text-center text-[15px] leading-7 text-sage">
           Le quota se renouvelle le 1<sup>er</sup> de chaque mois. Au-delà, l’API répond <code>429</code> et l’en-tête <code>Retry-After</code> indique quand réessayer. Besoin de plus ? <Link href="/contact" className="font-semibold text-forest hover:underline">Écrivez-nous</Link>.
         </p>
+
+        {/* Passer en Premium : le compte porte l'offre, la clé n'a rien à changer. */}
+        <div className="mx-auto mt-10 flex max-w-3xl flex-col items-center gap-5 rounded-3xl border border-line bg-white p-6 text-center shadow-[0_18px_44px_rgba(23,23,26,0.07)] sm:flex-row sm:text-left">
+          <span className="icon-tile h-12 w-12 shrink-0"><Crown className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-ink">Passer en Premium avec l’API</h3>
+            <p className="mt-1 text-sm leading-6 text-sage">
+              Payez 5 000 FCFA par Mobile Money sur le site : votre compte passe en Premium pendant un an, et vos clés existantes débloquent tous les contenus sans rien changer côté code.
+            </p>
+          </div>
+          <Link href="/paiement?suite=%2Fdeveloppeurs" className="btn btn-primary btn-sm shrink-0">
+            Passer en Premium <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </Band>
 
       <Band id="exemples">
