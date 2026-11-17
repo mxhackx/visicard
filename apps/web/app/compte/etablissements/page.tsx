@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Établissements", robots: { index: f
 
 export default function Page() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <Establishments />

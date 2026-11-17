@@ -44,7 +44,7 @@ export default async function CreerPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       {wanted !== "page" && <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["Créer un QR code", "/creer"]])} />}
       <Header />
       <div className="header-spacer"></div>

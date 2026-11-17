@@ -342,8 +342,22 @@
     color: #fff;
   }
 
-  /* Pied de page : blanc, filet gris en tête. */
-  /* Le fond blanc est sur la partie sous la ligne (voir footer.tsx) : l'espace au-dessus garde le fond de la page. */
+  /* Fond du hero, étendu à toute la page (en-tête et pied compris) :
+     la teinte rouge reste accrochée en haut, le dégradé crème accompagne la page. */
+  .page-hero-bg {
+    background:
+      radial-gradient(70% 36rem at 50% 0%, rgba(227, 5, 29, 0.09), transparent 70%),
+      linear-gradient(#fff, #fbf5f5);
+  }
+  @media (min-width: 64rem) {
+    .page-hero-bg {
+      background:
+        radial-gradient(60% 44rem at 85% 0%, rgba(227, 5, 29, 0.07), transparent 70%),
+        linear-gradient(#fff, #fbf5f5);
+    }
+  }
+
+  /* Pied de page : transparent, il laisse voir le fond du hero de la page ; filet gris en tête. */
   .footer-surface {
     color: var(--color-ink);
   }

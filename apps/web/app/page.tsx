@@ -19,7 +19,7 @@ import IntroAnimation from "../components/intro-animation";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <IntroAnimation />
       <Header />
 

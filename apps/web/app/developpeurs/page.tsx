@@ -98,7 +98,7 @@ function Band({ id, children }: { id: string; children: React.ReactNode }) {
 
 export default function DeveloppeursPage() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(70%_36rem_at_50%_0%,rgba(227,5,29,0.09),transparent_70%),linear-gradient(#fff,#fbf5f5)] lg:bg-[radial-gradient(60%_44rem_at_85%_0%,rgba(227,5,29,0.07),transparent_70%),linear-gradient(#fff,#fbf5f5)]">
+    <main className="page-hero-bg min-h-screen">
       <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["API développeurs", "/developpeurs"]])} />
       <Header />
       {/* Pas d'espaceur : le fond du hero passe derrière l'en-tête, qui est transparent (même fond, sans coupure). */}
@@ -114,7 +114,7 @@ export default function DeveloppeursPage() {
               Une requête HTTP, un QR code en retour. Directement depuis votre site ou votre application.
             </p>
             <div className="mt-8">
-              <Link href="/compte/cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto sm:px-8"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
+              <Link href="/compte?onglet=cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto sm:px-8"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
             </div>
           </div>
           <div className="relative mx-auto w-full max-w-xl">
@@ -208,7 +208,7 @@ export default function DeveloppeursPage() {
           <h2 className="text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">Prêt à générer ?</h2>
           <p className="mx-auto mt-4 max-w-md text-lg leading-8 text-sage">Créez votre clé gratuite en une minute.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/compte/cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
+            <Link href="/compte?onglet=cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
             <Link href="/contact" className="inline-flex items-center gap-1.5 py-2 text-[15px] font-semibold text-ink/80 transition hover:text-forest">Une question ? <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>

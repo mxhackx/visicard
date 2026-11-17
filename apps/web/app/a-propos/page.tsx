@@ -28,7 +28,7 @@ const youKeep = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <JsonLd data={breadcrumbJsonLd([["Accueil", "/"], ["À propos", "/a-propos"]])} />
       <Header />
       <div className="header-spacer"></div>

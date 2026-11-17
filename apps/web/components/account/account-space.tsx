@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, PencilLine, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, CalendarClock, FileText, Images, KeyRound, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, PencilLine, TriangleAlert } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "./auth-dialog";
 import { fetchMyOrders, fetchPremiumHistory, updateProfile, type AccountOrder, type PremiumReceipt } from "@/lib/account";
@@ -14,6 +14,7 @@ import StyledQr from "@/components/qr/styled-qr";
 import SendQrButton from "./send-qr-button";
 import ScanStatsPanel from "./scan-stats";
 import DataPrivacy from "./data-privacy";
+import ApiKeys from "./api-keys";
 import VerifyEmailNotice from "./verify-email-notice";
 import SendInvoiceButton from "@/components/order/send-invoice-button";
 
@@ -30,7 +31,7 @@ const BADGE: Record<AccountOrder["status"], string> = {
 export default function AccountSpace() {
   const router = useRouter();
   const tabParam = useSearchParams().get("onglet");
-  const tab = tabParam === "factures" || tabParam === "parametres" || tabParam === "stats" ? tabParam : "codes";
+  const tab = tabParam === "factures" || tabParam === "parametres" || tabParam === "stats" || tabParam === "cles-api" ? tabParam : "codes";
   const { openAuth, openPremium } = useDialogs();
   const { authToken, authUser, logoutSession } = useFile();
   const premium = usePremium();
@@ -151,6 +152,8 @@ export default function AccountSpace() {
             <ScanStatsPanel token={authToken} />
           ) : tab === "factures" ? (
             <Invoices orders={orders} />
+          ) : tab === "cles-api" ? (
+            <ApiKeys />
           ) : tab === "parametres" ? (
             <Settings_ />
           ) : (
@@ -247,12 +250,13 @@ export default function AccountSpace() {
   );
 }
 
-const TAB_TITLES: Record<string, string> = { codes: "Mes QR codes", stats: "Statistiques", factures: "Factures", parametres: "Paramètres" };
+const TAB_TITLES: Record<string, string> = { codes: "Mes QR codes", stats: "Statistiques", factures: "Factures", "cles-api": "Clés d’API", parametres: "Paramètres" };
 
 const TABS = [
   { id: "codes", label: "Mes QR codes", icon: QrCode },
   { id: "stats", label: "Statistiques", icon: BarChart3 },
   { id: "factures", label: "Factures", icon: Receipt },
+  { id: "cles-api", label: "Clés d’API", icon: KeyRound },
   { id: "parametres", label: "Paramètres", icon: Settings },
 ] as const;
 

@@ -1,30 +1,23 @@
 "use client";
 
-import AccountNav from "./account-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AlertCircle, BookOpen, Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
-import { useDialogs } from "./auth-dialog";
 import { createKey, listKeys, revokeKey, type DevKeysResponse, type NewKey } from "@/lib/developers";
 
 const fmt = (v: string | null) => (v ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(v)) : "jamais");
 const nf = new Intl.NumberFormat("fr-FR");
 
-/** Gestion des clés d'API : création (clé montrée une seule fois), consommation du mois, révocation. */
+/** Onglet « Clés d'API » de Mon espace : création (clé montrée une seule fois), consommation du mois, révocation. */
 export default function ApiKeys() {
-  const { openAuth } = useDialogs();
   const { authToken } = useFile();
-  const [ready, setReady] = useState(false);
   const [data, setData] = useState<DevKeysResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [fresh, setFresh] = useState<NewKey | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setReady(true), []);
 
   const load = useCallback(async () => {
     if (!authToken) return;
@@ -36,14 +29,10 @@ export default function ApiKeys() {
   }, [authToken]);
 
   useEffect(() => {
-    if (!ready) return;
-    if (!authToken) {
-      openAuth({ mode: "login" });
-      return;
-    }
+    if (!authToken) return;
     const id = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(id);
-  }, [ready, authToken, openAuth, load]);
+  }, [authToken, load]);
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,22 +67,13 @@ export default function ApiKeys() {
   const revoked = data?.keys.filter((k) => k.revokedAt) ?? [];
 
   return (
-    <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
+    <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-sage">Espace développeur</p>
-          <h1 className="page-title mt-1">Clés d’API</h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-sage">
-            Générez des QR codes depuis vos applications. Les liens simples sont gratuits, avec un quota ; Wi-Fi, SMS, texte, e-mail, GPS… exigent Premium. Une clé n’est affichée qu’une fois.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/developpeurs" className="btn btn-outline btn-sm"><BookOpen className="h-4 w-4" /> Documentation</Link>
-          <Link href="/compte" className="btn btn-outline btn-sm">Mon espace</Link>
-        </div>
+        <p className="max-w-xl text-sm leading-6 text-sage">
+          Générez des QR codes depuis vos applications. Les liens simples sont gratuits, avec un quota ; Wi-Fi, SMS, texte, e-mail, GPS… exigent Premium. Une clé n’est affichée qu’une fois.
+        </p>
+        <Link href="/developpeurs" className="btn btn-outline btn-sm shrink-0"><BookOpen className="h-4 w-4" /> Documentation</Link>
       </div>
-
-      <div className="mt-6"><AccountNav /></div>
 
       {data && (
         <p className="mt-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-sage">
@@ -185,6 +165,6 @@ export default function ApiKeys() {
           </details>
         )}
       </div>
-    </section>
+    </div>
   );
 }

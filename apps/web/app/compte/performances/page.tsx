@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Performances", robots: { index: fals
 
 export default function Page() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <Performances />

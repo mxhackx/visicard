@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <ContactSection headingLevel="h1" />

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default async function ModifierPage({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <ModificationForm reference={reference.toUpperCase()} />

@@ -44,7 +44,7 @@ const FAQ = [
 
 export default function ManuelPage() {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <JsonLd data={[breadcrumbJsonLd([["Accueil", "/"], ["Manuel d’utilisation", "/manuel"]]), faqJsonLd(FAQ.map(([q, a]) => [q, a] as [string, string]))]} />
       <Header />
       <div className="header-spacer"></div>

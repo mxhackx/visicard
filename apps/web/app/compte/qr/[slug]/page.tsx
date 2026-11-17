@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Gestion du QR code", robots: { index
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <QrManager slug={slug} />

@@ -20,7 +20,7 @@ export default async function CommandePage({
   const one = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
 
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <OrderView reference={reference.toUpperCase()} keyFromUrl={one(query.cle)} />

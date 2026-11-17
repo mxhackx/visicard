@@ -16,7 +16,7 @@ const LINKS = [
 /** Page juridique : titre, date de mise à jour, sommaire cliquable, sections numérotées. */
 export default function LegalPage({ title, intro, updated, current, sections }: { title: string; intro: string; updated: string; current: string; sections: LegalSection[] }) {
   return (
-    <main className="min-h-screen">
+    <main className="page-hero-bg min-h-screen">
       <Header />
       <div className="header-spacer"></div>
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
