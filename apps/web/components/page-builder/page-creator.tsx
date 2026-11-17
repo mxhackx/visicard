@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Smartphone } from "lucide-react";
+import { Crown, Smartphone } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "@/components/account/auth-dialog";
 import { useIsSignedIn } from "@/components/account/account-gate";
@@ -22,11 +22,13 @@ import { PREMIUM_PRICE, usePremium, useTrial } from "@/lib/premium";
  */
 export default function PageCreator() {
   const [trial, startTrial] = useTrial();
+  const premium = usePremium();
+  const { openPremium } = useDialogs();
   const validate = useRef<() => boolean>(() => true);
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-14 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
-      <div className="flex shrink-0 items-center gap-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">
         <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
           <Smartphone className="h-10 w-10" />
         </span>
@@ -34,6 +36,11 @@ export default function PageCreator() {
           <h1 className="page-title">Créez votre QR code</h1>
           <p className="text-sm text-sage">Votre page digitale : vos informations, son apparence, puis la création.</p>
         </div>
+        {premium.ready && !premium.active && (
+          <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite: "/creer?type=page" })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:w-full sm:ml-auto">
+            <Crown className="h-4 w-4" /> Débloquer Premium · {PREMIUM_PRICE} FCFA
+          </button>
+        )}
       </div>
 
       <PreviewPopover><PagePreview /></PreviewPopover>

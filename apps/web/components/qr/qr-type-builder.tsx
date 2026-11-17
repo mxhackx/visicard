@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AlertTriangle, FileText, Globe, Lock, Video } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Crown, FileText, Globe, Lock, Video } from "lucide-react";
 import { SOCIAL_NETWORKS, networkById } from "@/lib/social-networks";
 import { MediaFields, MediaOrder } from "./media-fields";
 import ContentPicker from "./content-picker";
@@ -152,6 +152,55 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
 
   useEffect(() => () => void (logo && URL.revokeObjectURL(logo)), [logo]);
 
+  // Parcours guidé : après chaque choix, on glisse vers la suite ; Entrée passe au champ suivant.
+  const fieldsRef = useRef<HTMLDivElement>(null);
+  // Sur ordinateur, seule la zone de contenu défile : on la fait glisser elle-même, sans bouger la page.
+  const scrollInto = (el: HTMLElement | null, where: "start" | "center" = "start") => {
+    if (!el) return;
+    let box: HTMLElement | null = el.parentElement;
+    while (box && !(["auto", "scroll"].includes(getComputedStyle(box).overflowY) && box.scrollHeight > box.clientHeight + 4)) box = box.parentElement;
+    if (!box) return el.scrollIntoView({ behavior: "smooth", block: where });
+    const offset = el.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    box.scrollTo({ top: box.scrollTop + offset - (where === "center" ? box.clientHeight / 2 - el.clientHeight / 2 : 12), behavior: "smooth" });
+  };
+  const goTo = (id: string) => window.setTimeout(() => scrollInto(document.getElementById(id)), 120);
+  const focusFirst = () =>
+    window.setTimeout(() => {
+      const el = fieldsRef.current?.querySelector<HTMLElement>("input:not([type=hidden]):not([type=file]), textarea, select");
+      el?.focus({ preventScroll: true });
+      scrollInto(el ?? null, "center");
+    }, 160);
+  const onFieldsKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const t = e.target as HTMLElement;
+    if (e.key !== "Enter" || e.shiftKey || t.tagName === "TEXTAREA" || t.tagName === "BUTTON") return;
+    if (t.tagName !== "INPUT" && t.tagName !== "SELECT") return;
+    e.preventDefault();
+    const all = Array.from(fieldsRef.current?.querySelectorAll<HTMLElement>("input:not([type=hidden]):not([type=file]), select") ?? []).filter((el) => !(el as HTMLInputElement).disabled);
+    const i = all.indexOf(t);
+    const next = all[i + 1];
+    if (next) {
+      next.focus({ preventScroll: true });
+      scrollInto(next, "center");
+    } else if (payload) {
+      t.blur();
+      goTo("qr-style");
+    }
+  };
+  // Un autre contenu choisi : on va droit à ses champs.
+  const firstType = useRef(true);
+  useEffect(() => {
+    if (firstType.current) {
+      firstType.current = false;
+      return;
+    }
+    if (media) goTo("qr-fields");
+    else {
+      goTo("qr-fields");
+      focusFirst();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
+
   const previewCard = (
           <div className="surface flex flex-col p-4 sm:p-5 lg:h-full">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -190,7 +239,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-14 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
-      <div className="flex shrink-0 items-center gap-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">
         {media ? (
           <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
             {type === "document" ? <FileText className="h-10 w-10" /> : <Video className="h-10 w-10" />}
@@ -202,6 +251,11 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           <h1 className="page-title">Créez votre QR code</h1>
           <p className="text-sm text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
         </div>
+        {premium.ready && !premium.active && (
+          <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:w-full sm:ml-auto">
+            <Crown className="h-4 w-4" /> Débloquer Premium · {PRICE_QR} FCFA
+          </button>
+        )}
       </div>
 
       <PreviewPopover>{previewCard}</PreviewPopover>
@@ -212,12 +266,12 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
         <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
           <Step title="Contenu">
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
-            <div className="mt-6">
+            <div id="qr-fields" ref={fieldsRef} onKeyDown={onFieldsKey} className="mt-6 scroll-mt-3">
               {media ? (
-                <MediaFields kind={type as "media" | "document"} title={mediaTitle} onTitle={setMediaTitle} file={mediaFile} onFile={setMediaFile} />
+                <MediaFields kind={type as "media" | "document"} title={mediaTitle} onTitle={setMediaTitle} file={mediaFile} onFile={(f) => { setMediaFile(f); if (f) goTo("qr-style"); }} />
               ) : (
                 <>
-                  {dtype === "url" && <NetworkPicker value={network} onChange={setNetwork} />}
+                  {dtype === "url" && <NetworkPicker value={network} onChange={(id) => { setNetwork(id); focusFirst(); }} />}
                   <Fields type={dtype} data={data} update={update} urlPlaceholder={isUrl ? net.placeholder : undefined} urlPlain={isUrl && network !== "web"} />
                 </>
               )}
@@ -229,12 +283,12 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             )}
           </Step>
 
-          <Step n={2} title="Style" aside={media ? undefined : <LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
-            <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} badges={!premium.active} />
+          <Step id="qr-style" n={2} title="Style" aside={media ? undefined : <LogoPicker value={logo} onChange={setLogo} locked={locked} onPremium={() => askTry("Logo au centre")} />}>
+            <QrStyleCards value={qrStyle} onChange={setQrStyle} lockPremium={locked} onPremium={askTry} badges={!premium.active} onStep={(next) => goTo(next === "fin" ? "qr-final" : next)} />
           </Step>
 
           {needsPay && (
-            <Step n={3} title="Télécharger mon QR code">
+            <Step id="qr-final" n={3} title="Télécharger mon QR code">
               <div className="text-center">
               <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
                 Votre QR code utilise des options Premium. Connectez-vous, puis réglez {PRICE_QR} FCFA par Mobile Money : le téléchargement s’ouvre aussitôt.
@@ -245,7 +299,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
           )}
 
           {!isUrl && !needsPay && (
-            <Step n={3} title="Obtenir le QR code">
+            <Step id="qr-final" n={3} title="Obtenir le QR code">
               {media ? (
                 <MediaOrder kind={type as "media" | "document"} title={mediaTitle} file={mediaFile} qrStyle={qrStyle} />
               ) : payload ? (

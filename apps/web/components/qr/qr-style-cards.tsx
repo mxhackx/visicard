@@ -91,9 +91,9 @@ function Card({ on, label, onClick, premium, locked, children }: { on: boolean; 
   );
 }
 
-function Group({ title, premium, children }: { title: string; premium?: boolean; children: React.ReactNode }) {
+function Group({ title, premium, children, id }: { title: string; premium?: boolean; children: React.ReactNode; id?: string }) {
   return (
-    <div>
+    <div id={id} className="scroll-mt-3">
       <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-sage">
         {title}
         {premium && <span className="premium-pill"><Crown className="h-3 w-3" /> Premium</span>}
@@ -143,6 +143,7 @@ export default function QrStyleCards({
   lockPremium = false,
   onPremium,
   badges = true,
+  onStep,
 }: {
   value: string;
   onChange: (qrStyle: string) => void;
@@ -151,6 +152,8 @@ export default function QrStyleCards({
   onPremium?: (label: string) => void;
   /** Couronnes et étiquettes « Premium » : masquées pour l'administrateur et les comptes Premium. */
   badges?: boolean;
+  /** Après un choix libre : id du groupe suivant à montrer (« fin » quand le style est complet). */
+  onStep?: (next: string) => void;
 }) {
   const style = parseQrStyle(value);
   const set = (next: Partial<QrStyle>) => onChange(serializeQrStyle({ ...style, ...next }));
@@ -171,14 +174,14 @@ export default function QrStyleCards({
                 premium={premium && badges}
                 locked={locked}
                 on={!locked && p.fg === style.fg && p.bg === style.bg}
-                onClick={() => (locked ? onPremium?.("Palette de couleurs") : set(p))}
+                onClick={() => (locked ? onPremium?.("Palette de couleurs") : (set(p), onStep?.("qr-g-dots")))}
               />
             );
           })}
         </div>
       </Group>
 
-      <Group title="Forme des points">
+      <Group id="qr-g-dots" title="Forme des points">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" role="radiogroup">
           {QR_DOTS.map((o, i) => {
             const premium = i >= QR_DOTS.length - 4;
@@ -190,7 +193,7 @@ export default function QrStyleCards({
                 locked={locked}
                 on={!locked && style.dots === o.id}
                 label={o.label}
-                onClick={() => (locked ? onPremium?.(o.label) : set({ dots: o.id }))}
+                onClick={() => (locked ? onPremium?.(o.label) : (set({ dots: o.id }), onStep?.("qr-g-corners")))}
               >
                 <DotShape shape={o.id} fg={style.fg} />
               </Card>
@@ -200,7 +203,7 @@ export default function QrStyleCards({
       </Group>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <Group title="Coins">
+        <Group id="qr-g-corners" title="Coins">
           <div className="grid grid-cols-3 gap-2" role="radiogroup">
             {QR_CORNERS.map((o) => {
               const premium = o.id === "dot";
@@ -212,7 +215,7 @@ export default function QrStyleCards({
                   locked={locked}
                   on={!locked && style.corners === o.id}
                   label={o.label}
-                  onClick={() => (locked ? onPremium?.("Coins ronds") : set({ corners: o.id }))}
+                  onClick={() => (locked ? onPremium?.("Coins ronds") : (set({ corners: o.id }), onStep?.("qr-g-centre")))}
                 >
                   <CornerShape outer={o.id} inner={style.cornerDots} fg={style.fg} />
                 </Card>
@@ -220,10 +223,10 @@ export default function QrStyleCards({
             })}
           </div>
         </Group>
-        <Group title="Centre des coins">
+        <Group id="qr-g-centre" title="Centre des coins">
           <div className="grid grid-cols-2 gap-2" role="radiogroup">
             {QR_CORNER_DOTS.map((o) => (
-              <Card key={o.id} on={style.cornerDots === o.id} label={o.label} onClick={() => set({ cornerDots: o.id })}>
+              <Card key={o.id} on={style.cornerDots === o.id} label={o.label} onClick={() => (set({ cornerDots: o.id }), onStep?.("fin"))}>
                 <CornerShape outer={style.corners} inner={o.id} fg={style.fg} />
               </Card>
             ))}
