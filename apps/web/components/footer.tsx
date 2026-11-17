@@ -25,11 +25,6 @@ const colonnes = [
   },
 ];
 
-const legal = [
-  { href: "/confidentialite", label: "Confidentialité" },
-  { href: "/conditions", label: "Conditions d’utilisation" },
-];
-
 const lien = "py-1 text-sm text-ink/70 transition-colors hover:text-forest md:py-0 md:text-[15px]";
 
 export default function Footer() {
@@ -88,13 +83,6 @@ export default function Footer() {
 
         <div className="flex flex-col gap-2 py-5 pb-20 max-sm:items-center max-sm:text-center text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-sm">
           <p>© {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.</p>
-          <ul className="flex flex-wrap max-sm:justify-center gap-x-5 gap-y-1">
-            {legal.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="transition-colors hover:text-forest">{item.label}</Link>
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
       </div>

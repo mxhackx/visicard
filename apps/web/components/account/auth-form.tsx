@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import GoogleButton from "./google-button";
 import { Loader2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
-import Link from "next/link";
 import { forgotPassword, loginAccount, registerAccount, resetPassword, updateProfile, type CodeChallenge, type SessionResult } from "@/lib/account";
 import LoginCodeForm from "./login-code-form";
 
@@ -327,9 +326,7 @@ export default function AuthForm({
       </button>
       {mode === "register" && (
         <p className="mt-3 text-center text-xs leading-5 text-sage">
-          En créant un compte, vous acceptez les{" "}
-          <Link href="/conditions" target="_blank" className="font-medium text-ink/80 underline-offset-2 hover:underline">conditions d’utilisation</Link> et la{" "}
-          <Link href="/confidentialite" target="_blank" className="font-medium text-ink/80 underline-offset-2 hover:underline">politique de confidentialité</Link>.
+          En créant un compte, vous acceptez les conditions d’utilisation et la politique de confidentialité.
         </p>
       )}
     </>,

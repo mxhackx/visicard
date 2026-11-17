@@ -47,8 +47,6 @@ export const PUBLIC_ROUTES = [
   { path: "/developpeurs", priority: 0.5, changeFrequency: "monthly" as const },
   { path: "/a-propos", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/contact", priority: 0.6, changeFrequency: "yearly" as const },
-  { path: "/confidentialite", priority: 0.3, changeFrequency: "yearly" as const },
-  { path: "/conditions", priority: 0.3, changeFrequency: "yearly" as const },
 ];
 
 /** Données structurées (schema.org) : l'entreprise et ses offres. */

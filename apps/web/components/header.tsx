@@ -208,11 +208,6 @@ export default function Header() {
           <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary w-full justify-center py-3.5 text-base">
             <QrCode className="h-[18px] w-[18px]" /> Créer un QR code
           </Link>
-          <p className="mt-3 text-center text-[11px] text-sage">
-            <Link href="/confidentialite" onClick={() => setIsOpen(false)} className="hover:text-ink">Confidentialité</Link>
-            {" · "}
-            <Link href="/conditions" onClick={() => setIsOpen(false)} className="hover:text-ink">Conditions</Link>
-          </p>
         </div>
       </aside>
     </div>
