@@ -8,7 +8,7 @@ import PremiumModal, { type PremiumOffer } from "./premium-modal";
 import { usePremium } from "@/lib/premium";
 import { DIRECT_QR_TYPES, type DirectQrType } from "@/lib/qr-payloads";
 
-const PRICE = "100";
+const PRICE = "5 000";
 
 interface Tile {
   id: string;

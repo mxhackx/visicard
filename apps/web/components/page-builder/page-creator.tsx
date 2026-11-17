@@ -141,7 +141,7 @@ function PageOrder({ validate }: { validate: () => boolean }) {
     );
   }
 
-  // Les 5 pages du paiement sont toutes utilisées : un nouveau paiement de 100 FCFA en ajoute 5.
+  // Les 5 pages du paiement sont toutes utilisées : un nouveau paiement de 5 000 FCFA en ajoute 5.
   const quota = premium.pages;
   if (quota && quota.limit !== null && quota.used >= quota.limit) {
     return (

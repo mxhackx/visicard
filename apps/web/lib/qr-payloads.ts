@@ -57,7 +57,7 @@ export const DIRECT_QR_TYPES: { id: DirectQrType; label: string; hint: string }[
 
 /** Seul le lien web est gratuit ; les autres contenus sont facturés à la commande. */
 export const FREE_DIRECT_TYPES: readonly DirectQrType[] = ["url"];
-export const DIRECT_QR_PRICE = 100;
+export const DIRECT_QR_PRICE = 5000;
 export const isFreeDirectType = (t: DirectQrType) => FREE_DIRECT_TYPES.includes(t);
 
 export function isDirectQrType(value: unknown): value is DirectQrType {

@@ -19,7 +19,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   }
   return pageMetadata({
     title: "Créer un QR code : lien gratuit, Wi-Fi, carte de visite, PDF, page digitale",
-    description: "Créez un QR code gratuit pour un lien, choisissez le style et téléchargez-le en PNG et SVG. Premium à 100 FCFA pour tous les contenus, les couleurs et le logo.",
+    description: "Créez un QR code gratuit pour un lien, choisissez le style et téléchargez-le en PNG et SVG. Premium à 5 000 FCFA pour tous les contenus, les couleurs et le logo.",
     path: "/creer",
   });
 }

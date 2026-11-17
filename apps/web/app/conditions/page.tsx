@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "Conditions d’utilisation et de vente",
-  description: "Les règles d’utilisation de Moncode : compte, Premium à 100 FCFA, paiement Mobile Money, contenus autorisés, responsabilités.",
+  description: "Les règles d’utilisation de Moncode : compte, Premium à 5 000 FCFA, paiement Mobile Money, contenus autorisés, responsabilités.",
   path: "/conditions",
 });
 
@@ -43,7 +43,7 @@ export default function Conditions() {
             <>
               <ul>
                 <li><strong>Gratuit</strong> : le QR code d’un lien web, avec les styles de base, sans compte. L’API développeurs est accessible gratuitement pour les liens, avec un quota mensuel.</li>
-                <li><strong>Premium</strong> : <strong>100 FCFA</strong> pour <strong>un an</strong>. Il débloque tous les contenus, les couleurs, les formes, le logo, la création de pages digitales et l’API complète avec un quota élevé.</li>
+                <li><strong>Premium</strong> : <strong>5 000 FCFA</strong> pour <strong>un an</strong>. Il débloque tous les contenus, les couleurs, les formes, le logo, la création de pages digitales et l’API complète avec un quota élevé.</li>
               </ul>
               <p>Premium n’est pas un abonnement automatique : il ne se renouvelle pas tout seul. Un nouveau paiement avant la fin prolonge la durée d’un an. À l’échéance, vous ne pouvez plus créer de nouveaux QR codes premium tant que vous n’avez pas repayé ; <strong>vos QR codes déjà créés restent actifs</strong>.</p>
             </>

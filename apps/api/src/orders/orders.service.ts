@@ -67,9 +67,9 @@ export class OrdersService {
     if (!userId) {
       throw new UnauthorizedException('Connectez-vous ou créez un compte pour passer en Premium.');
     }
-    // Rien ne se crée sans Premium actif (100 FCFA, payés par Mobile Money avant tout).
+    // Rien ne se crée sans Premium actif (5 000 FCFA, payés par Mobile Money avant tout).
     if (!(await this.premium.isActive({ id: userId, role }))) {
-      throw new HttpException('Passez en Premium (100 FCFA) pour créer ce QR code.', HttpStatus.PAYMENT_REQUIRED);
+      throw new HttpException('Passez en Premium (5 000 FCFA) pour créer ce QR code.', HttpStatus.PAYMENT_REQUIRED);
     }
     assertFileSizes(files as never);
     // Pages digitales : 5 par paiement Premium ; quand elles sont toutes utilisées, un nouveau paiement en ajoute 5.
@@ -77,7 +77,7 @@ export class OrdersService {
       const quota = await this.premium.pageQuota({ id: userId, role });
       if (quota.limit !== null && quota.used >= quota.limit) {
         throw new HttpException(
-          `Vous avez utilisé vos ${quota.limit} pages digitales. Payez 100 FCFA de plus pour en créer ${PAGES_PER_PREMIUM} autres.`,
+          `Vous avez utilisé vos ${quota.limit} pages digitales. Payez 5 000 FCFA de plus pour en créer ${PAGES_PER_PREMIUM} autres.`,
           HttpStatus.PAYMENT_REQUIRED,
         );
       }

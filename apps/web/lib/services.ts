@@ -20,7 +20,7 @@ export const SERVICES: ServiceOffer[] = [
     index: "01",
     name: "Page digitale",
     shortName: "Page",
-    price: "100",
+    price: "5 000",
     priceNote: "FCFA · un seul QR code",
     tagline: "Votre page en ligne, accessible en un scan.",
     description:
@@ -39,7 +39,7 @@ export const SERVICES: ServiceOffer[] = [
     index: "02",
     name: "QR image, vidéo ou audio",
     shortName: "Image / vidéo / audio",
-    price: "100",
+    price: "5 000",
     priceNote: "FCFA · un seul QR code",
     tagline: "Une image, une vidéo ou un audio, sans application.",
     description:
@@ -58,7 +58,7 @@ export const SERVICES: ServiceOffer[] = [
     index: "03",
     name: "QR document",
     shortName: "Document",
-    price: "100",
+    price: "5 000",
     priceNote: "FCFA · un seul QR code",
     tagline: "Un PDF consultable au premier scan.",
     description:

@@ -207,7 +207,7 @@ export async function sendPremiumReminder(email: string, name: string | null | u
           title: `Votre Premium se termine ${when}`,
           preheader: `Fin le ${date}. Renouvelez en un clic.`,
           intro: `Bonjour${name ? ` ${esc(name)}` : ''}, votre Premium Moncode arrive à échéance le <strong>${esc(date)}</strong>. Renouvelez-le pour garder vos options Premium et continuer à créer et télécharger vos QR codes : une année de plus s’ajoute à la suite de celle en cours.`,
-          button: { label: 'Renouveler mon Premium · 100 FCFA', href: `${primaryAppUrl()}/paiement?suite=%2Fcompte&renouveler=1` },
+          button: { label: 'Renouveler mon Premium · 5 000 FCFA', href: `${primaryAppUrl()}/paiement?suite=%2Fcompte&renouveler=1` },
           note: 'Aucun prélèvement automatique : rien ne sera débité sans votre accord. Vos QR codes existants restent en ligne.',
         }),
       }),

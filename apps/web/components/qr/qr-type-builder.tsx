@@ -331,7 +331,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   );
 }
 
-const PRICE_QR = "100";
+const PRICE_QR = "5 000";
 
 /** Contenu de l'écran simulé, rendu à la vraie largeur de l'appareil (puis réduit). */
 function QrScreen({
