@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Crown, Smartphone } from "lucide-react";
+import { Crown } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "@/components/account/auth-dialog";
 import { useIsSignedIn } from "@/components/account/account-gate";
@@ -27,40 +27,42 @@ export default function PageCreator() {
   const validate = useRef<() => boolean>(() => true);
 
   return (
-    <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-14 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">
-        <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
-          <Smartphone className="h-10 w-10" />
-        </span>
-        <div>
-          <h1 className="page-title">Créez votre QR code</h1>
-          <p className="text-sm text-sage">Votre page digitale : vos informations, son apparence, puis la création.</p>
-        </div>
-        {premium.ready && !premium.active && (
-          <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite: "/creer?type=page" })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:w-full sm:ml-auto">
-            <Crown className="h-4 w-4" /> Débloquer Premium · {PREMIUM_PRICE} FCFA
-          </button>
-        )}
-      </div>
-
+    <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
       <PreviewPopover><PagePreview /></PreviewPopover>
 
-      <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-14 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
         {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}
         <div className="min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
         <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
-          <Step title="Contenu">
+          {/* Sur téléphone, le bouton est au-dessus de la carte « Contenu » ; sur grand écran, il est dans son en-tête. */}
+          {premium.ready && !premium.active && (
+            <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite: "/creer?type=page" })} className="premium-gold inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 sm:hidden">
+              <Crown className="h-4 w-4" /> Débloquer Premium · {PREMIUM_PRICE} FCFA
+            </button>
+          )}
+          <Step
+            title="Contenu"
+            aside={premium.ready && !premium.active ? (
+              <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite: "/creer?type=page" })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:hidden">
+                <Crown className="h-4 w-4" /> Débloquer Premium · {PREMIUM_PRICE} FCFA
+              </button>
+            ) : undefined}
+          >
+            <div className="pb-5 pt-3">
+              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink">Créez votre QR code</h1>
+              <p className="mt-2 text-sm leading-6 text-sage">Votre page digitale : vos informations, son apparence, puis la création.</p>
+            </div>
             <ContentPicker current="page" trial={trial} onTrial={startTrial} />
             <div className="mt-6 space-y-6">
               <InformationsBody mode="client" embedded registerValidate={(fn) => (validate.current = fn)} />
             </div>
           </Step>
 
-          <Step n={2} title="Apparence">
+          <Step id="qr-style" title="Apparence">
             <AppearanceSections />
           </Step>
 
-          <Step n={3} title="Créer ma page">
+          <Step id="qr-final" n={3} title="Créer ma page">
             <PageOrder validate={() => validate.current()} />
           </Step>
         </div>

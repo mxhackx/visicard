@@ -244,13 +244,21 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
         {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}
         <div className="min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
         <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
+          {/* Sur téléphone, le bouton est au-dessus de la carte « Contenu » ; sur grand écran, il est dans son en-tête. */}
+          {premium.ready && !premium.active && (
+            <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite })} className="premium-gold inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 sm:hidden">
+              <Crown className="h-4 w-4" /> Débloquer Premium · {PRICE_QR} FCFA
+            </button>
+          )}
           <Step title="Contenu" aside={premium.ready && !premium.active ? (
-            <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:w-full">
+            <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite })} className="premium-gold inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 max-sm:hidden">
               <Crown className="h-4 w-4" /> Débloquer Premium · {PRICE_QR} FCFA
             </button>
           ) : undefined}>
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink">Créez votre QR code</h1>
-            <p className="mt-1.5 mb-2.5 text-sm text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
+            <div className="pb-5 pt-3">
+              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink">Créez votre QR code</h1>
+              <p className="mt-2 text-sm leading-6 text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
+            </div>
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
             <div id="qr-fields" ref={fieldsRef} onKeyDown={onFieldsKey} className="mt-6 scroll-mt-3">
               {media ? (
