@@ -100,3 +100,54 @@ export const sendQrToMe = (token: string, slug: string) =>
 export function safeNext(next: string | undefined | null, fallback = "/compte"): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
 }
+
+export interface ScanStats {
+  days: number;
+  total: number;
+  last7: number;
+  previous7: number;
+  byDay: { date: string; count: number }[];
+  devices: Record<string, number>;
+  countries: { country: string; count: number }[];
+  cards: { slug: string; title: string; serviceType: "page" | "media" | "document" | "direct"; total: number; last7: number }[];
+}
+
+/** Statistiques de scans du compte (pages, images, vidéos, PDF) sur les derniers jours. */
+export const fetchScanStats = (token: string, days = 30) =>
+  call<ScanStats>(`/cards/stats/mine?days=${days}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+
+/* ---------- Adresse e-mail confirmée, export et suppression du compte ---------- */
+
+/** Confirme l'adresse e-mail avec le lien reçu (/?verifier=…). */
+export const confirmEmail = (linkToken: string) => call<{ success: true; email: string }>("/auth/verify", json({ token: linkToken }));
+
+/** Renvoie le lien de confirmation au compte connecté. */
+export const resendVerification = (token: string) =>
+  call<{ success: true; alreadyVerified: boolean }>("/auth/verify/resend", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+
+/** État du compte connecté (adresse confirmée ou non). */
+export const fetchMe = (token: string) =>
+  call<{ user: { email?: string; emailVerified?: boolean } }>("/auth/me", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+
+/** Télécharge toutes les données du compte dans un fichier JSON. */
+export async function downloadMyData(token: string): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/me/export`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  } catch {
+    throw new Error("Impossible de joindre le serveur. Vérifiez votre connexion, puis réessayez.");
+  }
+  if (!res.ok) throw new Error(res.status === 429 ? "Trop de tentatives : patientez une minute." : "Export impossible pour le moment. Réessayez.");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "moncode-mes-donnees.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Supprime définitivement le compte et ses données ; l'adresse e-mail saisie sert de confirmation. */
+export const deleteMyAccount = (token: string, confirmEmailText: string) =>
+  call<{ success: true }>("/me", { method: "DELETE", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ confirmEmail: confirmEmailText }) });

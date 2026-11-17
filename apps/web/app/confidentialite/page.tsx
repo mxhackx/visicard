@@ -74,7 +74,7 @@ export default function Confidentialite() {
           title: "Combien de temps nous les gardons",
           body: (
             <ul>
-              <li>Compte et QR codes : tant que votre compte existe. Sur simple demande, nous les supprimons.</li>
+              <li>Compte et QR codes : tant que votre compte existe. Vous pouvez à tout moment les exporter puis supprimer votre compte depuis « Mon espace › Paramètres › Mes données » : tout est alors effacé, y compris les factures.</li>
               <li>Factures et reçus de paiement : conservés pendant la durée légale d’archivage.</li>
               <li>Lien de réinitialisation du mot de passe : une heure.</li>
               <li>Messages de contact : le temps de vous répondre, puis au plus tard trois ans.</li>

@@ -73,9 +73,9 @@ export default function AdminAccountEditor({
   const matches = typed.trim().toLowerCase() === account.email.toLowerCase();
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="edit-account-title">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="edit-account-title">
       <button type="button" aria-label="Fermer" onClick={onClose} className="absolute inset-0 bg-ink/55 backdrop-blur-[2px]" />
-      <div className="relative max-h-[94svh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-6 shadow-[0_30px_80px_rgba(23,23,26,0.35)] sm:rounded-3xl sm:p-7">
+      <div className="relative max-h-[94svh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-[0_30px_80px_rgba(23,23,26,0.35)] sm:p-7">
         <button type="button" onClick={onClose} aria-label="Fermer" className="absolute right-3 top-3 rounded-full p-2 text-sage transition hover:bg-cream-deep hover:text-ink">
           <X className="h-5 w-5" />
         </button>

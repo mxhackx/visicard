@@ -20,6 +20,8 @@ export interface PremiumStatus {
   payment?: string | null;
   /** Mode test de FeexPay : seuls les numéros de test fonctionnent. */
   sandbox?: boolean;
+  /** Pages digitales utilisées et autorisées (5 par paiement Premium) ; `limit` est nul sans limite. */
+  pages?: { used: number; limit: number | null };
 }
 
 async function api<T>(path: string, token: string, init?: RequestInit): Promise<T> {
@@ -93,6 +95,7 @@ export function usePremium() {
     ready: !signedIn || status !== null || failed,
     active: authRole === "admin" || Boolean(status?.active),
     until: status?.until ?? null,
+    pages: status?.pages ?? null,
     refresh,
   };
 }

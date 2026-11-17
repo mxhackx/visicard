@@ -12,12 +12,12 @@ const principles = [
   {
     icon: HandCoins,
     title: "Un prix annoncé est un prix tenu",
-    text: "Vingt mille FCFA pour une page complète, cinq mille pour un média ou un PDF. Pas de commission cachée sur ce que vous vendez.",
+    text: "Les liens sont gratuits, 5 000 FCFA pour tout le reste pendant un an. Pas de commission cachée sur ce que vous vendez.",
   },
   {
     icon: MessageCircle,
-    title: "Un humain répond",
-    text: "Vous écrivez sur WhatsApp, une personne de l'équipe vous répond et, si besoin, fait la mise à jour avec vous.",
+    title: "Une aide quand vous en avez besoin",
+    text: "Tout se fait en libre-service. Une question ? Écrivez-nous sur WhatsApp ou par e-mail : l’équipe vous répond sous 24 h ouvrées.",
   },
 ];
 
@@ -27,15 +27,15 @@ export default function AboutSection() {
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <SectionHeading align="left" title="Nous publions le contenu, pas votre métier" />
+            <SectionHeading align="left" title="Un outil simple, à vous de jouer" />
             <p className="mt-6 text-lg leading-8 text-sage">
-              Moncode est né d’un constat simple : les établissements que nous équipons n’ont ni le
-              temps ni l’envie de gérer un site web. Ils ont besoin d’un contenu lisible, modifiable en
-              deux minutes, et d’un QR code qui ne casse jamais.
+              Moncode est né d’un constat simple : beaucoup d’établissements n’ont ni le temps ni
+              l’envie de gérer un site web. Ils ont besoin d’un contenu lisible, modifiable en deux
+              minutes, et d’un QR code qui ne casse jamais.
             </p>
             <p className="mt-4 text-base leading-7 text-sage">
-              Nous prenons en charge la mise en ligne, l’hébergement et l’accompagnement de votre
-              équipe. Le reste — vos contenus, vos prix, votre style — vous appartient.
+              Vous créez et modifiez vos QR codes vous-même, nous hébergeons vos contenus et comptons
+              les scans. Le reste — vos contenus, vos prix, votre style — vous appartient.
             </p>
 
             <Link

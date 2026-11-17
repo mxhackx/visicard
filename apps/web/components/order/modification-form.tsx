@@ -150,8 +150,8 @@ export default function ModificationForm({ reference }: { reference: string }) {
               <input className="field mt-1.5" value={title} onChange={(e) => setTitle(e.target.value)} />
             </label>
             <FilePick
-              label={order.serviceType === "document" ? "Nouveau PDF" : "Nouvelle image ou vidéo"}
-              accept={order.serviceType === "document" ? "application/pdf" : "image/*,video/*"}
+              label={order.serviceType === "document" ? "Nouveau PDF" : "Nouvelle image, vidéo ou audio"}
+              accept={order.serviceType === "document" ? "application/pdf" : "image/*,video/*,audio/*"}
               files={file ? [file] : []}
               onPick={(f) => setFile(f[0] ?? null)}
               icon={UploadCloud}

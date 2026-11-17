@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, Crown, Loader2 } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import AuthForm from "@/components/account/auth-form";
 import FeexpayBadge from "@/components/feexpay-badge";
+import VerifyEmailNotice from "@/components/account/verify-email-notice";
 import PaymentForm, { type PayState } from "@/components/payment/payment-form";
 import { safeNext } from "@/lib/account";
 import { PREMIUM_PRICE, fetchPremiumStatus, notifyPremiumChanged, payPremium, usePremium } from "@/lib/premium";
@@ -15,6 +16,7 @@ const PERKS = [
   "Tous les contenus : Wi-Fi, carte de visite, PDF, image, vidéo, page digitale",
   "Toutes les couleurs, formes, coins et le logo au centre du QR code",
   "QR code net en PNG et SVG, enregistré dans votre espace",
+  "Fichiers (image, vidéo, audio, PDF) jusqu’à 200 Mo et 5 pages digitales",
   "Valable un an, sans abonnement automatique",
 ];
 
@@ -24,18 +26,31 @@ const PERKS = [
  */
 export default function PaymentPage() {
   const router = useRouter();
-  const suite = safeNext(useSearchParams().get("suite"), "/creer");
+  const params = useSearchParams();
+  const suite = safeNext(params.get("suite"), "/creer");
+  // Renouvellement : le compte est déjà Premium, mais peut payer une année de plus.
+  const renew = params.get("renouveler") === "1";
   const { authToken, authUser } = useFile();
   const premium = usePremium();
 
   // Déjà Premium : retour direct là où l'on en était.
   useEffect(() => {
-    if (premium.ready && premium.active) router.replace(suite);
-  }, [premium.ready, premium.active, router, suite]);
+    if (premium.ready && premium.active && !renew) router.replace(suite);
+  }, [premium.ready, premium.active, renew, router, suite]);
+
+  // Renouvellement : le compte est déjà actif, le paiement est confirmé quand la date de fin recule.
+  const baseUntil = useRef<number | null>(null);
+  useEffect(() => {
+    if (renew && premium.ready && baseUntil.current === null) baseUntil.current = premium.until ? new Date(premium.until).getTime() : 0;
+  }, [renew, premium.ready, premium.until]);
 
   const check = async (): Promise<PayState> => {
     if (!authToken) return "pending";
     const status = await fetchPremiumStatus(authToken);
+    if (renew) {
+      const paid = status.until ? new Date(status.until).getTime() > (baseUntil.current ?? 0) : false;
+      return paid ? "paid" : status.payment === "failed" ? "failed" : "pending";
+    }
     return status.active ? "paid" : status.payment === "failed" ? "failed" : "pending";
   };
 
@@ -44,10 +59,10 @@ export default function PaymentPage() {
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
       <Link href={suite} className="inline-flex items-center gap-1.5 text-sm font-medium text-sage transition-colors hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> Retour à ma création
+        <ArrowLeft className="h-4 w-4" /> {renew ? "Retour à Mon espace" : "Retour à ma création"}
       </Link>
-      <h1 className="page-title mt-4">Paiement</h1>
-      <p className="mt-1 text-sm text-sage">Un seul paiement de {PREMIUM_PRICE} FCFA pour tout débloquer.</p>
+      <h1 className="page-title mt-4">{renew ? "Renouveler Premium" : "Paiement"}</h1>
+      <p className="mt-1 text-sm text-sage">{renew ? `Une année de plus pour ${PREMIUM_PRICE} FCFA, ajoutée à la fin de votre Premium actuel.` : `Un seul paiement de ${PREMIUM_PRICE} FCFA pour tout débloquer.`}</p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-start">
         <div className="min-w-0">
@@ -66,6 +81,7 @@ export default function PaymentPage() {
             </div>
           ) : (
             <div className="surface p-5 sm:p-7">
+              <VerifyEmailNotice className="mb-5" />
               <h2 className="flex items-center gap-3 text-base font-semibold text-ink/90">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">1</span>
                 Paiement Mobile Money

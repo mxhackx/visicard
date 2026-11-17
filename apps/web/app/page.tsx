@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 import Hero from "../components/hero";
-import AudienceStrip from "../components/audience-strip";
 import DemoSection from "../components/demo-section";
 import HowItWorks from "../components/how-it-works";
 import FeaturesSection from "../components/features-section";
@@ -27,7 +26,6 @@ export default function Home() {
       {/* Le hero occupe tout l'écran, en-tête compris : pas d'espaceur ici. */}
 
       <Hero />
-      <AudienceStrip />
       <HowItWorks />
       <DemoSection />
       <FeaturesSection />

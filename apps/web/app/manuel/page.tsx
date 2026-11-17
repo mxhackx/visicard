@@ -31,10 +31,12 @@ const TOC = [
 const FAQ = [
   ["Le QR code imprimé change-t-il si je modifie ma page ?", "Non. Le motif imprimé reste le même : seul le contenu en ligne change. Vous n’avez jamais à réimprimer."],
   ["Pourquoi un compte est-il demandé ?", "Pour les contenus mis en ligne (page, image, vidéo, PDF). Votre compte vous permet de retrouver votre QR code, vos factures et vos modifications depuis n’importe quel appareil."],
-  ["Faut-il un compte pour un lien gratuit ou un QR direct ?", "Non. Le lien gratuit se télécharge sans compte. Les QR directs (Wi-Fi, carte de visite, appel…) se commandent sans compte."],
+  ["Faut-il un compte pour un lien gratuit ?", "Non. Un QR code vers un lien web (avec le style de base) se télécharge sans compte et sans payer. Tous les autres contenus (Wi-Fi, carte de visite, PDF, image, vidéo, page digitale) et les options Premium demandent un compte."],
+  ["Y a-t-il des limites ?", "Chaque image, vidéo, audio ou PDF peut peser jusqu’à 200 Mo. Chaque paiement Premium de 5 000 FCFA permet de créer 5 pages digitales ; quand elles sont toutes utilisées, un nouveau paiement de 5 000 FCFA en ajoute 5 autres."],
+  ["Mon Premium se renouvelle-t-il tout seul ?", "Non, il n’y a aucun prélèvement automatique. Votre Premium dure un an ; nous vous écrivons avant la fin, et vous pouvez le renouveler en un clic depuis Mon espace : l’année s’ajoute à la suite de celle en cours."],
   ["Comment payer ?", "Par Mobile Money (MTN, Moov, Celtiis), dans un formulaire sécurisé par FeexPay : vous validez le paiement sur votre téléphone."],
-  ["Comment savoir qu’un client m’a écrit ou réservé ?", "Une pastille rouge apparaît sur « Demandes » dans votre espace, avec le nombre de demandes à traiter. Vous pouvez aussi recevoir un e-mail à chaque nouvelle demande si l’équipe Moncode l’a activé."],
-  ["Les statistiques sont-elles précises ?", "Elles comptent chaque ouverture de page, une fois par visite. La localisation est approximative (pays, parfois ville) et aucune adresse IP n’est conservée. Les QR codes directs (Wi-Fi, appel…) ne passent pas par Moncode et n’ont donc pas de statistiques."],
+  ["Comment savoir qu’un client m’a écrit ou réservé ?", "Une pastille rouge apparaît sur « Demandes » dans votre espace, avec le nombre de demandes à traiter. Vous pouvez aussi recevoir un e-mail à chaque nouvelle demande."],
+  ["Les statistiques sont-elles précises ?", "Elles comptent chaque ouverture de page, une fois par visite : scans par jour, appareils et pays, dans l’onglet Statistiques de Mon espace. La localisation est approximative et aucune adresse IP n’est conservée. Les QR codes directs (Wi-Fi, appel…) ne passent pas par Moncode et n’ont donc pas de statistiques."],
   ["Mon QR code direct peut-il être modifié ?", "Non : son contenu est écrit dans le QR code lui-même. Pour changer, commandez-en un nouveau."],
   ["Mon téléphone ne lit pas le QR code, que faire ?", "Vérifiez que le motif est foncé sur fond clair, imprimé assez grand (3 cm minimum) et net. Ouvrez l’appareil photo ou une application de scan à jour."],
 ] as const;
@@ -56,7 +58,7 @@ export default function ManuelPage() {
         </p>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14">
-          <nav aria-label="Sommaire" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:block lg:space-y-1 lg:self-start lg:overflow-visible lg:px-0">
+          <nav aria-label="Sommaire" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_88%,transparent)] lg:[mask-image:none] lg:sticky lg:top-24 lg:mx-0 lg:block lg:space-y-1 lg:self-start lg:overflow-visible lg:px-0">
             {TOC.map(([id, label]) => (
               <a
                 key={id}

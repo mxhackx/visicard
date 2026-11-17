@@ -37,16 +37,16 @@ export const SERVICES: ServiceOffer[] = [
   {
     id: "media",
     index: "02",
-    name: "QR image ou vidéo",
-    shortName: "Image / vidéo",
+    name: "QR image, vidéo ou audio",
+    shortName: "Image / vidéo / audio",
     price: "5 000",
     priceNote: "FCFA · un seul QR code",
-    tagline: "Une image ou une vidéo, sans application.",
+    tagline: "Une image, une vidéo ou un audio, sans application.",
     description:
-      "Envoyez une image ou une courte vidéo. Nous la publions sur une page de lecture légère et vous recevez un QR code à scanner, partager ou imprimer.",
+      "Envoyez une image, une courte vidéo ou un audio. Il est publié sur une page de lecture légère et vous recevez un QR code à scanner, partager ou imprimer.",
     features: [
       "1 QR code pour 1 média",
-      "Image ou vidéo prise en charge",
+      "Image, vidéo ou audio pris en charge",
       "Page de lecture mobile",
       "Lien et fichier QR téléchargeables",
     ],

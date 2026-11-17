@@ -209,17 +209,19 @@ export function hasInput(data: object): boolean {
 
 type Update = <K extends DirectQrType>(key: K, patch: Partial<DirectQrData[K]>) => void;
 
-export function Fields({ type, data, update }: { type: DirectQrType; data: AllData[DirectQrType]; update: Update }) {
+export function Fields({ type, data, update, urlPlaceholder, urlPlain }: { type: DirectQrType; data: AllData[DirectQrType]; update: Update; urlPlaceholder?: string; urlPlain?: boolean }) {
   switch (type) {
     case "url": {
       const d = data as DirectQrData["url"];
       return (
-        <Field label="Adresse (URL)" full>
+        <Field label={urlPlain ? "Adresse ou identifiant" : "Adresse (URL)"} full>
           <input
             className="field"
-            type="url"
+            type={urlPlain ? "text" : "url"}
             inputMode="url"
-            placeholder="https://exemple.com/menu"
+            autoCapitalize="none"
+            autoCorrect="off"
+            placeholder={urlPlaceholder ?? "https://exemple.com/menu"}
             value={d.url}
             onChange={(e) => update("url", { url: e.target.value })}
           />

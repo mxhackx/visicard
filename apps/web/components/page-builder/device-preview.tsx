@@ -40,7 +40,7 @@ export function DeviceSwitch({
             }`}
           >
             <Icon className="h-4 w-4" />
-            {label}
+            <span className="device-label">{label}</span>
           </button>
         );
       })}
@@ -50,22 +50,30 @@ export function DeviceSwitch({
 
 /** Cadre d'appareil avec l'écran mis à l'échelle de la place disponible. */
 /** `scrollable` : la page simulée défile à l'intérieur du cadre (pages longues) ; sinon le cadre ne capte pas le défilement. */
-export default function DevicePreview({ device, children, scrollable = false }: { device: Device; children: ReactNode; scrollable?: boolean }) {
+/** `fit` : sur grand écran, l'appareil se réduit aussi pour tenir dans la hauteur du conteneur (aperçu fixe, sans défilement). */
+export default function DevicePreview({ device, children, scrollable = false, fit = false }: { device: Device; children: ReactNode; scrollable?: boolean; fit?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(0);
+  const [availableH, setAvailableH] = useState(0);
 
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setAvailable(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) => {
+      setAvailable(entry.contentRect.width);
+      setAvailableH(fit && window.matchMedia("(min-width: 1024px)").matches ? entry.contentRect.height : 0);
+    });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [fit]);
 
   const spec = DEVICES[device];
   const bezel = device === "phone" ? 20 : device === "tablet" ? 28 : device === "laptop" ? 24 : 28;
   const target = Math.min(spec.max, Math.max(0, available - bezel));
-  const scale = target > 0 ? target / spec.width : 0;
+  const frameH = device === "phone" ? 20 : device === "tablet" ? 26 : device === "laptop" ? 40 : 100;
+  const scaleW = target > 0 ? target / spec.width : 0;
+  const scaleH = availableH > 0 ? Math.max(0, availableH - frameH - 8) / spec.height : Infinity;
+  const scale = Math.min(scaleW, scaleH);
   const w = spec.width * scale;
   const h = spec.height * scale;
 
@@ -80,7 +88,7 @@ export default function DevicePreview({ device, children, scrollable = false }: 
   );
 
   return (
-    <div ref={host} className="flex w-full justify-center">
+    <div ref={host} className={`flex w-full justify-center ${fit ? "lg:h-full lg:items-center" : ""}`}>
       {scale > 0 && device === "phone" && (
         <div className="relative rounded-[2.6rem] bg-ink p-[10px] shadow-[0_30px_60px_rgba(15,23,42,0.25)]">
           <div className="absolute left-1/2 top-[10px] z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-ink" />

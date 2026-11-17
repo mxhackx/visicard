@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Images, UploadCloud, X } from "lucide-react";
+import { FileText, Images, Music, UploadCloud, X } from "lucide-react";
 import { createOrder, rememberOrder } from "@/lib/orders";
 import CreateAction, { useAccountContact } from "@/components/account/create-action";
 
 export type MediaKind = "media" | "document";
 
-const MAX_BYTES = 32 * 1024 * 1024;
+const MAX_BYTES = 200 * 1024 * 1024;
 
 /** Titre et fichier d'un QR image, vidéo ou PDF (l'état est tenu par la page, pour survivre au changement de type). */
 export function MediaFields({
@@ -42,10 +42,10 @@ export function MediaFields({
   const pick = (next: File | null) => {
     setError(null);
     if (!next) return onFile(null);
-    if (next.size > MAX_BYTES) return setError("Le fichier dépasse 32 Mo. Contactez-nous pour un envoi plus lourd.");
+    if (next.size > MAX_BYTES) return setError("Le fichier dépasse 200 Mo. Réduisez-le ou contactez-nous pour un envoi plus lourd.");
     if (kind === "document" && next.type !== "application/pdf") return setError("Le service document accepte uniquement un fichier PDF.");
-    if (kind === "media" && !next.type.startsWith("image/") && !next.type.startsWith("video/")) {
-      return setError("Le service média accepte une image (JPG, PNG, WEBP) ou une vidéo.");
+    if (kind === "media" && !next.type.startsWith("image/") && !next.type.startsWith("video/") && !next.type.startsWith("audio/")) {
+      return setError("Choisissez une image (JPG, PNG, WEBP), une vidéo ou un audio (MP3, M4A, WAV).");
     }
     onFile(next);
     if (!title.trim()) onTitle(next.name.replace(/\.[^.]+$/, "").slice(0, 80));
@@ -58,16 +58,16 @@ export function MediaFields({
         id="media-title"
         value={title}
         onChange={(e) => onTitle(e.target.value)}
-        placeholder={kind === "document" ? "Carte de visite, brochure…" : "Affiche, vidéo de présentation…"}
+        placeholder={kind === "document" ? "Carte de visite, brochure…" : "Affiche, vidéo, message vocal…"}
         className="field"
         maxLength={90}
       />
 
-      <span className="mb-1.5 mt-5 block text-sm font-medium text-ink">{kind === "document" ? "Fichier PDF" : "Image ou vidéo"}</span>
+      <span className="mb-1.5 mt-5 block text-sm font-medium text-ink">{kind === "document" ? "Fichier PDF" : "Image, vidéo ou audio"}</span>
       <input
         ref={input}
         type="file"
-        accept={kind === "document" ? "application/pdf" : "image/*,video/*"}
+        accept={kind === "document" ? "application/pdf" : "image/*,video/*,audio/*"}
         className="sr-only"
         onChange={(e) => pick(e.target.files?.[0] ?? null)}
       />
@@ -78,8 +78,8 @@ export function MediaFields({
           className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-ambre/50 bg-white px-6 py-9 text-center transition-colors hover:border-ambre/70 hover:bg-white/70"
         >
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-forest text-white"><UploadCloud className="h-5 w-5" /></span>
-          <span className="text-sm font-semibold text-ink">{kind === "document" ? "Choisir un PDF" : "Choisir une image ou une vidéo"}</span>
-          <span className="text-xs text-sage">{kind === "document" ? "PDF uniquement · 32 Mo maximum" : "JPG, PNG, WEBP, MP4, MOV · 32 Mo maximum"}</span>
+          <span className="text-sm font-semibold text-ink">{kind === "document" ? "Choisir un PDF" : "Choisir une image, une vidéo ou un audio"}</span>
+          <span className="text-xs text-sage">{kind === "document" ? "PDF uniquement · 200 Mo maximum" : "JPG, PNG, MP4, MOV, MP3, M4A, WAV · 200 Mo maximum"}</span>
         </button>
       ) : (
         <div className="surface-soft flex items-start gap-4 p-4">
@@ -88,7 +88,7 @@ export function MediaFields({
             <img src={preview} alt="Aperçu du fichier sélectionné" className="h-16 w-16 shrink-0 rounded-md border border-line object-cover" />
           ) : (
             <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-line bg-white text-ink">
-              {kind === "document" ? <FileText className="h-6 w-6" /> : <Images className="h-6 w-6" />}
+              {kind === "document" ? <FileText className="h-6 w-6" /> : file.type.startsWith("audio/") ? <Music className="h-6 w-6" /> : <Images className="h-6 w-6" />}
             </span>
           )}
           <div className="min-w-0 flex-1">
@@ -113,7 +113,7 @@ export function MediaOrder({ kind, title, file, qrStyle }: { kind: MediaKind; ti
   const [busy, setBusy] = useState(false);
 
   const create = async () => {
-    if (!file) return setError(kind === "document" ? "Choisissez un fichier PDF à l’étape 1." : "Choisissez une image ou une vidéo à l’étape 1.");
+    if (!file) return setError(kind === "document" ? "Choisissez un fichier PDF à l’étape 1." : "Choisissez une image, une vidéo ou un audio à l’étape 1.");
     setError(null);
     setBusy(true);
     const body = new FormData();

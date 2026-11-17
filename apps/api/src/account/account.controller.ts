@@ -1,9 +1,9 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req, ServiceUnavailableException, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req, Res, ServiceUnavailableException, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { sendContactMessage } from './notify';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CardsService } from '../cards/cards.service';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { AccountService } from './account.service';
 
@@ -23,6 +23,27 @@ export class AccountController {
     const result = token ? await this.auth.validateToken(token) : null;
     if (!result?.valid || !result.user) throw new UnauthorizedException('Connectez-vous pour accéder à votre espace.');
     return result.user.id;
+  }
+
+  /** Télécharge toutes les données du compte (JSON). */
+  @Get('export')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async exportData(@Req() req: Request, @Headers('authorization') h: string | undefined, @Res({ passthrough: true }) res: Response) {
+    const data = await this.account.exportData(await this.userId(req, h));
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="moncode-mes-donnees.json"');
+    return data;
+  }
+
+  /** Supprime définitivement le compte et ses données ; l'adresse e-mail saisie en toutes lettres sert de confirmation. */
+  @Delete()
+  @HttpCode(200)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  async deleteMe(@Req() req: Request, @Headers('authorization') h: string | undefined, @Body() body: { confirmEmail?: string }, @Res({ passthrough: true }) res: Response) {
+    const result = await this.account.deleteMyAccount(await this.userId(req, h), body?.confirmEmail ?? '');
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    return result;
   }
 
   @Get('summary')

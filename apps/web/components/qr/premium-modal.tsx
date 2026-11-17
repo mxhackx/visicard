@@ -36,9 +36,9 @@ export default function PremiumModal({ offer, onClose }: { offer: PremiumOffer |
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="premium-title">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="premium-title">
       <button type="button" aria-label="Fermer" onClick={onClose} className="absolute inset-0 bg-ink/55 backdrop-blur-[2px]" />
-      <div className="relative w-full max-w-md overflow-hidden rounded-t-3xl bg-white shadow-[0_30px_80px_rgba(23,23,26,0.35)] sm:rounded-3xl">
+      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white text-center shadow-[0_30px_80px_rgba(23,23,26,0.35)]">
         <div className="premium-gold px-6 pb-6 pt-7 text-center">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/45 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.6)]">
             <Crown className="h-6 w-6" />
@@ -48,7 +48,7 @@ export default function PremiumModal({ offer, onClose }: { offer: PremiumOffer |
         </div>
         <div className="px-6 pb-6 pt-5">
           <p className="text-sm leading-6 text-ink/80">Cette option fait partie de Premium. Vous pouvez l’essayer tout de suite.</p>
-          <button type="button" onClick={tryIt} className="btn btn-primary mt-5 w-full justify-center py-3.5 text-base">
+          <button type="button" onClick={tryIt} className="btn btn-primary mx-auto mt-5 w-full justify-center py-3.5 text-base">
             Essayer maintenant <ArrowRight className="h-4 w-4" />
           </button>
           <button type="button" onClick={onClose} className="mt-1 w-full py-2.5 text-sm font-medium text-sage transition hover:text-ink">

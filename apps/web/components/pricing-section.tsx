@@ -9,13 +9,14 @@ const premiumItems = [
   "Les styles premium : formes élégantes, couleurs et logo",
   "QR code net en PNG et SVG + facture",
   "Modifiable après impression, statistiques de scans",
+  "Fichiers jusqu’à 200 Mo et 5 pages digitales (5 de plus pour 5 000 FCFA)",
 ];
 
 const customIncluded = [
   "Plusieurs QR codes, plusieurs établissements ou points de vente",
   "Charte graphique avancée et reprise de votre domaine",
   "Changements particuliers ou intégrations (caisse, réservation)",
-  "Accompagnement et formation de votre équipe",
+  "Accompagnement et prise en main avec notre équipe",
   "Devis clair après un échange de 15 minutes",
 ];
 

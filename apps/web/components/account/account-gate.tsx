@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
@@ -8,9 +8,13 @@ import { PREMIUM_PRICE, usePremium } from "@/lib/premium";
 import { useDialogs } from "./auth-dialog";
 
 /** Vrai quand un client (ou l'équipe) est connecté : le paiement peut alors continuer. */
+const noopSubscribe = () => () => {};
+
 export function useIsSignedIn(): boolean {
   const { authToken, authRole } = useFile();
-  return Boolean(authToken && authRole);
+  // La session vit dans le navigateur : faux au rendu serveur, vrai après l'hydratation (pas d'écart d'affichage).
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  return mounted && Boolean(authToken && authRole);
 }
 
 /**

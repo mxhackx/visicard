@@ -188,3 +188,70 @@ export async function sendPasswordReset(email: string, name: string | null | und
     return false;
   }
 }
+
+/** Rappel : le Premium arrive à échéance. Renvoie `false` sans service e-mail ou en cas de refus. */
+export async function sendPremiumReminder(email: string, name: string | null | undefined, until: Date, daysLeft: number): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !email) return false;
+  const date = until.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Porto-Novo' });
+  const when = daysLeft <= 1 ? 'demain' : `dans ${daysLeft} jours`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
+        to: [email],
+        subject: `Votre Premium Moncode se termine ${when}`,
+        html: emailLayout({
+          title: `Votre Premium se termine ${when}`,
+          preheader: `Fin le ${date}. Renouvelez en un clic.`,
+          intro: `Bonjour${name ? ` ${esc(name)}` : ''}, votre Premium Moncode arrive à échéance le <strong>${esc(date)}</strong>. Renouvelez-le pour garder vos options Premium et continuer à créer et télécharger vos QR codes : une année de plus s’ajoute à la suite de celle en cours.`,
+          button: { label: 'Renouveler mon Premium · 5 000 FCFA', href: `${primaryAppUrl()}/paiement?suite=%2Fcompte&renouveler=1` },
+          note: 'Aucun prélèvement automatique : rien ne sera débité sans votre accord. Vos QR codes existants restent en ligne.',
+        }),
+      }),
+    });
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => ({}))) as { message?: string };
+      logger.warn(`Rappel Premium refusé (${res.status}) : ${detail.message ?? 'sans détail'}`);
+    }
+    return res.ok;
+  } catch (error) {
+    logger.warn(`Rappel Premium impossible : ${(error as Error).message}`);
+    return false;
+  }
+}
+
+/** Lien de confirmation d'adresse e-mail (valable 48 h). Renvoie `false` sans service e-mail ou en cas de refus. */
+export async function sendEmailVerification(email: string, name: string | null | undefined, link: string): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !email) return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
+        to: [email],
+        subject: 'Confirmez votre adresse e-mail Moncode',
+        html: emailLayout({
+          title: 'Confirmez votre adresse e-mail',
+          preheader: 'Un clic suffit pour activer votre compte.',
+          intro: `Bonjour${name ? ` ${esc(name)}` : ''}, bienvenue sur Moncode ! Confirmez votre adresse e-mail pour pouvoir payer, recevoir vos factures et récupérer votre mot de passe. Le lien est valable <strong>48 heures</strong>.`,
+          button: { label: 'Confirmer mon adresse', href: link },
+          bodyHtml: `<p style="margin:20px 0 6px;font-size:13px;color:#7a7a84">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :</p><p style="margin:0;padding:10px 12px;background:#faf6f6;border:1px solid #ece4e4;border-radius:8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#17171a;word-break:break-all">${esc(link)}</p>`,
+          note: 'Si vous n’avez pas créé de compte Moncode, ignorez ce message.',
+        }),
+      }),
+    });
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => ({}))) as { message?: string };
+      logger.warn(`Confirmation d'e-mail refusée (${res.status}) : ${detail.message ?? 'sans détail'}`);
+    }
+    return res.ok;
+  } catch (error) {
+    logger.warn(`Confirmation d'e-mail impossible : ${(error as Error).message}`);
+    return false;
+  }
+}

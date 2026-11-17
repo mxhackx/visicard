@@ -31,7 +31,7 @@ export default function CodeBlock({ code, label, className = "" }: { code: strin
           {done ? "Copié" : "Copier"}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4 text-[13px] leading-6 text-white/90"><code>{code}</code></pre>
+      <pre className="overflow-x-auto whitespace-pre-wrap p-4 text-[12.5px] leading-6 text-white/90 [overflow-wrap:anywhere] sm:whitespace-pre sm:text-[13px] sm:[overflow-wrap:normal]"><code>{code}</code></pre>
     </div>
   );
 }

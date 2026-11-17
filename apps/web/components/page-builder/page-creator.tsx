@@ -8,9 +8,10 @@ import { useDialogs } from "@/components/account/auth-dialog";
 import { useIsSignedIn } from "@/components/account/account-gate";
 import ContentPicker from "@/components/qr/content-picker";
 import Step from "@/components/qr/step-card";
-import FeexpayBadge from "@/components/feexpay-badge";
+import PayButton from "@/components/payment/pay-button";
 import CreateAction, { useAccountContact } from "@/components/account/create-action";
 import { InformationsBody } from "@/components/page-builder/informations-step";
+import PreviewPopover from "@/components/page-builder/preview-popover";
 import { AppearanceSections, PagePreview } from "@/components/page-builder/apparence-step";
 import { createOrder, rememberOrder } from "@/lib/orders";
 import { PREMIUM_PRICE, usePremium, useTrial } from "@/lib/premium";
@@ -24,10 +25,10 @@ export default function PageCreator() {
   const validate = useRef<() => boolean>(() => true);
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="flex items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
-          <Smartphone className="h-7 w-7" />
+    <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-14 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
+      <div className="flex shrink-0 items-center gap-4">
+        <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
+          <Smartphone className="h-10 w-10" />
         </span>
         <div>
           <h1 className="page-title">Créez votre QR code</h1>
@@ -35,9 +36,13 @@ export default function PageCreator() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
-        <div className="min-w-0 space-y-6">
-          <Step n={1} title="Contenu">
+      <PreviewPopover><PagePreview /></PreviewPopover>
+
+      <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-14 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+        {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}
+        <div className="min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
+        <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
+          <Step title="Contenu">
             <ContentPicker current="page" trial={trial} onTrial={startTrial} />
             <div className="mt-6 space-y-6">
               <InformationsBody mode="client" embedded registerValidate={(fn) => (validate.current = fn)} />
@@ -52,9 +57,10 @@ export default function PageCreator() {
             <PageOrder validate={() => validate.current()} />
           </Step>
         </div>
+        </div>
 
-        <aside className="order-first min-w-0 lg:order-none lg:sticky lg:top-24 lg:self-start">
-          <PagePreview />
+        <aside className="hidden min-w-0 lg:block lg:min-h-0">
+          <PagePreview fill />
         </aside>
       </div>
     </section>
@@ -118,15 +124,25 @@ function PageOrder({ validate }: { validate: () => boolean }) {
         <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
           La création de votre page fait partie de Premium ({PREMIUM_PRICE} FCFA). Connectez-vous, puis réglez par Mobile Money : le paiement se fait dans une fenêtre, cette page et tout ce que vous avez saisi restent ici.
         </p>
-        <button type="button" onClick={signedIn ? pay : () => (validate() ? pay() : undefined)} className="btn btn-primary mx-auto mt-4 flex w-full max-w-sm justify-center py-3.5 text-base">
-          Passer au paiement · {PREMIUM_PRICE} FCFA
-        </button>
+        <PayButton onClick={signedIn ? pay : () => (validate() ? pay() : undefined)} label="Publier ma page" note={`${PREMIUM_PRICE} FCFA · 5 pages · valable 1 an`} className="mx-auto mt-4 max-w-sm" />
         {!signedIn && (
           <button type="button" onClick={() => openAuth({ mode: "login" })} className="mx-auto mt-2 block text-sm font-medium text-sage underline-offset-4 hover:text-ink hover:underline">
             J’ai déjà un compte
           </button>
         )}
-        <FeexpayBadge className="mt-3 flex justify-center" />
+      </div>
+    );
+  }
+
+  // Les 5 pages du paiement sont toutes utilisées : un nouveau paiement de 5 000 FCFA en ajoute 5.
+  const quota = premium.pages;
+  if (quota && quota.limit !== null && quota.used >= quota.limit) {
+    return (
+      <div className="text-center">
+        <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
+          Vous avez utilisé vos <strong className="text-ink">{quota.limit} pages digitales</strong>. Payez {PREMIUM_PRICE} FCFA de plus pour en créer {quota.limit > 0 ? "5 autres" : "5"} : cette page et tout ce que vous avez saisi restent ici.
+        </p>
+        <PayButton onClick={() => openPremium({ label: "5 pages de plus", suite: "/creer?type=page", renew: true })} label="Ajouter 5 pages" note={`${PREMIUM_PRICE} FCFA`} className="mx-auto mt-4 max-w-sm" />
       </div>
     );
   }

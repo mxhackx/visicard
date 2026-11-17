@@ -3,6 +3,7 @@ import {
   HttpCode,
   Req,
   Controller,
+  Query,
   Get, Delete,
   Post,
   Patch,
@@ -156,7 +157,7 @@ export class CardsController {
       { name: 'media', maxCount: 1 },
       { name: 'document', maxCount: 1 },
     ], {
-      limits: { fileSize: 32 * 1024 * 1024, files: 12 },
+      limits: CARD_UPLOAD_LIMITS,
       fileFilter: cardFileFilter,
     })
   )
@@ -233,7 +234,7 @@ export class CardsController {
       { name: 'media', maxCount: 1 },
       { name: 'document', maxCount: 1 },
     ], {
-      limits: { fileSize: 32 * 1024 * 1024, files: 12 },
+      limits: CARD_UPLOAD_LIMITS,
       fileFilter: cardFileFilter,
     })
   )
@@ -351,6 +352,21 @@ export class CardsController {
       throw new UnauthorizedException('Session expirée ou invalide.');
     }
     return this.cardsService.getCardsByOwner(user.id);
+  }
+
+  /** Statistiques de scans du compte connecté : jours, appareils, pays, détail par QR code. */
+  @Get('stats/mine')
+  async getMyStats(
+    @Req() req: Request,
+    @Headers('authorization') authHeader?: string,
+    @Query('days') days?: string,
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = cookieOf(req, 'access_token') ?? cookieOf(req, 'refresh_token') ?? null;
+    if (!token) throw new UnauthorizedException('Connectez-vous pour voir vos statistiques.');
+    const { valid, user } = await this.authService.validateToken(token);
+    if (!valid || !user) throw new UnauthorizedException('Session expirée ou invalide.');
+    return this.cardsService.getScanStats(user.id, Number(days) || 30);
   }
 
   @Patch(':slug')

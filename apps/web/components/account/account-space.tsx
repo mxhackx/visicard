@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings } from "lucide-react";
+import { ArrowRight, Check, CalendarClock, FileText, Images, Loader2, LogOut, Lock, PanelsTopLeft, QrCode, Receipt, ScanLine, Settings, BarChart3, Crown, TriangleAlert } from "lucide-react";
 import { useFile } from "@/app/context/FileContext";
 import { useDialogs } from "./auth-dialog";
 import { fetchMyOrders, fetchPremiumHistory, updateProfile, type AccountOrder, type PremiumReceipt } from "@/lib/account";
@@ -12,6 +12,9 @@ import { formatPhone, toPhone } from "./auth-form";
 import { STATUS_LABELS, fcfa, formatDate } from "@/lib/orders";
 import StyledQr from "@/components/qr/styled-qr";
 import SendQrButton from "./send-qr-button";
+import ScanStatsPanel from "./scan-stats";
+import DataPrivacy from "./data-privacy";
+import VerifyEmailNotice from "./verify-email-notice";
 
 const ICONS = { page: PanelsTopLeft, media: Images, document: FileText, direct: QrCode } as const;
 
@@ -26,9 +29,10 @@ const BADGE: Record<AccountOrder["status"], string> = {
 export default function AccountSpace() {
   const router = useRouter();
   const tabParam = useSearchParams().get("onglet");
-  const tab = tabParam === "factures" || tabParam === "parametres" ? tabParam : "codes";
+  const tab = tabParam === "factures" || tabParam === "parametres" || tabParam === "stats" ? tabParam : "codes";
   const { openAuth, openPremium } = useDialogs();
   const { authToken, authUser, logoutSession } = useFile();
+  const premium = usePremium();
   const [orders, setOrders] = useState<AccountOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,35 +79,43 @@ export default function AccountSpace() {
 
   return (
     <section className="mx-auto flex min-h-[calc(100svh-var(--header-h)-1px)] w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="flex flex-wrap items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest text-xl font-semibold text-white">
-          {authUser?.picture && /^https:\/\//.test(authUser.picture) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={authUser.picture} alt="" width={56} height={56} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-          ) : (
-            ((authUser?.name || authUser?.email || "M").trim()[0] ?? "M").toUpperCase()
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-[radial-gradient(70%_120%_at_100%_0%,rgba(227,5,29,0.08),transparent_70%),linear-gradient(#fff,#fbf5f5)] p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest text-2xl font-semibold text-white ring-4 ring-white">
+            {authUser?.picture && /^https:\/\//.test(authUser.picture) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={authUser.picture} alt="" width={64} height={64} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+            ) : (
+              ((authUser?.name || authUser?.email || "M").trim()[0] ?? "M").toUpperCase()
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="page-title truncate">{authUser?.name || "Mon espace"}</h1>
+            <p className="truncate text-sm text-sage">{authUser?.email}</p>
+          </div>
+          {premium.ready && (premium.admin || premium.active) && (
+            <span className="premium-pill"><Crown className="h-3 w-3" /> {premium.admin ? "Administrateur" : `Premium · jusqu’au ${formatDate(premium.until)}`}</span>
           )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="page-title truncate">{authUser?.name || "Mon espace"}</h1>
-          <p className="truncate text-sm text-sage">{authUser?.email}</p>
         </div>
       </div>
 
+      <VerifyEmailNotice className="mt-4" />
+      <PremiumNotice className="mt-4" />
+
       <div className="mt-8 grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-stretch">
-        <nav aria-label="Mon espace" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 lg:flex-col lg:overflow-visible lg:pb-0">
+        <nav aria-label="Mon espace" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 lg:h-fit lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-line lg:bg-white lg:p-2 lg:pb-2">
           {TABS.map(({ id, label, icon: Icon }) => (
             <Link
               key={id}
               href={id === "codes" ? "/compte" : `/compte?onglet=${id}`}
               scroll={false}
               aria-current={tab === id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${tab === id ? "border-forest bg-forest text-white" : "border-line bg-white text-ink/75 hover:border-ink/30"}`}
+              className={`inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition max-lg:border ${tab === id ? "bg-cream-deep text-forest max-lg:border-forest/30" : "text-ink/70 hover:bg-cream-deep hover:text-ink max-lg:border-line max-lg:bg-white"}`}
             >
               <Icon className="h-4 w-4" /> {label}
             </Link>
           ))}
-          <button type="button" onClick={logout} className="inline-flex shrink-0 items-center gap-2.5 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink/75 transition hover:border-ink/30 lg:mt-3">
+          <button type="button" onClick={logout} className="inline-flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-ink/70 transition hover:bg-cream-deep hover:text-ink max-lg:border max-lg:border-line max-lg:bg-white lg:mt-2 lg:border-t lg:border-line lg:rounded-t-none lg:pt-4">
             <LogOut className="h-4 w-4" /> Déconnexion
           </button>
         </nav>
@@ -115,6 +127,8 @@ export default function AccountSpace() {
             <p className="flex items-center gap-2 text-sm text-sage">
               <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
             </p>
+          ) : tab === "stats" ? (
+            <ScanStatsPanel token={authToken} />
           ) : tab === "factures" ? (
             <Invoices orders={orders} />
           ) : tab === "parametres" ? (
@@ -206,6 +220,7 @@ export default function AccountSpace() {
 
 const TABS = [
   { id: "codes", label: "Mes QR codes", icon: QrCode },
+  { id: "stats", label: "Statistiques", icon: BarChart3 },
   { id: "factures", label: "Factures", icon: Receipt },
   { id: "parametres", label: "Paramètres", icon: Settings },
 ] as const;
@@ -360,7 +375,7 @@ function Settings_() {
         {premium.admin ? (
           <p className="mt-2 text-sm text-sage">Compte administrateur : tout est inclus, sans limite.</p>
         ) : premium.active ? (
-          <p className="mt-2 text-sm text-sage">Premium actif jusqu’au <strong className="font-semibold text-ink/90">{formatDate(premium.until)}</strong>. Un paiement avant cette date prolonge l’abonnement d’un an.</p>
+          <p className="mt-2 text-sm text-sage">Premium actif jusqu’au <strong className="font-semibold text-ink/90">{formatDate(premium.until)}</strong>. Un paiement avant cette date prolonge l’abonnement d’un an.{premium.pages?.limit != null && <> Pages digitales utilisées : <strong className="font-semibold text-ink/90">{premium.pages.used} / {premium.pages.limit}</strong>.</>}</p>
         ) : (
           <p className="mt-2 text-sm text-sage">Vous utilisez l’offre gratuite : liens simples uniquement. Premium débloque tous les contenus, les styles et le logo, pour 5 000 FCFA.</p>
         )}
@@ -370,6 +385,33 @@ function Settings_() {
           </Link>
         )}
       </section>
+
+      <DataPrivacy />
+    </div>
+  );
+}
+
+/** Bandeau de renouvellement : visible dans les 30 jours avant la fin du Premium, et après son expiration. */
+function PremiumNotice({ className = "" }: { className?: string }) {
+  const premium = usePremium();
+  const { openPremium } = useDialogs();
+  const [now] = useState(() => Date.now());
+  if (!premium.ready || premium.admin || !premium.until) return null;
+  const left = Math.ceil((new Date(premium.until).getTime() - now) / 86_400_000);
+  const expired = !premium.active;
+  if (!expired && left > 30) return null;
+  const urgent = expired || left <= 7;
+  return (
+    <div role="status" className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm ${urgent ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900"} ${className}`}>
+      <TriangleAlert className="h-4 w-4 shrink-0" />
+      <p className="min-w-[14rem] flex-1">
+        {expired
+          ? <>Votre Premium a expiré le <strong>{formatDate(premium.until)}</strong>. Renouvelez-le pour créer et télécharger à nouveau vos QR codes.</>
+          : <>Votre Premium se termine {left <= 1 ? "demain" : `dans ${left} jours`} (le <strong>{formatDate(premium.until)}</strong>). Une année de plus s’ajoutera à la suite.</>}
+      </p>
+      <button type="button" onClick={() => openPremium({ label: "Renouveler Premium", suite: "/compte", renew: true })} className="btn btn-primary btn-sm max-sm:w-full">
+        Renouveler · {PREMIUM_PRICE} FCFA
+      </button>
     </div>
   );
 }

@@ -160,8 +160,15 @@ model AdminUser {
   resetTokenHash  String?   @map("reset_token_hash")
   resetExpiresAt  DateTime? @map("reset_expires_at")
   role         String   @default("user")
+  /// Adresse e-mail confirmée. Les comptes existants et Google comptent comme confirmés ; une inscription par e-mail ne l'est qu'après le clic sur le lien reçu.
+  emailVerified Boolean @default(true) @map("email_verified")
+  /// Lien de confirmation : empreinte SHA-256 et date limite (le lien lui-même n'est jamais stocké).
+  verifyTokenHash String? @map("verify_token_hash")
+  verifyExpiresAt DateTime? @map("verify_expires_at")
   /// Fin de l'abonnement Premium (un an après le paiement) ; vide = pas Premium.
   premiumUntil DateTime? @map("premium_until")
+  /// Fin de Premium pour laquelle le rappel d'expiration a déjà été envoyé (un seul rappel par échéance).
+  premiumReminderFor DateTime? @map("premium_reminder_for")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

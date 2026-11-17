@@ -13,7 +13,8 @@ import { Order, Payment, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CardsService, CardMetadata, UploadedCardFiles } from '../cards/cards.service';
 import { FEEXPAY_NETWORKS, FeexpayService, type FeexpayNetwork } from './payments/feexpay.service';
-import { PremiumService } from './premium.service';
+import { PAGES_PER_PREMIUM, PremiumService } from './premium.service';
+import { assertFileSizes } from '../cards/card-files';
 import { assertOrderContent } from './content-rules';
 import { OrderItem, ServiceType, isServiceType, itemsFor, totalOf, SERVICE_LABELS } from './pricing';
 
@@ -69,6 +70,17 @@ export class OrdersService {
     // Rien ne se crée sans Premium actif (5 000 FCFA, payés par Mobile Money avant tout).
     if (!(await this.premium.isActive({ id: userId, role }))) {
       throw new HttpException('Passez en Premium (5 000 FCFA) pour créer ce QR code.', HttpStatus.PAYMENT_REQUIRED);
+    }
+    assertFileSizes(files as never);
+    // Pages digitales : 5 par paiement Premium ; quand elles sont toutes utilisées, un nouveau paiement en ajoute 5.
+    if (serviceType === 'page' && role !== 'admin') {
+      const quota = await this.premium.pageQuota({ id: userId, role });
+      if (quota.limit !== null && quota.used >= quota.limit) {
+        throw new HttpException(
+          `Vous avez utilisé vos ${quota.limit} pages digitales. Payez 5 000 FCFA de plus pour en créer ${PAGES_PER_PREMIUM} autres.`,
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
     }
     const created = await this.cards.createCard(files, { ...metadata, serviceType, clientName: buyer.name }, userId ?? null, {
       status: 'draft',

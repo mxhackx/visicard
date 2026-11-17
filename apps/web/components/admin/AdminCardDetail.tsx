@@ -61,7 +61,7 @@ interface CardDetail extends CardPreview {
 
 const SERVICE: Record<CardDetail["serviceType"], string> = {
   page: "Page digitale",
-  media: "QR image ou vidéo",
+  media: "QR image, vidéo ou audio",
   document: "QR document PDF",
 };
 

@@ -373,6 +373,7 @@ function PaymentPanel({ order, orderKey, onRefresh }: { order: Order; orderKey: 
       </p>
       <PaymentForm
         amount={order.amount}
+        description={`Commande ${order.reference}`}
         defaults={{ phone: order.customer.phone }}
         pay={async (v) => {
           await startPayment(order.reference, orderKey, v);

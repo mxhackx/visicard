@@ -8,21 +8,21 @@ import Footer from "@/components/footer";
 
 export const metadata: Metadata = pageMetadata({
   title: "À propos",
-  description: "Moncode publie une page digitale, une image/vidéo ou un PDF derrière un QR code unique : une équipe qui installe, forme et reste joignable.",
+  description: "Moncode est un outil en libre-service pour créer des QR codes et des pages digitales, les modifier à tout moment et suivre les scans.",
   path: "/a-propos",
 });
 
 const weHandle = [
-  "La mise en ligne de votre page, de votre média ou de votre document, avec vous",
-  "Le QR code prêt à imprimer (tables, comptoir, vitrine)",
-  "Les ajustements de charte graphique et de contenu",
-  "La reprise en main de votre équipe en un appel",
+  "Un créateur en ligne : lien, Wi-Fi, carte de visite, PDF, image, vidéo ou page digitale",
+  "Un QR code net, prêt à imprimer en PNG et SVG, avec vos couleurs et votre logo",
+  "L’hébergement de vos contenus et un espace pour les retrouver et les modifier",
+  "Des statistiques de scans par QR code : jours, appareils, pays",
 ];
 
 const youKeep = [
   "Vos contenus, vos prix, vos photos et votre ton",
   "La relation client : commandes, réservations, fidélité",
-  "Le choix de modifier le contenu quand vous voulez, sans nous",
+  "Le choix de modifier le contenu quand vous voulez, en autonomie",
   "Vos données : le contenu vous appartient, aucune revente",
 ];
 
@@ -40,24 +40,25 @@ export default function AboutPage() {
           <div>
           <p className="eyebrow">À propos</p>
           <h1 className="page-title mt-3 max-w-2xl">
-            Nous publions le contenu, pas votre métier
+            Un outil simple pour vos QR codes
           </h1>
 
           <div className="mt-7 max-w-2xl space-y-5 text-lg leading-8 text-sage">
             <p>
               Moncode est un outil pensé pour celles et ceux qui partagent un contenu chaque jour :
               un restaurant qui change son menu du jour, une boutique qui présente une nouvelle
-              collection, une association qui diffuse un programme.
+              collection, une association qui diffuse un programme. Vous créez, vous modifiez et
+              vous suivez tout vous-même, depuis votre compte.
             </p>
             <p>
-              Nous avons volontairement limité la promesse : un QR code, un contenu. Pas de site
-              vitrine à maintenir, pas d’application à faire installer, pas de formation à
-              programmer. Vous préparez une fois, le QR code suit, et vos clients scannent.
+              La promesse est volontairement simple : un QR code, un contenu. Pas de site vitrine à
+              maintenir, pas d’application à faire installer. Vous préparez une fois, le QR code
+              suit, et vos clients scannent. Le contenu se met à jour sans réimprimer.
             </p>
             <p>
-              Le modèle économique suit la même logique : vingt mille FCFA pour une page digitale
-              complète, cinq mille pour une image, une vidéo ou un PDF. Un devis seulement quand le
-              périmètre dépasse ce cadre. Rien n’est facturé sur ce que vous vendez.
+              Le tarif suit la même logique : les liens sont gratuits, et 5 000 FCFA donnent accès à
+              tout Moncode pendant un an, sans abonnement automatique. Un devis seulement pour des
+              besoins sur mesure. Rien n’est facturé sur ce que vous vendez.
             </p>
           </div>
           </div>
@@ -69,7 +70,7 @@ export default function AboutPage() {
           >
             <Image
               src="/illustrations/accompagnement.svg"
-              alt="Un conseiller Moncode accompagne un client en visioconférence"
+              alt="Une personne crée son QR code en ligne avec Moncode"
               fill
               priority
               unoptimized
@@ -85,7 +86,7 @@ export default function AboutPage() {
         <div className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-24">
           <div className="surface p-6 sm:p-8" data-reveal>
             <h2 className="page-title">
-              Ce que nous prenons en charge
+              Ce que Moncode vous apporte
             </h2>
             <ul className="mt-6 space-y-3 border-t border-line pt-6">
               {weHandle.map((item) => (

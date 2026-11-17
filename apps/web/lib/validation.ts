@@ -14,9 +14,9 @@ export const LIMITS = {
   /** Logo + menu + lieu, par envoi. */
   totalFiles: 12,
   /** Images de page (converties en WebP côté serveur). */
-  imageMb: 15,
-  /** Image, vidéo ou PDF des QR médias / documents. */
-  fileMb: 32,
+  imageMb: 12,
+  /** Image, vidéo, audio ou PDF des QR médias / documents (Premium). */
+  fileMb: 200,
 };
 
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];

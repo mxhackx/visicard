@@ -176,7 +176,7 @@ export default function AdminEditCardModal({ card, adminToken, onClose, onSucces
                 </span>
                 <input
                   type="file"
-                  accept={card.serviceType === "document" ? "application/pdf" : "image/*,video/*"}
+                  accept={card.serviceType === "document" ? "application/pdf" : "image/*,video/*,audio/*"}
                   className="sr-only"
                   onChange={(e) => setContentFile(e.target.files?.[0] ?? null)}
                 />

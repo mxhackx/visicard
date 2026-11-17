@@ -56,6 +56,8 @@ export default function ContentPreview({
       ) : p.contentType?.startsWith("image/") && p.contentUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.contentUrl} alt={p.title ?? ""} className="max-h-[420px] w-full rounded-xl object-contain" />
+      ) : p.contentType?.startsWith("audio/") && p.contentUrl ? (
+        <audio src={p.contentUrl} controls preload="metadata" className="w-full" />
       ) : p.contentType?.startsWith("video/") && p.contentUrl ? (
         <video src={p.contentUrl} controls className="max-h-[420px] w-full rounded-xl bg-ink" />
       ) : (

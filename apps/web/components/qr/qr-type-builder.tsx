@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, FileText, Lock, Video } from "lucide-react";
+import { AlertTriangle, FileText, Globe, Lock, Video } from "lucide-react";
+import { SOCIAL_NETWORKS, networkById } from "@/lib/social-networks";
 import { MediaFields, MediaOrder } from "./media-fields";
 import ContentPicker from "./content-picker";
 import Step from "./step-card";
@@ -16,9 +17,10 @@ import StyledQr from "./styled-qr";
 import QrStyleCards from "./qr-style-cards";
 import TypeArt from "./type-art";
 import { Fields, LogoPicker, OrderPanel, hasInput, type AllData } from "./direct-qr-generator";
+import PreviewPopover from "@/components/page-builder/preview-popover";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { QR_DOTS, parseQrStyle, DEFAULT_QR_STYLE } from "@/lib/qr-style";
-import FeexpayBadge from "@/components/feexpay-badge";
+import PayButton from "@/components/payment/pay-button";
 import {
   DENSE_PAYLOAD,
   DIRECT_QR_DEFAULTS,
@@ -94,6 +96,8 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const [all, setAll] = useState<AllData>(DIRECT_QR_DEFAULTS);
   const [qrStyle, setQrStyle] = useState("");
   const [logo, setLogo] = useState<string | null>(null);
+  // Sous « Lien web » : le réseau choisi place son logo au centre du QR code, gratuitement.
+  const [network, setNetwork] = useState("web");
   const [device, setDevice] = useState<Device>("phone");
   const [offer, setOffer] = useState<PremiumOffer | null>(null);
   const premium = usePremium();
@@ -140,21 +144,59 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
   const data = all[dtype];
   const update = <K extends DirectQrType>(key: K, patch: Partial<DirectQrData[K]>) =>
     setAll((a) => ({ ...a, [key]: { ...a[key], ...patch } }));
-  const { payload: directPayload, error } = encodeDirectQr(dtype, data);
+  const net = networkById(network);
+  const shownLogo = logo ?? (isUrl ? net.logo : null);
+  const { payload: directPayload, error } = encodeDirectQr(dtype, (dtype === "url" ? { ...data, url: net.build((data as { url: string }).url) } : data) as typeof data);
   // Image, vidéo et PDF : l'adresse du QR n'existe qu'à la création ; l'aperçu montre un exemple.
   const payload = media ? "https://moncode.bj/c/votre-fichier" : directPayload;
 
   useEffect(() => () => void (logo && URL.revokeObjectURL(logo)), [logo]);
 
+  const previewCard = (
+          <div className="surface flex flex-col p-4 sm:p-5 lg:h-full">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-ink/80">Aperçu</p>
+              <DeviceSwitch value={device} onChange={setDevice} devices={DEVICES} />
+            </div>
+            <div className="mt-5 lg:min-h-0 lg:flex-1">
+              <DevicePreview device={device} fit>
+                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={media ? null : shownLogo} locked={media || needsPay} media={media} />
+              </DevicePreview>
+            </div>
+            {payload ? (
+              <div className="mt-5 shrink-0">
+                {needsPay ? (
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-sage">
+                    <Lock className="h-3.5 w-3.5" /> Le téléchargement est débloqué après le paiement Premium.
+                  </p>
+                ) : isUrl ? (
+                  <StyledQr data={payload} style={qrStyle} logoUrl={shownLogo} downloadName="qr-lien" hideQr onDownload={() => void saveQr(payload, qrStyle, authToken)} />
+                ) : (
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-sage">
+                    <Lock className="h-3.5 w-3.5" /> Le QR code net est livré après sa création, à l’étape 3.
+                  </p>
+                )}
+                {!media && (
+                  <p className="mt-3 text-center text-xs leading-5 text-sage">
+                    Le contenu est inscrit dans le QR code : il fonctionne sans passer par Moncode, mais ne peut plus être modifié une fois imprimé.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-4 text-center text-xs text-sage">{isUrl ? "Collez une adresse pour générer le QR code." : "Complétez le contenu pour générer le QR code."}</p>
+            )}
+          </div>
+  );
+
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="flex items-center gap-4">
+    <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-14 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
+      <div className="flex shrink-0 items-center gap-4">
         {media ? (
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
-            {type === "document" ? <FileText className="h-7 w-7" /> : <Video className="h-7 w-7" />}
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-leaf text-ambre-deep">
+            {type === "document" ? <FileText className="h-10 w-10" /> : <Video className="h-10 w-10" />}
           </span>
         ) : (
-          <TypeArt type={dtype} className="h-14 w-14 shrink-0" />
+          <TypeArt type={dtype} className="h-20 w-20 shrink-0" />
         )}
         <div>
           <h1 className="page-title">Créez votre QR code</h1>
@@ -162,15 +204,22 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
-        <div className="min-w-0 space-y-6">
-          <Step n={1} title="Contenu">
+      <PreviewPopover>{previewCard}</PreviewPopover>
+
+      <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-14 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+        {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}
+        <div className="min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
+        <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
+          <Step title="Contenu">
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
             <div className="mt-6">
               {media ? (
                 <MediaFields kind={type as "media" | "document"} title={mediaTitle} onTitle={setMediaTitle} file={mediaFile} onFile={setMediaFile} />
               ) : (
-                <Fields type={dtype} data={data} update={update} />
+                <>
+                  {dtype === "url" && <NetworkPicker value={network} onChange={setNetwork} />}
+                  <Fields type={dtype} data={data} update={update} urlPlaceholder={isUrl ? net.placeholder : undefined} urlPlain={isUrl && network !== "web"} />
+                </>
               )}
             </div>
             {!media && error && payload === "" && hasInput(data) && (
@@ -190,10 +239,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
               <p className="mx-auto max-w-xl text-sm leading-6 text-sage">
                 Votre QR code utilise des options Premium. Connectez-vous, puis réglez {PRICE_QR} FCFA par Mobile Money : le téléchargement s’ouvre aussitôt.
               </p>
-              <button type="button" onClick={goToPayment} className="btn btn-primary mx-auto mt-4 flex w-full max-w-sm justify-center py-3.5 text-base">
-                Passer au paiement · {PRICE_QR} FCFA
-              </button>
-              <FeexpayBadge className="mt-3 flex justify-center" />
+              <PayButton onClick={goToPayment} label="Débloquer mon QR code" note={`${PRICE_QR} FCFA · valable 1 an`} className="mx-auto mt-4 max-w-sm" />
               </div>
             </Step>
           )}
@@ -210,7 +256,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
                       Contenu long ({payload.length} caractères) : imprimez le QR en 3 cm minimum et testez le scan.
                     </p>
                   )}
-                  <OrderPanel type={dtype} payload={payload} title={meta.label} qrStyle={qrStyle} logo={logo} />
+                  <OrderPanel type={dtype} payload={payload} title={meta.label} qrStyle={qrStyle} logo={shownLogo} />
                 </>
               ) : (
                 <p className="rounded-xl bg-cream-deep px-4 py-6 text-center text-sm text-sage">
@@ -220,41 +266,10 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             </Step>
           )}
         </div>
+        </div>
 
-        <aside className="order-first min-w-0 lg:order-none lg:sticky lg:top-24 lg:self-start">
-          <div className="surface p-4 sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink/80">Aperçu</p>
-              <DeviceSwitch value={device} onChange={setDevice} devices={DEVICES} />
-            </div>
-            <div className="mt-5">
-              <DevicePreview device={device}>
-                <QrScreen device={device} type={dtype} payload={payload} qrStyle={qrStyle} logo={media ? null : logo} locked={media || needsPay} media={media} />
-              </DevicePreview>
-            </div>
-            {payload ? (
-              <div className="mt-5">
-                {needsPay ? (
-                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-sage">
-                    <Lock className="h-3.5 w-3.5" /> Le téléchargement est débloqué après le paiement Premium.
-                  </p>
-                ) : isUrl ? (
-                  <StyledQr data={payload} style={qrStyle} logoUrl={logo} downloadName="qr-lien" hideQr onDownload={() => void saveQr(payload, qrStyle, authToken)} />
-                ) : (
-                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-sage">
-                    <Lock className="h-3.5 w-3.5" /> Le QR code net est livré après sa création, à l’étape 3.
-                  </p>
-                )}
-                {!media && (
-                  <p className="mt-3 text-center text-xs leading-5 text-sage">
-                    Le contenu est inscrit dans le QR code : il fonctionne sans passer par Moncode, mais ne peut plus être modifié une fois imprimé.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mt-4 text-center text-xs text-sage">{isUrl ? "Collez une adresse pour générer le QR code." : "Complétez le contenu pour générer le QR code."}</p>
-            )}
-          </div>
+        <aside className="hidden min-w-0 lg:block lg:min-h-0">
+          {previewCard}
         </aside>
       </div>
       <PremiumModal offer={offer} onClose={() => setOffer(null)} />
@@ -325,6 +340,39 @@ function QrScreen({
       <p className={`font-bold leading-tight tracking-[-0.02em] text-ink ${device === "phone" ? "mb-8 text-[30px]" : "mb-14 text-[52px]"}`}>{label}</p>
       {qr}
       <p className={`text-sage ${device === "phone" ? "mt-8 text-[17px]" : "mt-14 text-[26px]"}`}>Pointez l’appareil photo vers le code</p>
+    </div>
+  );
+}
+
+/** Sous « Lien web » : le site, ou un réseau social dont le logo se place au centre du QR code (gratuit). */
+function NetworkPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  return (
+    <div className="mb-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sage">Type de lien</p>
+      <div role="radiogroup" aria-label="Type de lien" className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1">
+        {SOCIAL_NETWORKS.map((n) => {
+          const on = n.id === value;
+          return (
+            <button
+              key={n.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(n.id)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition active:scale-[0.97] ${on ? "border-forest bg-white text-forest ring-2 ring-forest/20" : "border-line bg-white text-ink/75 hover:border-ink/30"}`}
+            >
+              {n.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={n.logo} alt="" width={20} height={20} className="h-5 w-5 rounded-[6px]" />
+              ) : (
+                <Globe className="h-4 w-4" />
+              )}
+              {n.label}
+            </button>
+          );
+        })}
+      </div>
+      {value !== "web" && <p className="mt-1.5 text-xs text-sage">Le logo {networkById(value).label} est placé au centre du QR code, gratuitement.</p>}
     </div>
   );
 }

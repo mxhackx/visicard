@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { BookOpen, ChevronRight, Code2, Info, LogOut, Menu, MessageCircle, QrCode, Tag, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFile } from "@/app/context/FileContext";
 import Logo from "@/components/logo";
@@ -14,11 +14,21 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
+/** Liens du menu mobile : un peu plus complet que la barre du haut, avec une icône chacun. */
+const menuLinks = [
+  { href: "/#tarifs", label: "Tarifs", icon: Tag },
+  { href: "/manuel", label: "Manuel d’utilisation", icon: BookOpen },
+  { href: "/developpeurs", label: "API développeurs", icon: Code2 },
+  { href: "/a-propos", label: "À propos", icon: Info },
+  { href: "/contact", label: "Contact", icon: MessageCircle },
+];
+
 const noopSubscribe = () => () => {};
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!isOpen) return;
@@ -32,7 +42,7 @@ export default function Header() {
       window.removeEventListener("keydown", onKey);
     };
   }, [isOpen]);
-  const { authToken, authRole, authUser } = useFile();
+  const { authToken, authRole, authUser, logoutSession } = useFile();
   const { openAuth } = useDialogs();
   // La session vit dans le navigateur : on n'affiche « Mon compte » qu'après l'hydratation, et seulement connecté.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
@@ -45,7 +55,7 @@ export default function Header() {
   return (
     <>
     {/* En-tête dans le flux de la page (non fixe) : il défile avec elle. L'espace est réservé par .header-spacer. */}
-    <header className="absolute inset-x-0 top-0 z-50 isolate border-b border-line bg-white/90 text-ink backdrop-blur">
+    <header className="absolute inset-x-0 top-0 z-50 isolate border-b border-transparent bg-transparent text-ink">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
           <Logo variant="dark" />
@@ -91,16 +101,19 @@ export default function Header() {
         </div>
         </div>
 
-        <button
-          type="button"
-          aria-label="Ouvrir le menu"
-          aria-expanded={isOpen}
-          aria-controls="menu-mobile"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-forest hover:text-forest lg:hidden"
-        >
-          <Menu className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <Link href="/creer" className="btn btn-primary btn-sm">Créer</Link>
+          <button
+            type="button"
+            aria-label="Ouvrir le menu"
+            aria-expanded={isOpen}
+            aria-controls="menu-mobile"
+            onClick={() => setIsOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-ink transition-colors active:scale-95 hover:border-forest hover:text-forest"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
     </header>
@@ -113,7 +126,7 @@ export default function Header() {
         tabIndex={-1}
         aria-label="Fermer le menu"
         onClick={() => setIsOpen(false)}
-        className={`absolute inset-0 bg-ink/45 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 bg-ink/50 backdrop-blur-[3px] transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}
       />
       <aside
         id="menu-mobile"
@@ -121,54 +134,85 @@ export default function Header() {
         aria-modal="true"
         aria-label="Menu"
         inert={!isOpen}
-        className={`absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col bg-white transition-[transform,box-shadow] duration-300 ease-out ${isOpen ? "translate-x-0 shadow-[-12px_0_40px_rgba(23,23,26,0.18)]" : "translate-x-full shadow-none"}`}
+        className={`absolute right-0 top-0 flex h-full w-[min(88vw,380px)] flex-col rounded-l-[28px] bg-white transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? "translate-x-0 shadow-[-18px_0_50px_rgba(23,23,26,0.22)]" : "translate-x-full shadow-none"}`}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
-          <span className="text-sm font-semibold text-ink/70">Menu</span>
+        <div className="flex h-16 shrink-0 items-center justify-between px-5">
+          <Logo variant="dark" />
           <button
             ref={closeRef}
             type="button"
             aria-label="Fermer le menu"
             onClick={() => setIsOpen(false)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-forest hover:text-forest"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-cream-deep text-ink transition active:scale-90 hover:bg-line"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav aria-label="Sections du site" className="flex-1 overflow-y-auto px-5 py-3">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setIsOpen(false)}
-              className="block border-b border-line py-4 text-lg font-medium text-ink/85 hover:text-forest"
-            >
-              {link.label}
-            </Link>
-          ))}
-          {account && (
-            <Link href={account.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 border-b border-line py-4 text-lg font-medium text-ink/85 hover:text-forest">
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {/* Carte du compte : qui est connecté, ou une invitation à se connecter. */}
+          {account ? (
+            <Link href={account.href} onClick={() => setIsOpen(false)} className="mt-2 flex items-center gap-3.5 rounded-2xl border border-line bg-[linear-gradient(#fff,#fbf5f5)] p-3.5 transition active:scale-[0.99]">
               {picture ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={picture} alt="" width={32} height={32} referrerPolicy="no-referrer" className="h-8 w-8 rounded-full object-cover" />
+                <img src={picture} alt="" width={48} height={48} referrerPolicy="no-referrer" className="h-12 w-12 rounded-full object-cover ring-2 ring-white" />
               ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white">{initial}</span>
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-forest text-lg font-semibold text-white ring-2 ring-white">{initial}</span>
               )}
-              {account.label}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-semibold text-ink">{authUser?.name || account.label}</span>
+                <span className="block truncate text-xs text-sage">{authUser?.email}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-sage" />
             </Link>
-          )}
-        </nav>
-
-        <div className="shrink-0 space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          {!signedIn && (
-            <button type="button" onClick={() => { setIsOpen(false); openAuth({ mode: "login" }); }} className="btn btn-outline w-full">
-              Se connecter
+          ) : (
+            <button type="button" onClick={() => { setIsOpen(false); openAuth({ mode: "login" }); }} className="mt-2 flex w-full items-center gap-3.5 rounded-2xl border border-line bg-[linear-gradient(#fff,#fbf5f5)] p-3.5 text-left transition active:scale-[0.99]">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cream-deep text-ink"><UserRound className="h-5 w-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold text-ink">Se connecter</span>
+                <span className="block text-xs text-sage">Retrouvez vos QR codes</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-sage" />
             </button>
           )}
-          <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary w-full">
-            Créer un QR code
+
+          <nav aria-label="Sections du site" className="mt-4 space-y-1">
+            {menuLinks.map(({ href, label, icon: Icon }, i) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setIsOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  style={{ transitionDelay: isOpen ? `${80 + i * 45}ms` : "0ms" }}
+                  className={`flex items-center gap-3.5 rounded-2xl px-3.5 py-3 text-[16px] font-medium transition-[opacity,transform,background-color] duration-300 active:bg-cream-deep ${isOpen ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0"} ${active ? "bg-cream-deep text-forest" : "text-ink/85 hover:bg-cream-deep"}`}
+                >
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${active ? "bg-white text-forest" : "bg-cream-deep text-ink/70"}`}><Icon className="h-[18px] w-[18px]" /></span>
+                  <span className="flex-1">{label}</span>
+                  <ChevronRight className="h-4 w-4 text-sage/70" />
+                </Link>
+              );
+            })}
+          </nav>
+
+          {signedIn && (
+            <button type="button" onClick={() => { setIsOpen(false); logoutSession(); router.replace("/"); }} className="mt-3 flex w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-left text-[15px] font-medium text-ink/70 transition hover:bg-cream-deep">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-deep"><LogOut className="h-[18px] w-[18px]" /></span>
+              Se déconnecter
+            </button>
+          )}
+        </div>
+
+        <div className="shrink-0 border-t border-line bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Link href="/creer" onClick={() => setIsOpen(false)} className="btn btn-primary w-full justify-center py-3.5 text-base">
+            <QrCode className="h-[18px] w-[18px]" /> Créer un QR code
           </Link>
+          <p className="mt-3 text-center text-[11px] text-sage">
+            <Link href="/confidentialite" onClick={() => setIsOpen(false)} className="hover:text-ink">Confidentialité</Link>
+            {" · "}
+            <Link href="/conditions" onClick={() => setIsOpen(false)} className="hover:text-ink">Conditions</Link>
+          </p>
         </div>
       </aside>
     </div>

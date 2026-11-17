@@ -12,8 +12,8 @@ type QuickService = "media" | "document";
 
 const META: Record<QuickService, { title: string; accept: string; field: string; hint: string; icon: typeof Images }> = {
   media: {
-    title: "QR image ou vidéo",
-    accept: "image/*,video/*",
+    title: "QR image, vidéo ou audio",
+    accept: "image/*,video/*,audio/*",
     field: "media",
     hint: "JPG, PNG, WEBP, MP4, MOV · 32 Mo maximum",
     icon: Images,

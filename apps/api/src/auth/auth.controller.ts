@@ -155,6 +155,23 @@ export class AuthController {
     };
   }
 
+  /** Confirme l'adresse e-mail avec le lien reçu. */
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('verify')
+  async verify(@Body() body: { token?: string }) {
+    return { success: true, ...(await this.authService.verifyEmail(body?.token ?? '')) };
+  }
+
+  /** Renvoie le lien de confirmation au compte connecté. */
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('verify/resend')
+  async resendVerify(@Req() req: Request, @Headers('authorization') authHeader?: string) {
+    const token = this.sessionToken(req, authHeader);
+    const { valid, user } = token ? await this.authService.validateToken(token) : { valid: false, user: undefined };
+    if (!valid || !user) throw new UnauthorizedException('Connectez-vous pour renvoyer le lien.');
+    return { success: true, ...(await this.authService.resendVerification(user.id)) };
+  }
+
   /** Mot de passe oublié : envoie un lien par e-mail (réponse identique que l'adresse existe ou non). */
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('forgot')

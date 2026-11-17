@@ -22,7 +22,7 @@ interface Tile {
 export const TILES: Tile[] = [
   { id: "url", label: "Lien web", href: "/creer", free: true, art: "url" },
   ...DIRECT_QR_TYPES.filter((t) => t.id !== "url").map((t) => ({ id: t.id, label: t.label, href: `/creer?type=${t.id}`, art: t.id })),
-  { id: "media", label: "Image ou vidéo", href: "/creer?type=media", icon: Video },
+  { id: "media", label: "Image, vidéo, audio", href: "/creer?type=media", icon: Video },
   { id: "document", label: "Document PDF", href: "/creer?type=document", icon: FileText },
   { id: "page", label: "Page digitale", href: "/creer?type=page", icon: Smartphone },
 ];

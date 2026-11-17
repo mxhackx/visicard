@@ -1,9 +1,11 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { FEEXPAY_NETWORKS, FeexpayService, type FeexpayNetwork } from './payments/feexpay.service';
 import { PREMIUM_PRICE } from './pricing';
 
 const YEAR_MS = 365 * 24 * 3600 * 1000;
+/** Pages digitales incluses dans chaque paiement Premium ; au-delà, un nouveau paiement en ajoute autant. */
+export const PAGES_PER_PREMIUM = 5;
 
 /**
  * Premium : 5 000 FCFA payés par Mobile Money (FeexPay), valables un an. Sans Premium actif, un compte ne peut
@@ -24,9 +26,20 @@ export class PremiumService {
     return Boolean(row?.premiumUntil && row.premiumUntil.getTime() > Date.now());
   }
 
+  /** Pages digitales utilisées et autorisées : 5 par paiement Premium (les administrateurs n'ont pas de limite). */
+  async pageQuota(user: { id: string; role?: string }): Promise<{ used: number; limit: number | null }> {
+    if (user.role === 'admin') return { used: 0, limit: null };
+    const [paid, used] = await Promise.all([
+      this.prisma.premiumPurchase.count({ where: { userId: user.id, status: 'paid' } }),
+      this.prisma.card.count({ where: { ownerId: user.id, serviceType: 'page', status: { in: ['active', 'draft'] } } }),
+    ]);
+    // Un Premium accordé sans paiement (geste de l'équipe) compte pour un paiement.
+    return { used, limit: Math.max(paid, 1) * PAGES_PER_PREMIUM };
+  }
+
   /** État du compte ; relit au passage un paiement en attente (le client valide sur son téléphone). */
   async status(user: { id: string; role?: string }) {
-    if (user.role === 'admin') return { active: true, until: null, price: PREMIUM_PRICE, admin: true, payment: null, sandbox: this.feexpay.sandbox };
+    if (user.role === 'admin') return { active: true, until: null, price: PREMIUM_PRICE, admin: true, payment: null, sandbox: this.feexpay.sandbox, pages: { used: 0, limit: null } };
     const pending = await this.prisma.premiumPurchase.findFirst({
       where: { userId: user.id, status: 'pending' },
       orderBy: { createdAt: 'desc' },
@@ -40,7 +53,7 @@ export class PremiumService {
       orderBy: { createdAt: 'desc' },
       select: { status: true },
     });
-    return { active, until: row?.premiumUntil ?? null, price: PREMIUM_PRICE, admin: false, payment: last?.status ?? null, sandbox: this.feexpay.sandbox };
+    return { active, until: row?.premiumUntil ?? null, price: PREMIUM_PRICE, admin: false, payment: last?.status ?? null, sandbox: this.feexpay.sandbox, pages: await this.pageQuota(user) };
   }
 
   /**
@@ -54,6 +67,9 @@ export class PremiumService {
     if (user.role === 'admin') throw new ConflictException('Les administrateurs n’ont pas besoin de Premium.');
     const account = await this.prisma.adminUser.findUnique({ where: { id: user.id } });
     if (!account) throw new NotFoundException('Compte introuvable.');
+    if (!account.emailVerified) {
+      throw new ForbiddenException(`Confirmez votre adresse e-mail (${account.email}) avant de payer : le lien vous a été envoyé à l'inscription.`);
+    }
     const network = String(input.network ?? '').toLowerCase() as FeexpayNetwork;
     if (!FEEXPAY_NETWORKS.includes(network)) throw new BadRequestException('Choisissez MTN, Moov ou Celtiis.');
     // Nom, prénom, e-mail et téléphone viennent du compte (demandés à son ouverture) ; le numéro peut être remplacé au paiement.

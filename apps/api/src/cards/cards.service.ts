@@ -414,6 +414,65 @@ export class CardsService {
     await this.prisma.cardScan.create({ data: { cardId: card.id, device, country: geo?.country ?? null, city: geo?.city ?? null } });
   }
 
+  /**
+   * Statistiques de scans de tous les QR codes d'un compte (pages, images, vidéos, PDF) sur les `days` derniers jours :
+   * total et courbe par jour, appareils, pays, et détail par QR code. Les QR directs ne passent pas par Moncode.
+   */
+  async getScanStats(userId: string, days = 30) {
+    const span = Math.min(90, Math.max(7, Math.floor(days) || 30));
+    const cards = await this.prisma.card.findMany({
+      where: { ownerId: userId, serviceType: { in: ['page', 'media', 'document'] }, status: 'active' },
+      select: { id: true, slug: true, title: true, restaurantName: true, serviceType: true },
+    });
+    const empty = { days: span, total: 0, last7: 0, previous7: 0, byDay: [] as { date: string; count: number }[], devices: {} as Record<string, number>, countries: [] as { country: string; count: number }[], cards: [] as unknown[] };
+    const startOfDay = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const today = startOfDay(new Date());
+    const from = new Date(today.getTime() - (span - 1) * 86_400_000);
+    const byDay = Array.from({ length: span }, (_, i) => ({ date: new Date(from.getTime() + i * 86_400_000).toISOString().slice(0, 10), count: 0 }));
+    if (cards.length === 0) return { ...empty, byDay };
+
+    const scans = await this.prisma.cardScan.findMany({
+      where: { cardId: { in: cards.map((c) => c.id) }, createdAt: { gte: from } },
+      select: { cardId: true, device: true, country: true, createdAt: true },
+      take: 50_000,
+    });
+    const index = new Map(byDay.map((d, i) => [d.date, i]));
+    const devices: Record<string, number> = {};
+    const countries = new Map<string, number>();
+    const perCard = new Map<string, { total: number; last7: number }>();
+    const since7 = today.getTime() - 6 * 86_400_000;
+    const since14 = today.getTime() - 13 * 86_400_000;
+    let last7 = 0;
+    let previous7 = 0;
+    for (const s of scans) {
+      const i = index.get(s.createdAt.toISOString().slice(0, 10));
+      if (i !== undefined) byDay[i].count++;
+      devices[s.device] = (devices[s.device] ?? 0) + 1;
+      if (s.country) countries.set(s.country, (countries.get(s.country) ?? 0) + 1);
+      const row = perCard.get(String(s.cardId)) ?? { total: 0, last7: 0 };
+      row.total++;
+      const t = s.createdAt.getTime();
+      if (t >= since7) {
+        row.last7++;
+        last7++;
+      } else if (t >= since14) previous7++;
+      perCard.set(String(s.cardId), row);
+    }
+    return {
+      days: span,
+      total: scans.length,
+      last7,
+      previous7,
+      byDay,
+      devices,
+      countries: [...countries.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([country, count]) => ({ country, count })),
+      cards: cards
+        .map((c) => ({ slug: c.slug, title: c.title || c.restaurantName || 'QR code', serviceType: c.serviceType, ...(perCard.get(String(c.id)) ?? { total: 0, last7: 0 }) }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 20),
+    };
+  }
+
   /** QR code (data URL PNG) d'une carte, dans le style enregistré. */
   /** La carte d'un compte (ou n'importe laquelle pour un administrateur) ; sinon introuvable. */
   async findOwnedBy(slug: string, userId: string, admin: boolean) {

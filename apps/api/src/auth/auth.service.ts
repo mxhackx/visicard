@@ -5,7 +5,7 @@ import { hashPassword, verifyPassword } from './mot-de-passe';
 import { createLocalToken, readLocalToken } from './jetons-locaux';
 import { verifyGoogleCredential } from './google';
 import { createHash, randomBytes } from 'node:crypto';
-import { sendPasswordReset } from '../account/notify';
+import { sendEmailVerification, sendPasswordReset } from '../account/notify';
 import { primaryAppUrl } from '../app-url';
 
 export interface AuthSessionUser {
@@ -17,6 +17,8 @@ export interface AuthSessionUser {
   picture?: string | null;
   /** Téléphone du compte (+indicatif). */
   phone?: string | null;
+  /** Adresse e-mail confirmée (faux tant que le lien reçu n'a pas été ouvert). */
+  emailVerified?: boolean;
   /**
    * Émetteur de la session : `supabase` pour le chemin d'origine, `local` pour
    * un compte de la table `admin_users`. Absent sur les sessions plus anciennes.
@@ -97,6 +99,7 @@ export class AuthService {
     name?: string | null;
     pictureUrl?: string | null;
     phone?: string | null;
+    emailVerified?: boolean;
   }): AuthSessionUser {
     return {
       id: account.id,
@@ -105,6 +108,7 @@ export class AuthService {
       name: account.name ?? null,
       picture: account.pictureUrl ?? null,
       phone: account.phone ?? null,
+      emailVerified: account.emailVerified ?? true,
       provider: 'local',
     };
   }
@@ -116,6 +120,7 @@ export class AuthService {
     name?: string | null;
     pictureUrl?: string | null;
     phone?: string | null;
+    emailVerified?: boolean;
   }) {
     const user = this.localSessionUser(account);
     const target = { id: user.id, email: user.email ?? '', role: user.role };
@@ -244,7 +249,7 @@ export class AuthService {
       // Nom et photo suivent le profil Google ; le nom saisi à l'inscription n'est jamais écrasé.
       account = await this.prisma.adminUser.update({
         where: { id: account.id },
-        data: { pictureUrl: profile.picture, ...(account.name ? {} : { name: profile.name }) },
+        data: { pictureUrl: profile.picture, emailVerified: true, ...(account.name ? {} : { name: profile.name }) },
       });
     } else {
       account = await this.prisma.adminUser.create({
@@ -263,12 +268,12 @@ export class AuthService {
   }
 
   /** Nom et photo d'un compte local (pour /auth/me : le jeton n'en contient pas). */
-  async profileOf(userId: string): Promise<{ name: string | null; picture: string | null; phone: string | null }> {
+  async profileOf(userId: string): Promise<{ name: string | null; picture: string | null; phone: string | null; emailVerified: boolean }> {
     try {
-      const a = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { name: true, pictureUrl: true, phone: true } });
-      return { name: a?.name ?? null, picture: a?.pictureUrl ?? null, phone: a?.phone ?? null };
+      const a = await this.prisma.adminUser.findUnique({ where: { id: userId }, select: { name: true, pictureUrl: true, phone: true, emailVerified: true } });
+      return { name: a?.name ?? null, picture: a?.pictureUrl ?? null, phone: a?.phone ?? null, emailVerified: a?.emailVerified ?? true };
     } catch {
-      return { name: null, picture: null, phone: null };
+      return { name: null, picture: null, phone: null, emailVerified: true };
     }
   }
 
@@ -329,6 +334,45 @@ export class AuthService {
     this.logger.log(`Mot de passe réinitialisé : ${account.email}`);
   }
 
+  /** Génère un lien de confirmation (48 h), l'enregistre sous forme d'empreinte et l'envoie par e-mail. */
+  private async sendVerification(account: { id: string; email: string; name?: string | null }): Promise<boolean> {
+    const token = randomBytes(32).toString('base64url');
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { verifyTokenHash: createHash('sha256').update(token).digest('hex'), verifyExpiresAt: new Date(Date.now() + 48 * 3600 * 1000) },
+    });
+    const link = `${primaryAppUrl()}/?verifier=${encodeURIComponent(token)}`;
+    const sent = await sendEmailVerification(account.email, account.name, link);
+    // Sans service e-mail (développement), le lien est consigné pour pouvoir tester.
+    if (!sent) this.logger.warn(`Lien de confirmation pour ${account.email} (e-mail non envoyé) : ${link}`);
+    return sent;
+  }
+
+  /** Renvoie le lien de confirmation au compte connecté (sans effet si l'adresse est déjà confirmée). */
+  async resendVerification(userId: string): Promise<{ alreadyVerified: boolean }> {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!account) throw new BadRequestException('Compte introuvable.');
+    if (account.emailVerified) return { alreadyVerified: true };
+    await this.sendVerification(account);
+    return { alreadyVerified: false };
+  }
+
+  /** Confirme l'adresse e-mail avec le lien reçu ; le lien ne sert qu'une fois. */
+  async verifyEmail(token: string): Promise<{ email: string }> {
+    if (!token) throw new BadRequestException('Lien de confirmation invalide.');
+    const hash = createHash('sha256').update(token).digest('hex');
+    const account = await this.prisma.adminUser.findFirst({ where: { verifyTokenHash: hash } });
+    if (!account || !account.verifyExpiresAt || account.verifyExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Ce lien est invalide ou a expiré : demandez-en un nouveau depuis votre espace.');
+    }
+    await this.prisma.adminUser.update({
+      where: { id: account.id },
+      data: { emailVerified: true, verifyTokenHash: null, verifyExpiresAt: null },
+    });
+    this.logger.log(`Adresse confirmée : ${account.email}`);
+    return { email: account.email };
+  }
+
   /** Complète ou corrige le profil du compte connecté : nom et téléphone. */
   async updateProfile(userId: string, input: { name?: string; phone?: string }) {
     const data: { name?: string; phone?: string } = {};
@@ -379,8 +423,10 @@ export class AuthService {
           phone: cleanPhone,
           passwordHash: await hashPassword(cleanPassword),
           role: 'user',
+          emailVerified: false,
         },
       });
+      await this.sendVerification(account);
 
       const session = this.issueLocalSession(account);
       this.logger.log(`Nouveau compte client : ${cleanEmail}`);

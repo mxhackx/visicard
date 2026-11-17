@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import { countryName } from '../cards/geo';
 import { parseCatalog } from '../cards/catalog';
 import { notifyOwner } from './notify';
+import { CardsService } from '../cards/cards.service';
 
 const DAY = 24 * 60 * 60 * 1000;
 /** Les heures sont lues à l'heure du Bénin (UTC+1, sans heure d'été). */
@@ -19,7 +20,86 @@ const top = (counts: Record<string, number>, n = 8) =>
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cards: CardsService,
+  ) {}
+
+  /**
+   * Export des données personnelles du compte (JSON) : profil, QR codes et leurs contenus, commandes et factures,
+   * paiements Premium, clés d'API (sans le secret) et nombre de scans par QR code.
+   */
+  async exportData(userId: string) {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!account) throw new NotFoundException('Compte introuvable.');
+    const [cards, orders, purchases, apiKeys] = await Promise.all([
+      this.prisma.card.findMany({ where: { ownerId: userId }, orderBy: { id: 'asc' } }),
+      this.prisma.order.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.premiumPurchase.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.apiKey.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+    ]);
+    const scans = cards.length
+      ? await this.prisma.cardScan.groupBy({ by: ['cardId'], where: { cardId: { in: cards.map((c) => c.id) } }, _count: { _all: true } })
+      : [];
+    const scanBy = new Map(scans.map((s) => [String(s.cardId), s._count._all]));
+    return {
+      exportedAt: new Date().toISOString(),
+      note: 'Export de vos données personnelles Moncode. Les mots de passe et les secrets ne sont jamais inclus.',
+      account: {
+        id: account.id,
+        email: account.email,
+        emailVerified: account.emailVerified,
+        name: account.name,
+        phone: account.phone,
+        role: account.role,
+        premiumUntil: account.premiumUntil,
+        createdAt: account.createdAt,
+      },
+      premiumPayments: purchases.map((p) => ({ reference: p.providerRef, amount: p.amount, currency: 'XOF', status: p.status, paidAt: p.paidAt, expiresAt: p.expiresAt, createdAt: p.createdAt })),
+      qrCodes: cards.map((c) => {
+        const { id, ownerId, ...rest } = c;
+        void ownerId;
+        return { ...rest, id: String(id), scans: scanBy.get(String(id)) ?? 0 };
+      }),
+      orders: orders.map((o) => ({
+        reference: o.reference,
+        kind: o.kind,
+        serviceType: o.serviceType,
+        status: o.status,
+        items: o.items,
+        amount: o.amount,
+        currency: o.currency,
+        customerName: o.customerName,
+        customerPhone: o.customerPhone,
+        customerEmail: o.customerEmail,
+        quoteNumber: o.quoteNumber,
+        invoiceNumber: o.invoiceNumber,
+        paidAt: o.paidAt,
+        createdAt: o.createdAt,
+      })),
+      apiKeys: apiKeys.map((k) => ({ name: k.name, prefix: k.prefix, createdAt: k.createdAt, lastUsedAt: k.lastUsedAt, revokedAt: k.revokedAt })),
+    };
+  }
+
+  /**
+   * Suppression définitive du compte et de ses données : QR codes (avec leurs fichiers, scans et commandes), clés d'API,
+   * paiements Premium. Confirmation : l'adresse e-mail du compte, saisie en entier. Les administrateurs passent par l'équipe.
+   */
+  async deleteMyAccount(userId: string, confirmEmail: string) {
+    const account = await this.prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!account) throw new NotFoundException('Compte introuvable.');
+    if (account.role === 'admin') throw new ForbiddenException('Un compte administrateur ne se supprime pas ici : contactez le responsable.');
+    if ((confirmEmail ?? '').trim().toLowerCase() !== account.email.toLowerCase()) {
+      throw new BadRequestException('Saisissez votre adresse e-mail exactement pour confirmer la suppression.');
+    }
+    const cards = await this.prisma.card.findMany({ where: { ownerId: userId }, select: { slug: true } });
+    for (const c of cards) {
+      await this.cards.deleteCardBySlug(c.slug, { id: userId, role: 'user' }).catch(() => undefined);
+    }
+    await this.prisma.order.deleteMany({ where: { userId } });
+    await this.prisma.adminUser.delete({ where: { id: userId } });
+    return { success: true };
+  }
 
   private async ownedCard(userId: string, slug: string) {
     const card = await this.prisma.card.findUnique({ where: { slug } });
