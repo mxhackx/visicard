@@ -39,7 +39,6 @@ export default function DemoSection() {
           <video
             ref={video}
             className="block aspect-video w-full bg-cream"
-            src="/demo.mp4"
             poster="/demo-poster.jpg"
             muted
             loop
@@ -47,7 +46,10 @@ export default function DemoSection() {
             controls
             preload="none"
             aria-label="Démonstration : créer un QR code Moncode"
-          />
+          >
+            <source src="/demo.mp4" type="video/mp4" />
+            Votre navigateur ne lit pas cette vidéo : <a href="/demo.mp4">ouvrir la démonstration</a>.
+          </video>
         </div>
 
         <div className="mt-8 flex justify-center">

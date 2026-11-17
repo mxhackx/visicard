@@ -34,7 +34,8 @@ export default function PricingSection() {
             <article className="relative flex h-full flex-col rounded-[15px] bg-white p-7 sm:p-8" data-reveal>
               <span className="premium-pill self-start"><Crown className="h-3 w-3" /> Premium</span>
               <p className="mt-6 flex items-baseline gap-2">
-                <span className="text-5xl font-semibold tracking-[-0.03em] text-ink">5 000</span>
+                <span className="text-5xl font-semibold tracking-[-0.03em] text-ink">5&nbsp;000</span>
+                {" "}
                 <span className="text-sm font-medium text-sage">FCFA</span>
               </p>
               <ul className="mt-7 space-y-3 border-t border-line pt-7">

@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: SITE.title, template: `%s · ${SITE.name}` },
   description: SITE.description,
-  keywords: SITE.keywords,
   applicationName: SITE.name,
   authors: [{ name: SITE.name, url: SITE_URL }],
   creator: SITE.name,

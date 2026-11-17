@@ -17,7 +17,7 @@ export const SITE = {
   name: CONTACT.brand,
   title: "Moncode — QR code, menu digital et pages pour votre commerce",
   description:
-    "Créez votre QR code en quelques secondes : menu digital, page d’établissement, PDF, vidéo, Wi-Fi ou carte de visite. Au Bénin, paiement Mobile Money ou carte.",
+    "Créez votre QR code en quelques secondes : menu digital, page d’établissement, PDF, vidéo, Wi-Fi ou carte de visite. Au Bénin, paiement par Mobile Money (MTN, Moov, Celtiis).",
   locale: "fr_BJ",
   keywords: [
     "QR code",
