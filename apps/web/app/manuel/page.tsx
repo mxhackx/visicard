@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Check, Printer } from "lucide-react";
 import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
 import JsonLd from "@/components/json-ld";
+import Header from "@/components/header";
 import Footer from "@/components/footer";
 import TypeArt from "@/components/qr/type-art";
 import ManuelNav from "@/components/manuel-nav";
@@ -45,11 +46,18 @@ export default function ManuelPage() {
   return (
     <main className="page-hero-bg min-h-screen">
       <JsonLd data={[breadcrumbJsonLd([["Accueil", "/"], ["Manuel d’utilisation", "/manuel"]]), faqJsonLd(FAQ.map(([q, a]) => [q, a] as [string, string]))]} />
-      {/* Colonne fixe à gauche (logo + « Manuel d'utilisation » + sommaire) ; le contenu et le pied suivent à droite. */}
+      {/* Colonne fixe à gauche (logo + « Manuel d'utilisation » + sommaire).
+          L'en-tête du site est affiché sur la colonne de contenu, sans son logo (déjà porté par la colonne)
+          : les deux tiennent sur la même ligne en haut de l'écran. */}
       <ManuelNav items={TOC} />
 
-      <div className="min-w-0 lg:pl-72">
-        <section className="px-4 pb-16 pt-[6.75rem] sm:px-6 lg:px-10 lg:pt-12">
+      <div className="min-w-0 lg:ml-72">
+        <div className="relative">
+          <Header logoOnMobileOnly />
+          <div className="header-spacer"></div>
+        </div>
+
+        <section className="px-4 pb-16 pt-8 sm:px-6 lg:px-10 lg:pt-12">
           <p className="eyebrow">Manuel d’utilisation</p>
           <h1 className="page-title mt-3">Votre QR code, pas à pas</h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-sage">

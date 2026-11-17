@@ -25,7 +25,7 @@ const menuLinks = [
 
 const noopSubscribe = () => () => {};
 
-export default function Header() {
+export default function Header({ logoOnMobileOnly = false }: { logoOnMobileOnly?: boolean } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -57,12 +57,12 @@ export default function Header() {
     {/* En-tête dans le flux de la page (non fixe) : il défile avec elle. L'espace est réservé par .header-spacer. */}
     <header className="absolute inset-x-0 top-0 z-50 isolate border-b border-transparent bg-transparent text-ink">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="Moncode — accueil" className="shrink-0">
+        <Link href="/" aria-label="Moncode — accueil" className={logoOnMobileOnly ? "inline-flex shrink-0 lg:hidden" : "shrink-0"}>
           <Logo variant="dark" />
         </Link>
 
         {/* Liens et bouton regroupés à droite : les liens sont proches du bouton. */}
-        <div className="hidden items-center gap-6 lg:flex">
+        <div className={`hidden items-center gap-6 lg:flex ${logoOnMobileOnly ? "lg:ml-auto" : ""}`}>
         <nav aria-label="Sections du site" className="flex items-center gap-1">
           {navLinks.map((link) => {
             const active = pathname === link.href;

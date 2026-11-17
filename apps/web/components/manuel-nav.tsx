@@ -49,18 +49,9 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
 
   return (
     <>
-      {/* Mobile : barre fixe en haut — logo et titre sur la même ligne, sommaire en pastilles dessous. */}
-      <div className="fixed inset-x-0 top-0 z-40 border-b border-line bg-white/95 backdrop-blur lg:hidden">
-        <div className="flex h-14 items-center justify-between gap-3 px-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <Link href="/" aria-label="Moncode — accueil" className="inline-flex shrink-0">
-              <Logo variant="dark" />
-            </Link>
-            <span className="min-w-0 truncate text-sm font-semibold text-ink">Manuel d’utilisation</span>
-          </div>
-          <Link href="/creer" className="btn btn-primary btn-sm shrink-0">Créer</Link>
-        </div>
-        <nav ref={bar} aria-label="Sommaire du manuel" className="flex gap-2 overflow-x-auto px-4 pb-2.5">
+      {/* Mobile : pastilles du sommaire, collées sous l'en-tête du site puis fixées en haut au défilement. */}
+      <nav ref={bar} aria-label="Sommaire du manuel" className="sticky top-0 z-30 border-b border-line bg-white/95 px-4 backdrop-blur lg:hidden">
+        <div className="flex gap-2 overflow-x-auto py-2.5">
           {items.map(([id, label]) => (
             <a
               key={id}
@@ -73,8 +64,8 @@ export default function ManuelNav({ items }: { items: readonly (readonly [string
               {label}
             </a>
           ))}
-        </nav>
-      </div>
+        </div>
+      </nav>
 
       {/* Ordinateur : colonne fixe, jamais plus haute que l'écran (la liste défile à l'intérieur). */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 shrink-0 flex-col border-r border-line bg-white lg:flex">

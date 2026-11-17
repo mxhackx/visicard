@@ -250,7 +250,7 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             </button>
           ) : undefined}>
             <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink">Créez votre QR code</h1>
-            <p className="mt-1 text-sm text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
+            <p className="mt-1.5 mb-2.5 text-sm text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
             <div id="qr-fields" ref={fieldsRef} onKeyDown={onFieldsKey} className="mt-6 scroll-mt-3">
               {media ? (
