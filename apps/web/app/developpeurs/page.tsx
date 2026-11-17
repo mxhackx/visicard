@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import CodeBlock from "@/components/code-block";
+import CodeTabs from "@/components/code-tabs";
+import { KeyRound, Link2, Mail, MapPin, MessageSquare, Phone, Type, Wifi, ArrowRight } from "lucide-react";
 import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -16,14 +17,14 @@ export const metadata: Metadata = pageMetadata({
 
 const BASE = API_URL.startsWith("http://localhost") ? "https://api.moncode.bj" : API_URL;
 
-const TYPES: [string, string][] = [
-  ["url", "data (http:// ou https://) · gratuit"],
-  ["text", "data · Premium"],
-  ["wifi", "ssid, password, security (WPA, WEP, nopass), hidden"],
-  ["tel", "phone"],
-  ["sms", "phone, message"],
-  ["email", "to, subject, body"],
-  ["geo", "lat, lng"],
+const TYPES: { id: string; fields: string; premium: boolean; icon: typeof Link2 }[] = [
+  { id: "url", fields: "data (http:// ou https://)", premium: false, icon: Link2 },
+  { id: "text", fields: "data", premium: true, icon: Type },
+  { id: "wifi", fields: "ssid, password, security (WPA, WEP, nopass), hidden", premium: true, icon: Wifi },
+  { id: "tel", fields: "phone", premium: true, icon: Phone },
+  { id: "sms", fields: "phone, message", premium: true, icon: MessageSquare },
+  { id: "email", fields: "to, subject, body", premium: true, icon: Mail },
+  { id: "geo", fields: "lat, lng", premium: true, icon: MapPin },
 ];
 
 const OPTIONS: [string, string, string][] = [
@@ -35,46 +36,65 @@ const OPTIONS: [string, string, string][] = [
   ["encoding", "json pour recevoir une data URL au lieu du fichier", "—"],
 ];
 
-function Code({ children, label = "Exemple" }: { children: string; label?: string }) {
-  return <CodeBlock code={children} label={label} className="mt-3" />;
-}
+const ERRORS: [string, string, string][] = [
+  ["400", "Requête invalide", "Paramètre manquant ou invalide : le message l’explique."],
+  ["401", "Clé refusée", "Clé absente, invalide ou révoquée."],
+  ["402", "Premium requis", "Ce contenu est réservé aux comptes Premium (tout sauf les liens)."],
+  ["429", "Trop de requêtes", "Quota mensuel atteint ou trop d’appels à la minute."],
+];
 
-function Endpoint({ method, children }: { method: string; children: string }) {
+const EXAMPLES = [
+  {
+    id: "lien",
+    label: "Lien · PNG",
+    language: "curl",
+    code: `curl -X POST ${BASE}/v1/qr \\
+  -H "X-API-Key: mck_live_votre_cle" \\
+  -H "Content-Type: application/json" \\
+  -d '{"type":"url","data":"https://moncode.bj","fg":"#e3051d","size":600}' \\
+  -o qr.png`,
+  },
+  {
+    id: "wifi",
+    label: "Wi-Fi · SVG",
+    language: "curl",
+    code: `curl -X POST ${BASE}/v1/qr \\
+  -H "X-API-Key: mck_live_votre_cle" \\
+  -H "Content-Type: application/json" \\
+  -d '{"type":"wifi","ssid":"Moncode","password":"motdepasse","format":"svg"}' \\
+  -o wifi.svg`,
+  },
+  {
+    id: "js",
+    label: "JavaScript",
+    language: "JavaScript",
+    code: `const res = await fetch("${BASE}/v1/qr", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.MONCODE_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({ type: "url", data: "https://moncode.bj", encoding: "json" }),
+});
+const { dataUrl } = await res.json(); // "data:image/png;base64,…"`,
+  },
+];
+
+/** En-tête d'une section : un titre, un sous-titre, comme en haut de page. */
+function SectionHead({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="mt-3 max-lg:text-center">
-      <p className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm">
-        <span className="rounded-md bg-forest px-2 py-0.5 text-xs font-bold tracking-wide text-white">{method}</span>
-        <code className="break-all font-mono text-ink">{children}</code>
-      </p>
+    <div className="mx-auto max-w-2xl text-center">
+      <h2 className="text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">{title}</h2>
+      <p className="mt-4 text-lg leading-8 text-sage">{subtitle}</p>
     </div>
   );
 }
 
-function Section({ id, n, title, children }: { id: string; n: string; title: string; children: React.ReactNode }) {
+/** Une bande de la page : grande respiration, fond alterné. */
+function Band({ id, tint, children }: { id: string; tint?: boolean; children: React.ReactNode }) {
   return (
-    <section id={id} className="anchor mt-14 first:mt-0">
-      <div className="flex flex-col items-center gap-2.5 text-center lg:flex-row lg:gap-3 lg:text-left">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-leaf text-sm font-semibold text-ambre-deep">{n}</span>
-        <h2 className="page-title">{title}</h2>
-      </div>
-      <div className="mt-4 max-lg:[&>p]:text-center">{children}</div>
+    <section id={id} className={`anchor ${tint ? "border-y border-line bg-[linear-gradient(#fff,#fbf5f5)]" : "bg-white"}`}>
+      <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">{children}</div>
     </section>
   );
 }
-
-const TOC = [
-  ["quotas", "Quotas"],
-  ["exemples", "Générer un QR code"],
-  ["types", "Types et options"],
-  ["erreurs", "Erreurs"],
-];
-
-const ERRORS: [string, string][] = [
-  ["400", "Paramètre manquant ou invalide (le message l’explique)."],
-  ["401", "Clé absente, invalide ou révoquée."],
-  ["402", "Contenu réservé aux comptes Premium (tout sauf les liens)."],
-  ["429", "Quota mensuel atteint ou trop de requêtes à la minute."],
-];
 
 export default function DeveloppeursPage() {
   return (
@@ -100,91 +120,97 @@ export default function DeveloppeursPage() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:px-8 lg:py-16">
-        {/* Sommaire : barre défilante sur mobile, colonne collante sur ordinateur. */}
-        <nav aria-label="Sommaire" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_88%,transparent)] lg:[mask-image:none] lg:sticky lg:top-24 lg:mx-0 lg:block lg:space-y-1 lg:self-start lg:overflow-visible lg:px-0">
-          {TOC.map(([id, label]) => (
-            <a key={id} href={`#${id}`} className="shrink-0 rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink/75 transition hover:border-forest hover:text-forest lg:block lg:rounded-lg lg:border-0 lg:bg-transparent lg:px-3 lg:py-1.5 lg:hover:bg-cream-deep">
-              {label}
-            </a>
+      <Band id="quotas">
+        <SectionHead title="Des quotas clairs" subtitle="Les liens sont gratuits. Tout le reste passe par Premium." />
+        <div className="mt-12 grid gap-5 sm:grid-cols-3">
+          {[
+            ["1 000", "requêtes par mois", "gratuites, pour les liens simples"],
+            ["50 000", "requêtes par mois", "avec Premium, tous les contenus"],
+            ["5", "clés actives", "par compte"],
+          ].map(([v, l, d]) => (
+            <div key={l + v} className="rounded-3xl border border-line bg-white p-7 text-center shadow-[0_18px_44px_rgba(23,23,26,0.07)]">
+              <p className="text-5xl font-bold tracking-[-0.03em] text-forest">{v}</p>
+              <p className="mt-3 text-base font-semibold text-ink">{l}</p>
+              <p className="mt-1 text-sm text-sage">{d}</p>
+            </div>
           ))}
-        </nav>
-
-        <div className="min-w-0 max-w-3xl">
-          <Section id="quotas" n="1" title="Quotas">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                ["1 000", "requêtes gratuites par mois (liens simples)"],
-                ["50 000", "requêtes par mois avec Premium (tous les contenus)"],
-                ["5", "clés actives par compte"],
-              ].map(([v, l]) => (
-                <div key={l} className="surface p-5 text-center">
-                  <p className="text-3xl font-semibold text-forest">{v}</p>
-                  <p className="mt-1 text-sm text-sage">{l}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-sm leading-6 text-sage">
-              La clé est gratuite et les liens (<code>type=url</code>) le sont aussi. Tous les autres contenus (Wi-Fi, téléphone, SMS, e-mail, texte, GPS…) exigent un compte <strong>Premium</strong> (5 000 FCFA) : sinon l’API répond <code>402</code>.
-              Le quota se renouvelle le 1<sup>er</sup> de chaque mois (UTC). Au-delà, l’API répond <code>429</code> ; l’en-tête <code>Retry-After</code> indique quand réessayer.
-              Besoin de plus ? <Link href="/contact" className="font-semibold text-forest hover:underline">Contactez-nous</Link>.
-            </p>
-          </Section>
-
-          <Section id="exemples" n="2" title="Générer un QR code">
-            <Endpoint method="POST">{`${BASE}/v1/qr`}</Endpoint>
-            <p className="mt-2 text-sm text-sage">ou <code>GET</code> avec les mêmes paramètres dans l’URL.</p>
-            <p className="mt-6 text-sm font-semibold text-ink">Lien, en PNG</p>
-            <Code label="curl">{`curl -X POST ${BASE}/v1/qr \\
-  -H "X-API-Key: mck_live_votre_cle" \\
-  -H "Content-Type: application/json" \\
-  -d '{"type":"url","data":"https://moncode.bj","fg":"#e3051d","size":600}' \\
-  -o qr.png`}</Code>
-            <p className="mt-6 text-sm font-semibold text-ink">Wi-Fi, en SVG</p>
-            <Code label="curl">{`curl -X POST ${BASE}/v1/qr \\
-  -H "X-API-Key: mck_live_votre_cle" \\
-  -H "Content-Type: application/json" \\
-  -d '{"type":"wifi","ssid":"Moncode","password":"motdepasse","format":"svg"}' \\
-  -o wifi.svg`}</Code>
-            <p className="mt-6 text-sm font-semibold text-ink">JavaScript</p>
-            <Code label="JavaScript">{`const res = await fetch("${BASE}/v1/qr", {
-  method: "POST",
-  headers: { "X-API-Key": process.env.MONCODE_KEY, "Content-Type": "application/json" },
-  body: JSON.stringify({ type: "url", data: "https://moncode.bj", encoding: "json" }),
-});
-const { dataUrl } = await res.json(); // "data:image/png;base64,…"`}</Code>
-          </Section>
-
-          <Section id="types" n="3" title="Types et options">
-            <h3 className="text-base font-semibold text-ink">Types</h3>
-            <div className="surface mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line bg-cream-deep/70 text-xs uppercase tracking-[0.08em] text-sage"><tr><th className="px-4 py-3">type</th><th className="px-4 py-3">champs</th></tr></thead>
-                <tbody>{TYPES.map(([t, f]) => <tr key={t} className="border-b border-line last:border-0"><td className="px-4 py-3 font-mono text-forest">{t}</td><td className="px-4 py-3 text-ink/80">{f}</td></tr>)}</tbody>
-              </table>
-            </div>
-            <h3 className="mt-8 text-base font-semibold text-ink">Options</h3>
-            <div className="surface mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line bg-cream-deep/70 text-xs uppercase tracking-[0.08em] text-sage"><tr><th className="px-4 py-3">option</th><th className="px-4 py-3">valeurs</th><th className="px-4 py-3">défaut</th></tr></thead>
-                <tbody>{OPTIONS.map(([o, v, d]) => <tr key={o} className="border-b border-line last:border-0"><td className="px-4 py-3 font-mono text-forest">{o}</td><td className="px-4 py-3 text-ink/80">{v}</td><td className="px-4 py-3 text-sage">{d}</td></tr>)}</tbody>
-              </table>
-            </div>
-          </Section>
-
-          <Section id="erreurs" n="4" title="Erreurs">
-            <ul className="surface divide-y divide-line overflow-hidden">
-              {ERRORS.map(([c, m]) => (
-                <li key={c} className="flex items-start gap-4 px-4 py-3.5 text-[15px] leading-6">
-                  <span className="mt-0.5 rounded-md bg-cream-deep px-2 py-0.5 font-mono text-sm font-semibold text-forest">{c}</span>
-                  <span className="text-ink/80">{m}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 text-sm text-sage">Les QR codes générés par l’API sont statiques : ils fonctionnent sans Moncode et ne sont ni stockés ni modifiables.</p>
-          </Section>
         </div>
-      </div>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-[15px] leading-7 text-sage">
+          Le quota se renouvelle le 1<sup>er</sup> de chaque mois. Au-delà, l’API répond <code>429</code> et l’en-tête <code>Retry-After</code> indique quand réessayer. Besoin de plus ? <Link href="/contact" className="font-semibold text-forest hover:underline">Écrivez-nous</Link>.
+        </p>
+      </Band>
+
+      <Band id="exemples" tint>
+        <SectionHead title="Un appel, un QR code" subtitle="Envoyez une requête, recevez l’image en PNG ou en SVG." />
+        <p className="mt-8 text-center">
+          <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2.5 rounded-2xl border border-line bg-white px-4 py-2.5 text-sm shadow-[0_8px_22px_rgba(23,23,26,0.06)]">
+            <span className="rounded-md bg-forest px-2 py-0.5 text-xs font-bold tracking-wide text-white">POST</span>
+            <code className="break-all font-mono text-ink">{`${BASE}/v1/qr`}</code>
+          </span>
+          <span className="mt-2 block text-sm text-sage">ou <code>GET</code> avec les mêmes paramètres dans l’adresse.</span>
+        </p>
+        <div className="mx-auto mt-8 max-w-3xl">
+          <CodeTabs tabs={EXAMPLES} />
+        </div>
+      </Band>
+
+      <Band id="types">
+        <SectionHead title="Tous vos contenus" subtitle="Un type pour chaque usage : lien, Wi-Fi, appel, e-mail, position…" />
+        <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+          {TYPES.map(({ id, fields, premium, icon: Icon }) => (
+            <li key={id} className="flex flex-col rounded-2xl border border-line bg-white p-5 shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="icon-tile h-11 w-11"><Icon className="h-5 w-5" /></span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${premium ? "premium-gold" : "bg-emerald-50 text-emerald-700"}`}>{premium ? "Premium" : "Gratuit"}</span>
+              </div>
+              <p className="mt-4 font-mono text-lg font-semibold text-forest">{id}</p>
+              <p className="mt-1 text-sm leading-6 text-sage">{fields}</p>
+            </li>
+          ))}
+        </ul>
+      </Band>
+
+      <Band id="options" tint>
+        <SectionHead title="Réglez le rendu" subtitle="Format, taille, couleurs : tout est facultatif." />
+        <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+          {OPTIONS.map(([o, v, d]) => (
+            <li key={o} className="rounded-2xl border border-line bg-white p-5 shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+              <p className="font-mono text-lg font-semibold text-forest">{o}</p>
+              <p className="mt-2 text-sm leading-6 text-ink/80">{v}</p>
+              <p className="mt-3 text-xs text-sage">Par défaut : <span className="rounded-md bg-cream-deep px-1.5 py-0.5 font-mono text-ink/80">{d}</span></p>
+            </li>
+          ))}
+        </ul>
+      </Band>
+
+      <Band id="erreurs">
+        <SectionHead title="Des erreurs lisibles" subtitle="Chaque refus renvoie un code et un message qui explique quoi corriger." />
+        <ul className="mt-12 grid gap-4 sm:grid-cols-2">
+          {ERRORS.map(([c, t, m]) => (
+            <li key={c} className="flex items-start gap-4 rounded-2xl border border-line bg-white p-5 shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+              <span className="rounded-xl bg-cream-deep px-3 py-2 font-mono text-xl font-bold text-forest">{c}</span>
+              <div className="min-w-0">
+                <p className="font-semibold text-ink">{t}</p>
+                <p className="mt-1 text-sm leading-6 text-sage">{m}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-sage">Les QR codes générés par l’API sont statiques : ils fonctionnent sans Moncode et ne sont ni stockés ni modifiables.</p>
+      </Band>
+
+      {/* Appel à l'action final */}
+      <section className="bg-[radial-gradient(60%_120%_at_50%_0%,rgba(227,5,29,0.12),transparent_70%),linear-gradient(#fbf5f5,#fff)]">
+        <div className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-6 sm:py-24">
+          <h2 className="text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">Prêt à générer ?</h2>
+          <p className="mx-auto mt-4 max-w-md text-lg leading-8 text-sage">Créez votre clé gratuite en une minute.</p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/compte/cles-api" className="btn btn-primary w-full justify-center py-3.5 text-base sm:w-auto"><KeyRound className="h-4 w-4" /> Obtenir une clé</Link>
+            <Link href="/contact" className="inline-flex items-center gap-1.5 py-2 text-[15px] font-semibold text-ink/80 transition hover:text-forest">Une question ? <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </main>
   );
