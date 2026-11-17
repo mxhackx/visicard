@@ -3,7 +3,7 @@ import { ArrowRight, Mail, MapPin, MessageCircle } from "lucide-react";
 import Logo from "@/components/logo";
 import { CONTACT, whatsappUrl } from "@/lib/contact";
 
-/* Pied de page : il continue le fond du hero de la page ; marque et appel à l'action, trois colonnes, mentions. */
+/* Pied de page : centré sur mobile, aligné à gauche dès tablette ; marque et appel à l'action, trois colonnes, mentions. */
 
 const colonnes = [
   {
@@ -40,8 +40,8 @@ export default function Footer() {
       <div className="border-t border-line">
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Mobile : une colonne, tout aligné à gauche ; les deux colonnes de liens côte à côte dès 40rem. */}
-        <div className="grid grid-cols-1 gap-x-4 gap-y-8 border-b border-line py-8 text-left sm:grid-cols-2 md:gap-12 md:py-14 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-10">
-          <div className="flex flex-col items-start sm:col-span-2 md:col-span-1" data-reveal>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-8 border-b border-line py-8 max-sm:text-center sm:grid-cols-2 sm:text-left md:gap-12 md:py-14 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-10">
+          <div className="flex flex-col max-sm:items-center sm:col-span-2 md:col-span-1" data-reveal>
             <Link href="/" aria-label="Moncode — accueil" className="inline-flex">
               <Logo variant="dark" />
             </Link>
@@ -68,7 +68,7 @@ export default function Footer() {
 
           <div className="sm:col-span-2 md:col-span-1" data-reveal style={delay(240)}>
             <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink">Nous joindre</h2>
-            <ul className="mt-2 flex flex-col items-start gap-y-2.5 md:mt-4 md:gap-3">
+            <ul className="mt-2 flex flex-col max-sm:items-center gap-y-2.5 sm:items-start md:mt-4 md:gap-3">
               <li>
                 <a href={whatsappUrl()} target="_blank" rel="noreferrer" className={`${lien} inline-flex items-center gap-2.5`}>
                   <MessageCircle className="h-4 w-4 text-forest" /> {CONTACT.whatsappDisplay}
@@ -86,9 +86,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-2 py-5 pb-20 text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-sm">
+        <div className="flex flex-col gap-2 py-5 pb-20 max-sm:items-center max-sm:text-center text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-sm">
           <p>© {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.</p>
-          <ul className="flex flex-wrap gap-x-5 gap-y-1">
+          <ul className="flex flex-wrap max-sm:justify-center gap-x-5 gap-y-1">
             {legal.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} className="transition-colors hover:text-forest">{item.label}</Link>
