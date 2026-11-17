@@ -22,7 +22,8 @@ export class V1Controller {
     const k = req.apiKey!;
     return {
       key: k.name,
-      unlimited: k.admin,
+      admin: k.admin,
+      premium: k.premium,
       perMinute: k.admin ? null : k.perMinute,
       perMonth: k.admin ? null : k.perMonth,
       usedThisMonth: k.used,

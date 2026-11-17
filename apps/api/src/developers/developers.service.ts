@@ -11,6 +11,8 @@ export interface ApiKeyContext {
   userId: string;
   name: string;
   admin: boolean;
+  /** Premium actif sur le compte propriétaire (un administrateur est toujours « premium »). */
+  premium: boolean;
   perMinute: number;
   perMonth: number;
   used: number;
@@ -125,6 +127,6 @@ export class DevelopersService {
     }
     void this.prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
 
-    return { ok: true, ctx: { id: key.id, userId: key.userId, name: key.name, admin, perMinute, perMonth, used: row.count } };
+    return { ok: true, ctx: { id: key.id, userId: key.userId, name: key.name, admin, premium: admin || premium, perMinute, perMonth, used: row.count } };
   }
 }
