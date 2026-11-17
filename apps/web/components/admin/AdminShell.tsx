@@ -5,12 +5,12 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 const noopSubscribe = () => () => {};
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, LayoutDashboard, Loader2, LogOut, Plus, QrCode, Receipt, Settings, Users } from "lucide-react";
+import { Crown, ExternalLink, LayoutDashboard, Loader2, LogOut, Plus, QrCode, Receipt, Settings, Users } from "lucide-react";
 import Logo from "@/components/logo";
 import { useFile } from "@/app/context/FileContext";
 import { API_URL } from "@/lib/api-url";
 
-export type AdminSection = "overview" | "cards" | "orders" | "new" | "accounts" | "settings";
+export type AdminSection = "overview" | "cards" | "orders" | "premium" | "new" | "accounts" | "settings";
 
 const NAV_GROUPS: { label: string; items: { id: AdminSection; label: string; href: string; icon: typeof Users }[] }[] = [
   {
@@ -18,6 +18,7 @@ const NAV_GROUPS: { label: string; items: { id: AdminSection; label: string; hre
     items: [
       { id: "overview", label: "Tableau de bord", href: "/admin", icon: LayoutDashboard },
       { id: "orders", label: "Commandes", href: "/admin?tab=orders", icon: Receipt },
+      { id: "premium", label: "Premium", href: "/admin?tab=premium", icon: Crown },
     ],
   },
   {

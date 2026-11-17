@@ -288,3 +288,43 @@ export async function sendLoginCode(to: string, name: string | null | undefined,
     note: 'Ne le communiquez à personne : l’équipe Moncode ne vous le demandera jamais. Si vous n’êtes pas à l’origine de cette demande, changez votre mot de passe.',
   });
 }
+
+/** Facture Premium envoyée par e-mail : détail du paiement dans le message et lien vers la facture imprimable. */
+export async function sendPremiumInvoice(
+  to: string,
+  inv: { name?: string | null; invoiceNumber: string; paidAt: Date | null; validUntil: Date | null; amount: number; reference: string; invoiceId: string },
+): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !to) return false;
+  const fmt = (d: Date | null) => (d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Porto-Novo' }) : '—');
+  const money = `${new Intl.NumberFormat('fr-FR').format(inv.amount).replace(/[\u202f\u00a0]/g, ' ')} FCFA`;
+  const row = (l: string, v: string, strong = false) =>
+    `<tr><td style="padding:9px 0;border-bottom:1px solid #ece4e4;font-size:14px;color:#7a7a84">${l}</td><td style="padding:9px 0;border-bottom:1px solid #ece4e4;font-size:14px;text-align:right;color:#17171a;${strong ? 'font-weight:700' : ''}">${v}</td></tr>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM || 'Moncode <no-reply@moncode.bj>',
+        to: [to],
+        subject: `Votre facture Moncode ${inv.invoiceNumber}`,
+        html: emailLayout({
+          title: `Facture ${esc(inv.invoiceNumber)}`,
+          preheader: `Paiement de ${money} reçu. Merci !`,
+          intro: `Bonjour${inv.name ? ` ${esc(inv.name)}` : ''}, merci pour votre paiement : votre abonnement <strong>Moncode Premium</strong> est actif. Voici votre facture.`,
+          bodyHtml: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0">${row('Facture', esc(inv.invoiceNumber), true)}${row('Date', esc(fmt(inv.paidAt)))}${row('Désignation', 'Moncode Premium · 1 an')}${row('Valable jusqu’au', esc(fmt(inv.validUntil)))}${row('Paiement', esc(inv.reference.slice(0, 8).toUpperCase()))}${row('Total payé', esc(money), true)}</table>`,
+          button: { label: 'Voir ou imprimer ma facture', href: `${primaryAppUrl()}/facture/premium/${encodeURIComponent(inv.invoiceId)}` },
+          note: 'Vous retrouvez toutes vos factures dans Mon espace › Factures. Réglé par Mobile Money (FeexPay).',
+        }),
+      }),
+    });
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => ({}))) as { message?: string };
+      logger.warn(`Facture Premium refusée (${res.status}) : ${detail.message ?? 'sans détail'}`);
+    }
+    return res.ok;
+  } catch (error) {
+    logger.warn(`Facture Premium impossible : ${(error as Error).message}`);
+    return false;
+  }
+}

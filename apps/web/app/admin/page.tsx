@@ -1,6 +1,6 @@
 import AdminDashboard, { type AdminTab } from "@/components/admin/AdminDashboard";
 
-const TABS: AdminTab[] = ["overview", "cards", "orders", "accounts", "settings"];
+const TABS: AdminTab[] = ["overview", "cards", "orders", "premium", "accounts", "settings"];
 
 export default async function AdminPage({
   searchParams,

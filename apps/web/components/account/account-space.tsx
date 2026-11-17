@@ -15,6 +15,7 @@ import SendQrButton from "./send-qr-button";
 import ScanStatsPanel from "./scan-stats";
 import DataPrivacy from "./data-privacy";
 import VerifyEmailNotice from "./verify-email-notice";
+import SendInvoiceButton from "@/components/order/send-invoice-button";
 
 const ICONS = { page: PanelsTopLeft, media: Images, document: FileText, direct: QrCode } as const;
 
@@ -280,7 +281,11 @@ function Invoices({ orders }: { orders: AccountOrder[] }) {
                   <p className="font-medium text-ink/90">Moncode Premium · 1 an</p>
                   <p className="text-xs text-sage">Payé le {formatDate(r.paidAt)} par Mobile Money · réf. {r.reference} · valable jusqu’au {formatDate(r.expiresAt)}</p>
                 </div>
-                <span className="font-semibold text-ink/90">{fcfa(r.amount)}</span>
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold text-ink/90">{fcfa(r.amount)}</span>
+                  <Link href={`/facture/premium/${r.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest hover:underline"><Receipt className="h-4 w-4" /> {r.invoiceNumber ?? "Facture"}</Link>
+                  <SendInvoiceButton id={r.id} compact />
+                </div>
               </li>
             ))}
           </ul>

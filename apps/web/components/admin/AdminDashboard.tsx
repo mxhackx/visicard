@@ -9,14 +9,16 @@ import AdminAccounts from "./AdminAccounts";
 import AdminOrders from "./AdminOrders";
 import AdminShell from "./AdminShell";
 import AdminHome from "./AdminHome";
+import AdminPremium from "./AdminPremium";
 import { useAdminFetch } from "./use-admin-fetch";
 
-export type AdminTab = "overview" | "cards" | "orders" | "accounts" | "settings";
+export type AdminTab = "overview" | "cards" | "orders" | "premium" | "accounts" | "settings";
 
 const HEADINGS: Record<AdminTab, { title: string; hint: string }> = {
   overview: { title: "Tableau de bord", hint: "Revenus, commandes et scans en un coup d’œil" },
   cards: { title: "QR codes", hint: "Tous les QR codes : actifs, en attente de paiement ou refusés" },
   orders: { title: "Commandes", hint: "Devis, paiements et factures" },
+  premium: { title: "Premium", hint: "Comptes Premium, paiements Mobile Money et factures" },
   accounts: { title: "Utilisateurs", hint: "Comptes et rôles" },
   settings: { title: "Paramètres", hint: "Sécurité du compte" },
 };
@@ -95,6 +97,8 @@ function DashboardBody({ tab, adminToken }: { tab: AdminTab; adminToken: string 
       {tab === "overview" && <AdminHome adminToken={adminToken} />}
 
       {tab === "orders" && <AdminOrders adminToken={adminToken} />}
+
+      {tab === "premium" && <AdminPremium adminToken={adminToken} />}
 
       {tab === "accounts" && (
         <div className="surface rounded-2xl p-5 sm:p-7">

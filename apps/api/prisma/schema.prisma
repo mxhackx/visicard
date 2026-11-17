@@ -200,11 +200,14 @@ model PremiumPurchase {
   amount      Int
   status      String    @default("pending")
   providerRef String    @unique @map("provider_ref")
+  /// Numéro de facture (PRM-AAAA-0001), attribué au paiement.
+  invoiceNumber String? @map("invoice_number")
   paidAt      DateTime? @map("paid_at")
   expiresAt   DateTime? @map("expires_at")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
+  @@index([invoiceNumber])
   @@map("premium_purchases")
 }
 

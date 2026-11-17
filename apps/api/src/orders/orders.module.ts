@@ -8,11 +8,11 @@ import { AdminStatsController } from './stats.controller';
 import { FeexpayService } from './payments/feexpay.service';
 import { PremiumService } from './premium.service';
 import { PremiumReminderService } from './premium-reminder.service';
-import { PremiumController } from './premium.controller';
+import { AdminPremiumController, PremiumController } from './premium.controller';
 
 @Module({
   imports: [PrismaModule, AuthModule, CardsModule],
-  controllers: [OrdersController, PaymentsWebhookController, AdminStatsController, PremiumController],
+  controllers: [OrdersController, PaymentsWebhookController, AdminStatsController, PremiumController, AdminPremiumController],
   providers: [OrdersService, FeexpayService, PremiumService, PremiumReminderService],
 })
 export class OrdersModule {}

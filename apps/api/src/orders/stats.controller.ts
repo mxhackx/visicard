@@ -43,6 +43,8 @@ export class AdminStatsController {
       topScans,
       recentOrders,
       recentCards,
+      premiumPaid,
+      premiumTotal,
     ] = await Promise.all([
       this.prisma.card.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.card.groupBy({ by: ['serviceType'], _count: { _all: true } }),
@@ -81,6 +83,12 @@ export class AdminStatsController {
         take: 6,
         select: { slug: true, title: true, restaurantName: true, serviceType: true, status: true, createdAt: true },
       }),
+      // Paiements Premium (Mobile Money) : ils comptent dans les revenus, comme les commandes.
+      this.prisma.premiumPurchase.findMany({
+        where: { status: 'paid', paidAt: { gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) } },
+        select: { amount: true, paidAt: true },
+      }),
+      this.prisma.premiumPurchase.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
     ]);
 
     // Revenus des 6 derniers mois (mois courant inclus).
@@ -88,7 +96,7 @@ export class AdminStatsController {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
       return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, amount: 0, count: 0 };
     });
-    for (const order of paidOrders) {
+    for (const order of [...paidOrders, ...premiumPaid]) {
       if (!order.paidAt) continue;
       const key = `${order.paidAt.getFullYear()}-${String(order.paidAt.getMonth() + 1).padStart(2, '0')}`;
       const month = months.find((m) => m.key === key);
@@ -98,8 +106,9 @@ export class AdminStatsController {
       }
     }
     const revenueTotal = await this.prisma.order.aggregate({ where: { status: 'paid' }, _sum: { amount: true } });
+    const premiumRevenue = premiumTotal._sum.amount ?? 0;
     const revenueMonth = months[5].amount;
-    const revenuePrevMonth = paidOrders
+    const revenuePrevMonth = [...paidOrders, ...premiumPaid]
       .filter((o) => o.paidAt && o.paidAt >= startOfPrevMonth && o.paidAt < startOfMonth)
       .reduce((sum, o) => sum + o.amount, 0);
 
@@ -132,7 +141,8 @@ export class AdminStatsController {
         byType: count(cardsByType, (r: { serviceType: string }) => r.serviceType),
       },
       revenue: {
-        total: revenueTotal._sum.amount ?? 0,
+        total: (revenueTotal._sum.amount ?? 0) + premiumRevenue,
+        premium: premiumRevenue,
         month: revenueMonth,
         prevMonth: revenuePrevMonth,
         months,

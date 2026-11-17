@@ -96,6 +96,7 @@ export interface PremiumReceipt {
   paidAt: string | null;
   expiresAt: string | null;
   reference: string;
+  invoiceNumber?: string | null;
 }
 
 /** Paiements Premium du compte (reçus). */
@@ -161,3 +162,7 @@ export async function downloadMyData(token: string): Promise<void> {
 /** Supprime définitivement le compte et ses données ; l'adresse e-mail saisie sert de confirmation. */
 export const deleteMyAccount = (token: string, confirmEmailText: string) =>
   call<{ success: true }>("/me", { method: "DELETE", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ confirmEmail: confirmEmailText }) });
+
+/** Envoie la facture Premium par e-mail à l'adresse du compte. */
+export const emailPremiumInvoice = (token: string, id: string) =>
+  call<{ sent: true; to: string }>(`/premium/invoice/${encodeURIComponent(id)}/send`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });

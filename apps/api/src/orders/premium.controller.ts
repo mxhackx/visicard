@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { AuthService } from '../auth/auth.service';
@@ -25,6 +25,21 @@ export class PremiumController {
     return this.premium.status(await this.user(req, authHeader));
   }
 
+  /** Facture d'un paiement Premium (son propriétaire ou un administrateur). */
+  @Get('invoice/:id')
+  @SkipThrottle({ short: true })
+  async invoice(@Req() req: Request, @Param('id') id: string, @Headers('authorization') authHeader?: string) {
+    return this.premium.invoice(id, await this.user(req, authHeader));
+  }
+
+  /** Envoie la facture par e-mail à l'adresse du compte. */
+  @Post('invoice/:id/send')
+  @HttpCode(200)
+  @Throttle({ short: { limit: 3, ttl: 60_000 } })
+  async sendInvoice(@Req() req: Request, @Param('id') id: string, @Headers('authorization') authHeader?: string) {
+    return this.premium.resendInvoice(id, await this.user(req, authHeader));
+  }
+
   @Get('history')
   @SkipThrottle({ short: true })
   async history(@Req() req: Request, @Headers('authorization') authHeader?: string) {
@@ -41,5 +56,35 @@ export class PremiumController {
     @Body() body?: { network?: string; phone?: string },
   ) {
     return this.premium.pay(await this.user(req, authHeader), body ?? {});
+  }
+}
+
+/** Paiements et comptes Premium, pour l'administration. */
+@Controller('admin/premium')
+@SkipThrottle({ short: true })
+export class AdminPremiumController {
+  constructor(
+    private readonly premium: PremiumService,
+    private readonly auth: AuthService,
+  ) {}
+
+  private async guard(req: Request, authHeader?: string) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = (req as Request & { cookies?: Record<string, string> }).cookies?.['access_token'] ?? null;
+    if (!token || !(await this.auth.validateAdminToken(token))) throw new UnauthorizedException('Accès réservé aux administrateurs.');
+  }
+
+  @Get()
+  async overview(@Req() req: Request, @Headers('authorization') authHeader?: string) {
+    await this.guard(req, authHeader);
+    return this.premium.adminOverview();
+  }
+
+  /** Relit le statut d'un paiement chez FeexPay. */
+  @Post(':id/verify')
+  @HttpCode(200)
+  async verify(@Req() req: Request, @Param('id') id: string, @Headers('authorization') authHeader?: string) {
+    await this.guard(req, authHeader);
+    return this.premium.adminVerify(id);
   }
 }
