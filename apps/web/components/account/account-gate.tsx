@@ -18,7 +18,7 @@ export function useIsSignedIn(): boolean {
 }
 
 /**
- * Barrière du parcours : il faut un compte, puis Premium (5 000 FCFA par Mobile Money), avant de créer.
+ * Barrière du parcours : il faut un compte, puis Premium (100 FCFA par Mobile Money), avant de créer.
  * Les deux étapes se font dans une fenêtre : la page et ce qui a été saisi restent en place.
  */
 export default function AccountGate({ children }: { children: ReactNode }) {

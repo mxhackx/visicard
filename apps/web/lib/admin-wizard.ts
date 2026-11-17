@@ -389,7 +389,7 @@ export interface ShareMessages {
   mailHref: string;
 }
 
-const prix = (id: ServiceType) => SERVICES.find((s) => s.id === id)?.price ?? "5 000";
+const prix = (id: ServiceType) => SERVICES.find((s) => s.id === id)?.price ?? "100";
 
 /** Textes prêts à envoyer : rien n'est expédié, l'admin ouvre WhatsApp ou sa messagerie. */
 export function shareMessages(draft: WizardDraft, res: PublishResult, privateLink?: string): ShareMessages {

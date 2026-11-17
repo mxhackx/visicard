@@ -12,7 +12,7 @@ const principles = [
   {
     icon: HandCoins,
     title: "Un prix annoncé est un prix tenu",
-    text: "Les liens sont gratuits, 5 000 FCFA pour tout le reste pendant un an. Pas de commission cachée sur ce que vous vendez.",
+    text: "Les liens sont gratuits, 100 FCFA pour tout le reste pendant un an. Pas de commission cachée sur ce que vous vendez.",
   },
   {
     icon: MessageCircle,

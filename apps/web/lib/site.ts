@@ -86,9 +86,9 @@ export function organizationJsonLd() {
         provider: { "@id": `${SITE_URL}/#organisation` },
         areaServed: "BJ",
         offers: [
-          { "@type": "Offer", name: "Page digitale (menu, établissement)", price: "5000", priceCurrency: "XOF" },
-          { "@type": "Offer", name: "QR code image ou vidéo", price: "5000", priceCurrency: "XOF" },
-          { "@type": "Offer", name: "QR code document PDF", price: "5000", priceCurrency: "XOF" },
+          { "@type": "Offer", name: "Page digitale (menu, établissement)", price: "100", priceCurrency: "XOF" },
+          { "@type": "Offer", name: "QR code image ou vidéo", price: "100", priceCurrency: "XOF" },
+          { "@type": "Offer", name: "QR code document PDF", price: "100", priceCurrency: "XOF" },
         ],
       },
     ],

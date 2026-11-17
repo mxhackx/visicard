@@ -9,7 +9,7 @@ const premiumItems = [
   "Les styles premium : formes élégantes, couleurs et logo",
   "QR code net en PNG et SVG + facture",
   "Modifiable après impression, statistiques de scans",
-  "Fichiers jusqu’à 200 Mo et 5 pages digitales (5 de plus pour 5 000 FCFA)",
+  "Fichiers jusqu’à 200 Mo et 5 pages digitales (5 de plus pour 100 FCFA)",
 ];
 
 const customIncluded = [
@@ -25,7 +25,7 @@ export default function PricingSection() {
     <section id="tarifs" className="anchor">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <SectionHeading
-          title="Un seul prix : 5 000 FCFA"
+          title="Un seul prix : 100 FCFA"
           subtitle="Le QR code gratuit pour un lien reste gratuit. Premium débloque tout le reste."
         />
 
@@ -34,7 +34,7 @@ export default function PricingSection() {
             <article className="relative flex h-full flex-col rounded-[15px] bg-white p-7 sm:p-8" data-reveal>
               <span className="premium-pill self-start"><Crown className="h-3 w-3" /> Premium</span>
               <p className="mt-6 flex items-baseline gap-2">
-                <span className="text-5xl font-semibold tracking-[-0.03em] text-ink">5&nbsp;000</span>
+                <span className="text-5xl font-semibold tracking-[-0.03em] text-ink">100</span>
                 {" "}
                 <span className="text-sm font-medium text-sage">FCFA</span>
               </p>

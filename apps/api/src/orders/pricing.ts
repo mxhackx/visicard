@@ -12,13 +12,13 @@ export const SERVICE_LABELS: Record<ServiceType, string> = {
 };
 
 /** Premium : un seul prix, un an, tous les contenus. */
-export const PREMIUM_PRICE = 5000;
+export const PREMIUM_PRICE = 100;
 
 export const CREATION_PRICES: Record<ServiceType, number> = {
-  page: 5000,
-  media: 5000,
-  document: 5000,
-  direct: 5000,
+  page: 100,
+  media: 100,
+  document: 100,
+  direct: 100,
 };
 
 /** À VALIDER : prix d'une modification de contenu après mise en ligne. */

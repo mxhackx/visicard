@@ -8,7 +8,7 @@ const YEAR_MS = 365 * 24 * 3600 * 1000;
 export const PAGES_PER_PREMIUM = 5;
 
 /**
- * Premium : 5 000 FCFA payés par Mobile Money (FeexPay), valables un an. Sans Premium actif, un compte ne peut
+ * Premium : 100 FCFA payés par Mobile Money (FeexPay), valables un an. Sans Premium actif, un compte ne peut
  * rien créer. Les administrateurs sont toujours Premium. Le renouvellement s'ajoute à la date de fin.
  */
 @Injectable()

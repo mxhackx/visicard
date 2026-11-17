@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * Premium : 5 000 FCFA payés par Mobile Money (FeexPay), valables un an. Tant qu'il n'est pas actif,
+ * Premium : 100 FCFA payés par Mobile Money (FeexPay), valables un an. Tant qu'il n'est pas actif,
  * un compte ne peut rien créer. L'état vient toujours de l'API (jamais du navigateur).
  */
 import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "./api-url";
 import { useFile } from "@/app/context/FileContext";
 
-export const PREMIUM_PRICE = "5 000";
+export const PREMIUM_PRICE = "100";
 export const PREMIUM_EVENT = "moncode:premium";
 export const notifyPremiumChanged = () => window.dispatchEvent(new Event(PREMIUM_EVENT));
 

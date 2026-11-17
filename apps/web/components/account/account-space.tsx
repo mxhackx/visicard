@@ -377,7 +377,7 @@ function Settings_() {
         ) : premium.active ? (
           <p className="mt-2 text-sm text-sage">Premium actif jusqu’au <strong className="font-semibold text-ink/90">{formatDate(premium.until)}</strong>. Un paiement avant cette date prolonge l’abonnement d’un an.{premium.pages?.limit != null && <> Pages digitales utilisées : <strong className="font-semibold text-ink/90">{premium.pages.used} / {premium.pages.limit}</strong>.</>}</p>
         ) : (
-          <p className="mt-2 text-sm text-sage">Vous utilisez l’offre gratuite : liens simples uniquement. Premium débloque tous les contenus, les styles et le logo, pour 5 000 FCFA.</p>
+          <p className="mt-2 text-sm text-sage">Vous utilisez l’offre gratuite : liens simples uniquement. Premium débloque tous les contenus, les styles et le logo, pour 100 FCFA.</p>
         )}
         {!premium.admin && (
           <Link href="/paiement?suite=%2Fcompte%3Fonglet%3Dparametres" className="btn btn-outline btn-sm mt-4">

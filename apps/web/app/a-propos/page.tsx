@@ -56,7 +56,7 @@ export default function AboutPage() {
               suit, et vos clients scannent. Le contenu se met à jour sans réimprimer.
             </p>
             <p>
-              Le tarif suit la même logique : les liens sont gratuits, et 5 000 FCFA donnent accès à
+              Le tarif suit la même logique : les liens sont gratuits, et 100 FCFA donnent accès à
               tout Moncode pendant un an, sans abonnement automatique. Un devis seulement pour des
               besoins sur mesure. Rien n’est facturé sur ce que vous vendez.
             </p>
