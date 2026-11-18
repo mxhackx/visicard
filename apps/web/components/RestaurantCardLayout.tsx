@@ -14,6 +14,7 @@ import BoutiqueTheme from "@/components/card-themes/boutique-theme";
 import HotelTheme from "@/components/card-themes/hotel-theme";
 import CliniqueTheme from "@/components/card-themes/clinique-theme";
 import ChantierTheme from "@/components/card-themes/chantier-theme";
+import AnnuaireTheme from "@/components/card-themes/annuaire-theme";
 import type { CardThemeProps } from "@/components/card-themes/kit";
 import { paletteFor, paletteVars } from "@/lib/palette";
 
@@ -37,6 +38,7 @@ const THEMES = {
   clinique: CliniqueTheme,
   chantier: ChantierTheme,
   carte: CarteTheme,
+  annuaire: AnnuaireTheme,
 } as const;
 
 /** Page digitale : applique la palette, puis délègue à la disposition choisie. */

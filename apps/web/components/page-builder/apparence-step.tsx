@@ -325,6 +325,17 @@ function LayoutThumb({ id, palette: p }: { id: LayoutId; palette: Palette }) {
           {[0, 1, 2].map((i) => <rect key={i} x="7" y={62 + i * 10} width="66" height="7" rx="2" fill={soft} stroke={line} />)}
         </>
       )}
+      {id === "annuaire" && (
+        <>
+          <rect x="7" y="8" width="22" height="6" rx="3" fill="#d1fae5" />
+          <rect x="7" y="18" width="46" height="7" rx="2" fill={p.text} />
+          <rect x="7" y="30" width="30" height="8" rx="3" fill="#25d366" />
+          <rect x="41" y="30" width="32" height="8" rx="3" fill={p.brand} />
+          <rect x="7" y="43" width="31" height="20" rx="4" fill="#fff" stroke={line} />
+          <rect x="42" y="43" width="31" height="20" rx="4" fill="#fff" stroke={line} />
+          {[0, 1, 2].map((i) => <rect key={i} x="7" y={69 + i * 9} width="66" height="7" rx="2" fill="#fff" stroke={line} />)}
+        </>
+      )}
       {id === "chantier" && (
         <>
           <rect width="80" height="4" fill={p.brand} />

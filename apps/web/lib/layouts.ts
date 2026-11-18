@@ -21,5 +21,6 @@ export const LAYOUT_OPTIONS: LayoutOption[] = [
   { id: "hotel", name: "Hôtel", desc: "Vert profond, laiton, sobriété d’un établissement calme", sector: "Hôtels et résidences" },
   { id: "clinique", name: "Santé", desc: "Clair et rassurant, urgence en tête, repères nets", sector: "Cliniques et cabinets" },
   { id: "chantier", name: "Chantier", desc: "Acier, bandes de chantier, numéros d’allées", sector: "Quincailleries et artisans" },
+  { id: "annuaire", name: "Fiche resto", desc: "Statut ouvert/fermé, WhatsApp et appel, horaires, menu par catégories avec prix", sector: "Restaurants" },
   { id: "carte", name: "Carte de visite", desc: "Profil, appel, WhatsApp, contact à enregistrer et partage", sector: "Indépendants et équipes" },
 ];
