@@ -1,0 +1,15 @@
+name: Garder l'API éveillée
+
+# Le plan gratuit de Render endort l'API après 15 minutes sans requête : la première visite suivante attend ~30 s.
+# Un appel léger toutes les 10 minutes évite cette mise en veille.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Réveiller l'API
+        run: curl --silent --show-error --fail --max-time 60 --retry 2 https://api.moncode.bj/ > /dev/null
