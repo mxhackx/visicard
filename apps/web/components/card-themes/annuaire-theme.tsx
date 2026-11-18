@@ -5,40 +5,18 @@ import { MapPin, Phone, Clock, Star } from "lucide-react";
 import { BrandIcon, EmptyImage, Lightbox, MapFrame, useCardData, useOpenStatus, type CardThemeProps } from "./kit";
 import { HoursList, WhatsAppFab } from "./extras";
 import { cliniqueText } from "./fonts";
+import { formatFcfa, parseMenuModel } from "@/lib/menu-lines";
 
 /* Fiche d'annuaire : titre et statut, boutons WhatsApp et Appeler, adresse et horaires en cartes, menu par catégories avec plats et prix. */
-
-const PRICE = /^(.*?)[\s:–—-]+(\d[\d\s.]*\d|\d)\s*(?:f\s?cfa|cfa|xof|f)?\s*$/i;
-
-interface Dish { name: string; price: string }
-interface Section { title: string; dishes: Dish[] }
-
-/** Une ligne « Nom : 1500 » est un plat ; une ligne seule suivie de plats ouvre une catégorie ; sinon c'est une étiquette. */
-function parseMenu(lines: string[]) {
-  const sections: Section[] = [];
-  const tags: string[] = [];
-  lines.forEach((line, i) => {
-    const m = line.match(PRICE);
-    if (m && m[1].trim()) {
-      if (!sections.length) sections.push({ title: "Menu", dishes: [] });
-      const digits = m[2].replace(/[^\d]/g, "");
-      sections[sections.length - 1].dishes.push({ name: m[1].trim(), price: `${Number(digits).toLocaleString("fr-FR")} FCFA` });
-    } else if (PRICE.test(lines[i + 1] ?? "")) {
-      sections.push({ title: line, dishes: [] });
-    } else {
-      tags.push(line);
-    }
-  });
-  return { sections: sections.filter((s) => s.dishes.length), tags };
-}
 
 export default function AnnuaireTheme(props: CardThemeProps) {
   const d = useCardData(props);
   const status = useOpenStatus(props.schedule);
   const [viewer, setViewer] = useState<number | null>(null);
-  const { sections, tags } = parseMenu(d.lines);
-  const description = d.tagline ?? (sections.length ? undefined : tags[0]);
-  const chips = tags.filter((t) => t !== description);
+  const model = parseMenuModel(props.additionalInfo ?? "");
+  const sections = model.sections.filter((s) => s.dishes.length);
+  const description = d.tagline ?? (model.tagline || undefined);
+  const chips = model.tags;
 
   const card = "rounded-2xl border border-[var(--pg-line)] bg-white p-5 shadow-sm";
   const h2 = "text-lg font-semibold";
@@ -120,7 +98,7 @@ export default function AnnuaireTheme(props: CardThemeProps) {
                 {s.dishes.map((dish, j) => (
                   <li key={j} className="flex items-baseline justify-between gap-4 px-4 py-3">
                     <span className="font-medium">{dish.name}</span>
-                    <span className="shrink-0 font-bold text-[var(--pg-brand)]">{dish.price}</span>
+                    <span className="shrink-0 font-bold text-[var(--pg-brand)]">{formatFcfa(dish.price)}</span>
                   </li>
                 ))}
               </ul>

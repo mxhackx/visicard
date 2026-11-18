@@ -25,6 +25,7 @@ import { SECTORS, sectorById } from "@/lib/sectors";
 import AddressSearch from "@/components/address-search";
 import { mapsLink, reversePlace } from "@/lib/geocode";
 import { BUILDER_FLOWS, type BuilderMode } from "@/lib/builder-flows";
+import MenuEditor from "@/components/page-builder/menu-editor";
 import { IMAGE_ACCEPT, LIMITS, imageError, isHttpUrl, normalizeUrl, phoneDigits, pickImages } from "@/lib/validation";
 
 const COUNTRY_CODES = [
@@ -324,29 +325,44 @@ export function InformationsBody({ mode, embedded = false, registerValidate }: {
                 />
               </div>
             </Field>
-            <Field
-              id="info"
-              label={copy.infoLabel}
-              hint={`${copy.infoHint} ${restaurantInfo.additionalInfo.length} / ${LIMITS.info}`}
-              error={errors.info}
-            >
-              <textarea
-                rows={4}
-                className="field leading-6"
-                value={restaurantInfo.additionalInfo}
-                maxLength={LIMITS.info}
-                onChange={(e) => {
-                  setText("additionalInfo", e.target.value);
-                  clearError("info");
-                }}
-                placeholder={copy.infoPlaceholder}
-              />
-              {!restaurantInfo.additionalInfo.trim() && (
-                <button type="button" onClick={() => setText("additionalInfo", copy.infoTemplate)} className="mt-2 text-xs font-semibold text-forest underline underline-offset-2">
-                  Insérer un modèle pour « {sector.label.toLowerCase()} »
-                </button>
-              )}
-            </Field>
+            {sector.id === "restaurant" || sector.id === "maquis" ? (
+              <div id="field-info">
+                <span className="mb-1.5 block text-xs font-semibold text-ink/70">Votre menu</span>
+                <MenuEditor
+                  value={restaurantInfo.additionalInfo}
+                  max={LIMITS.info}
+                  onChange={(next) => {
+                    setText("additionalInfo", next);
+                    clearError("info");
+                  }}
+                />
+                {errors.info && <p role="alert" className="mt-1.5 text-xs font-medium text-red-600">{errors.info}</p>}
+              </div>
+            ) : (
+              <Field
+                id="info"
+                label={copy.infoLabel}
+                hint={`${copy.infoHint} ${restaurantInfo.additionalInfo.length} / ${LIMITS.info}`}
+                error={errors.info}
+              >
+                <textarea
+                  rows={4}
+                  className="field leading-6"
+                  value={restaurantInfo.additionalInfo}
+                  maxLength={LIMITS.info}
+                  onChange={(e) => {
+                    setText("additionalInfo", e.target.value);
+                    clearError("info");
+                  }}
+                  placeholder={copy.infoPlaceholder}
+                />
+                {!restaurantInfo.additionalInfo.trim() && (
+                  <button type="button" onClick={() => setText("additionalInfo", copy.infoTemplate)} className="mt-2 text-xs font-semibold text-forest underline underline-offset-2">
+                    Insérer un modèle pour « {sector.label.toLowerCase()} »
+                  </button>
+                )}
+              </Field>
+            )}
           </Section>
 
 

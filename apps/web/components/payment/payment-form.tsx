@@ -124,6 +124,14 @@ export default function PaymentForm({
     return () => window.clearTimeout(id);
   }, [step, tries, check, onPaid]);
 
+  // Une demande est en cours : fermer la page ferait croire à un échec et pousserait à payer une seconde fois.
+  useEffect(() => {
+    if (step !== "waiting") return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [step]);
+
   const timedOut = step === "waiting" && tries >= POLL_MAX;
   const net = NETWORKS.find((n) => n.id === network)!;
   const left = Math.max(0, (POLL_MAX - tries) * (POLL_MS / 1000));
@@ -218,7 +226,11 @@ export default function PaymentForm({
             <p className="mt-1 text-sm leading-6 text-sage">Une demande de <strong className="text-ink">{fcfa(amount)}</strong> a été envoyée au <strong className="text-ink">{maskedNumber || "numéro saisi"}</strong>.</p>
           </div>
 
-          <ol className="mt-6 space-y-3 rounded-xl border border-line bg-cream/60 p-4 text-sm leading-6 text-ink/85">
+          <p className="mt-5 rounded-xl border border-forest/25 bg-forest/5 px-3.5 py-3 text-sm leading-6 text-ink/90">
+            <strong>La confirmation peut prendre jusqu’à une minute.</strong> Gardez cette page ouverte et ne payez pas une seconde fois : elle se met à jour toute seule dès que {net.label} confirme.
+          </p>
+
+          <ol className="mt-4 space-y-3 rounded-xl border border-line bg-cream/60 p-4 text-sm leading-6 text-ink/85">
             <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-forest ring-1 ring-line">1</span> Un message (ou une notification) {net.label} apparaît sur votre téléphone.</li>
             <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-forest ring-1 ring-line">2</span> Saisissez votre <strong>code secret</strong> pour confirmer le paiement.</li>
           </ol>
@@ -230,7 +242,7 @@ export default function PaymentForm({
           </p>
 
           {timedOut ? (
-            <p className="mt-4 rounded-xl bg-cream px-3.5 py-3 text-sm text-ink/80">Toujours pas de confirmation. Si vous avez validé, patientez une minute ; sinon renvoyez la demande.</p>
+            <p className="mt-4 rounded-xl bg-cream px-3.5 py-3 text-sm text-ink/80">Toujours pas de confirmation. Si vous avez saisi votre code secret, patientez encore une minute : ne renvoyez pas la demande, vous risqueriez de payer deux fois. Renvoyez-la seulement si vous n’avez rien reçu du tout.</p>
           ) : (
             <p className="mt-4 flex items-center justify-center gap-2 text-sm text-sage"><Loader2 className="h-4 w-4 animate-spin" /> En attente de la confirmation · <Clock className="h-4 w-4" /> {clock}</p>
           )}
@@ -238,7 +250,7 @@ export default function PaymentForm({
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
             {(tries >= RESEND_AFTER || timedOut) && sentValues && (
               <button type="button" disabled={busy} onClick={() => void start(sentValues)} className="btn btn-outline btn-sm">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Renvoyer la demande
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Je n’ai rien reçu : renvoyer la demande
               </button>
             )}
             <button type="button" onClick={() => { done.current = true; setStep("form"); }} className="btn btn-outline btn-sm">Changer de numéro ou de réseau</button>
@@ -265,7 +277,7 @@ export default function PaymentForm({
           <div className="text-center">
             <XCircle className="mx-auto h-12 w-12 text-red-500" />
             <h3 className="mt-3 text-lg font-semibold text-ink">Paiement non abouti</h3>
-            <p className="mt-1 text-sm text-sage">Aucun montant n’a été débité.</p>
+            <p className="mt-1 text-sm text-sage">Aucun montant n’a été débité. Si vous avez pourtant validé avec votre code secret, attendez quelques minutes avant de réessayer : votre compte Premium s’activera automatiquement.</p>
           </div>
           <ul className="mt-5 list-disc space-y-1 rounded-xl border border-line bg-cream/60 py-3 pl-8 pr-4 text-sm leading-6 text-ink/80">
             <li>Solde insuffisant sur le compte {net.label}</li>
