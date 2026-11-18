@@ -1,5 +1,5 @@
 import {
-  Beer, BedDouble, Briefcase, Hammer, IdCard, Scissors, ShoppingBag, Stethoscope, UtensilsCrossed,
+  Beer, BedDouble, Briefcase, Hammer, IdCard, Scissors, ShoppingBag, UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 import type { LayoutId } from "./palette";
@@ -86,17 +86,6 @@ export const SECTORS: Sector[] = [
       infoTemplate: "Chambres calmes, réservation en direct\nClimatisation et Wi-Fi\nPetit-déjeuner inclus\nParking sécurisé\nNavette aéroport",
       menuLabel: "Photos des chambres et tarifs", menuHint: "Chambres, suites et grille des prix.",
       placeLabel: "Photos de l’établissement", placeHint: "Façade, piscine, restaurant.", scheduleHint: "Horaires de la réception.",
-    },
-  },
-  {
-    id: "clinique", label: "Clinique et cabinet", icon: Stethoscope, layout: "clinique",
-    copy: {
-      nameLabel: "Nom de la structure", namePlaceholder: "Moncode", addressPlaceholder: "Avenue Steinmetz, Cotonou",
-      infoLabel: "Spécialités et services", infoHint: "Une ligne par spécialité ou service. La 1re ligne sert d’accroche.",
-      infoPlaceholder: "Médecine générale\nPédiatrie\nLaboratoire d’analyses",
-      infoTemplate: "Prise de rendez-vous rapide par WhatsApp\nMédecine générale\nPédiatrie\nLaboratoire d’analyses\nUrgences 24 h/24",
-      menuLabel: "Photos des tarifs", menuHint: "Tarifs de consultation, documents à apporter.",
-      placeLabel: "Photos des locaux", placeHint: "Accueil, salles de soins.", scheduleHint: "Horaires de consultation.",
     },
   },
   {

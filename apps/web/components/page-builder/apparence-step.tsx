@@ -313,16 +313,15 @@ function LayoutThumb({ id, palette: p }: { id: LayoutId; palette: Palette }) {
           <rect x="41" y="76" width="32" height="18" fill={soft} />
         </>
       )}
-      {id === "clinique" && (
+      {id === "carte" && (
         <>
-          <rect width="80" height="6" fill="#d93636" />
-          <rect x="7" y="12" width="3" height="10" rx="1" fill={p.brand} />
-          <rect x="3.5" y="15.5" width="10" height="3" rx="1" fill={p.brand} />
-          <rect x="18" y="15" width="26" height="4" rx="2" fill={p.text} />
-          <rect x="7" y="30" width="38" height="6" rx="2" fill={p.text} />
-          <rect x="7" y="42" width="24" height="7" rx="3" fill={p.brand} />
-          <rect x="48" y="28" width="26" height="26" rx="4" fill={soft} stroke={line} />
-          {[0, 1, 2].map((i) => <rect key={i} x="7" y={62 + i * 10} width="66" height="7" rx="2" fill={soft} stroke={line} />)}
+          <rect width="80" height="30" fill={p.brand} />
+          <circle cx="40" cy="30" r="11" fill="#fff" stroke={line} strokeWidth="2" />
+          <rect x="22" y="46" width="36" height="5" rx="2" fill={p.text} />
+          <rect x="28" y="54" width="24" height="3" rx="1.5" fill={p.text} opacity=".5" />
+          <rect x="7" y="63" width="30" height="9" rx="3" fill={p.brand} />
+          <rect x="43" y="63" width="30" height="9" rx="3" fill="#fff" stroke={line} />
+          {[0, 1].map((i) => <rect key={i} x="7" y={77 + i * 11} width="66" height="8" rx="3" fill="#fff" stroke={line} />)}
         </>
       )}
       {id === "annuaire" && (

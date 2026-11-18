@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 import 'multer';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 
 /**
  * Filtre d'upload selon le champ :
@@ -80,3 +84,61 @@ export function assertFileSizes(files: Partial<Record<string, Express.Multer.Fil
     }
   }
 }
+
+
+/**
+ * Stockage des envois : les gros fichiers (`media`, `document`, jusqu'à 200 Mo) sont écrits sur disque au fil de l'eau,
+ * sans jamais tenir en mémoire ; les photos de page (12 Mo au plus) restent en mémoire car elles sont retravaillées (WebP).
+ * Un fichier sur disque porte `path` (et pas `buffer`) ; le service le lit et le supprime après stockage.
+ */
+const TEMP_DIR = path.join(os.tmpdir(), 'moncode-uploads');
+const TEMP_MAX_AGE_MS = 60 * 60 * 1000;
+let lastSweep = 0;
+
+/** Supprime les fichiers temporaires abandonnés (envoi interrompu, validation refusée) ; au plus une fois par minute. */
+function sweepTemp() {
+  const now = Date.now();
+  if (now - lastSweep < 60_000) return;
+  lastSweep = now;
+  fs.readdir(TEMP_DIR, (err, names) => {
+    if (err) return;
+    for (const name of names) {
+      const file = path.join(TEMP_DIR, name);
+      fs.stat(file, (e, st) => {
+        if (!e && now - st.mtimeMs > TEMP_MAX_AGE_MS) fs.unlink(file, () => {});
+      });
+    }
+  });
+}
+
+export const cardStorage = {
+  _handleFile(
+    _req: Request,
+    file: Express.Multer.File,
+    callback: (error?: unknown, info?: Partial<Express.Multer.File>) => void,
+  ) {
+    if (file.fieldname === 'media' || file.fieldname === 'document') {
+      fs.mkdirSync(TEMP_DIR, { recursive: true });
+      sweepTemp();
+      const filename = randomUUID();
+      const target = path.join(TEMP_DIR, filename);
+      const out = fs.createWriteStream(target);
+      file.stream.on('error', (e) => out.destroy(e));
+      out.on('error', (e) => fs.unlink(target, () => callback(e)));
+      out.on('finish', () => callback(null, { destination: TEMP_DIR, filename, path: target, size: out.bytesWritten }));
+      file.stream.pipe(out);
+      return;
+    }
+    const chunks: Buffer[] = [];
+    file.stream.on('data', (c: Buffer) => chunks.push(c));
+    file.stream.on('error', (e) => callback(e));
+    file.stream.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      callback(null, { buffer, size: buffer.length });
+    });
+  },
+  _removeFile(_req: Request, file: Express.Multer.File, callback: (error: Error | null) => void) {
+    if (file.path) fs.unlink(file.path, () => callback(null));
+    else callback(null);
+  },
+};

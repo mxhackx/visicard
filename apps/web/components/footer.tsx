@@ -82,7 +82,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 py-5 pb-20 max-sm:items-center max-sm:text-center text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:pb-6 sm:text-sm">
+        <div className="flex flex-col gap-2 py-5 max-sm:items-center max-sm:text-center text-xs text-sage sm:flex-row sm:items-center sm:justify-between sm:py-6 sm:text-sm">
           <p>© {new Date().getFullYear()} {CONTACT.brand}. Tous droits réservés.</p>
           <CookieSettingsLink className="font-medium transition-colors hover:text-forest" />
         </div>

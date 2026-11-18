@@ -61,16 +61,6 @@ export const EXAMPLES: Partial<Record<LayoutId, ExampleContent>> = {
     tones: ["#23403a", "#a88a5a"],
     menuLabels: ["Chambre standard", "Suite"],
   },
-  clinique: {
-    restaurantName: "Moncode",
-    tagline: "Vos consultations, vos horaires et vos consignes patients.",
-    address: "Cotonou, Bénin",
-    phoneNumber: "+22959831293",
-    additionalInfo: "Médecine générale\nPédiatrie\nLaboratoire d’analyses\nUrgences 24 h/24",
-    schedule: week("07:30", "20:00", true),
-    tones: ["#00796b", "#2dd4bf"],
-    menuLabels: ["Tarifs consultations"],
-  },
   carte: {
     restaurantName: "Moncode",
     tagline: "Votre carte de visite numérique.",

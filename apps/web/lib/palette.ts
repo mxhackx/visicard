@@ -25,7 +25,7 @@ export interface Palette {
 
 export type LayoutId =
   | "classic" | "maps" | "minimal" | "premium" | "saas" | "exoticas"
-  | "maquis" | "beaute" | "boutique" | "hotel" | "clinique" | "chantier" | "carte" | "annuaire";
+  | "maquis" | "beaute" | "boutique" | "hotel" | "chantier" | "carte" | "annuaire";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -96,7 +96,6 @@ export const LAYOUT_DEFAULTS: Record<LayoutId, Palette> = {
   beaute: { brand: "#3b2620", accent: "#b88a4a", surface: "#f3e3dd", text: "#3b2620" },
   boutique: { brand: "#000000", accent: "#f05a28", surface: "#ffffff", text: "#000000" },
   hotel: { brand: "#23403a", accent: "#a88a5a", surface: "#e7ebe6", text: "#1e2422" },
-  clinique: { brand: "#00796b", accent: "#2dd4bf", surface: "#ffffff", text: "#102a2a" },
   chantier: { brand: "#ff6b00", accent: "#ff6b00", surface: "#e4e4df", text: "#2c3036" },
   carte: { brand: "#c81d25", accent: "#17171a", surface: "#ffffff", text: "#17171a" },
   annuaire: { brand: "#c81d25", accent: "#f6c200", surface: "#ffffff", text: "#1c1917" },

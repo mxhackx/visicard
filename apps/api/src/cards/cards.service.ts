@@ -135,31 +135,37 @@ export class CardsService {
   ): Promise<{ url: string; type: string; name: string }> {
     const safeOriginalName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
     const fileName = `${prefix}-${Date.now()}-${safeOriginalName}`;
+    // Gros fichiers : déjà sur disque (jamais en mémoire) ; photos : en mémoire.
+    const onDisk = file.path;
+    try {
+      if (this.supabase) {
+        const body = onDisk ? await fs.openAsBlob(onDisk, { type: file.mimetype }) : file.buffer;
+        const { error: uploadError } = await this.supabase.storage
+          .from(this.bucketName)
+          .upload(fileName, body, {
+            contentType: file.mimetype,
+            upsert: true,
+          });
 
-    if (this.supabase) {
-      const { error: uploadError } = await this.supabase.storage
-        .from(this.bucketName)
-        .upload(fileName, file.buffer, {
-          contentType: file.mimetype,
-          upsert: true,
-        });
+        if (uploadError) {
+          this.logger.error(`Erreur upload Supabase (fichier brut): ${uploadError.message}`);
+          throw new BadRequestException('Échec du stockage du fichier. Veuillez réessayer.');
+        }
 
-      if (uploadError) {
-        this.logger.error(`Erreur upload Supabase (fichier brut): ${uploadError.message}`);
-        throw new BadRequestException('Échec du stockage du fichier. Veuillez réessayer.');
+        const { data } = this.supabase.storage.from(this.bucketName).getPublicUrl(fileName);
+        return { url: data.publicUrl, type: file.mimetype, name: file.originalname };
       }
 
-      const { data } = this.supabase.storage.from(this.bucketName).getPublicUrl(fileName);
-      return { url: data.publicUrl, type: file.mimetype, name: file.originalname };
-    }
-
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    await fs.promises.mkdir(uploadsDir, { recursive: true });
-    const filePath = path.join(uploadsDir, fileName);
-    await fs.promises.writeFile(filePath, file.buffer);
-    const apiUrl = process.env.API_URL ?? 'http://localhost:5500';
-
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      await fs.promises.mkdir(uploadsDir, { recursive: true });
+      const filePath = path.join(uploadsDir, fileName);
+      if (onDisk) await fs.promises.copyFile(onDisk, filePath);
+      else await fs.promises.writeFile(filePath, file.buffer);
+      const apiUrl = process.env.API_URL ?? 'http://localhost:5500';
     return { url: `${apiUrl}/uploads/${fileName}`, type: file.mimetype, name: file.originalname };
+    } finally {
+      if (onDisk) await fs.promises.unlink(onDisk).catch(() => {});
+    }
   }
 
   /**

@@ -25,7 +25,7 @@ import 'multer';
 import { CardsService } from './cards.service';
 import { AuthService } from '../auth/auth.service';
 import { sendQrToOwner } from '../account/notify';
-import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from './card-files';
+import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter, cardStorage } from './card-files';
 
 export class UpdateCardDto {
   serviceType?: string;
@@ -157,7 +157,7 @@ export class CardsController {
       { name: 'media', maxCount: 1 },
       { name: 'document', maxCount: 1 },
     ], {
-      limits: CARD_UPLOAD_LIMITS,
+      limits: CARD_UPLOAD_LIMITS, storage: cardStorage,
       fileFilter: cardFileFilter,
     })
   )
@@ -234,7 +234,7 @@ export class CardsController {
       { name: 'media', maxCount: 1 },
       { name: 'document', maxCount: 1 },
     ], {
-      limits: CARD_UPLOAD_LIMITS,
+      limits: CARD_UPLOAD_LIMITS, storage: cardStorage,
       fileFilter: cardFileFilter,
     })
   )
@@ -371,7 +371,7 @@ export class CardsController {
 
   @Patch(':slug')
   @UseInterceptors(
-    FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, fileFilter: cardFileFilter }),
+    FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, storage: cardStorage, fileFilter: cardFileFilter }),
   )
   async updateCard(
     @Req() req: Request,

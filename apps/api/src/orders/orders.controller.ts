@@ -20,7 +20,7 @@ import { OrdersService, type OrderAccess } from './orders.service';
 import { FeexpayService } from './payments/feexpay.service';
 import { PremiumService } from './premium.service';
 import { AuthService } from '../auth/auth.service';
-import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter } from '../cards/card-files';
+import { CARD_FILE_FIELDS, CARD_UPLOAD_LIMITS, cardFileFilter, cardStorage } from '../cards/card-files';
 import type { CardMetadata, UploadedCardFiles } from '../cards/cards.service';
 
 type FilesBody = Partial<Record<'file' | 'logo' | 'menu' | 'place' | 'media' | 'document', Express.Multer.File[]>>;
@@ -84,7 +84,7 @@ export class OrdersController {
 
   @Post()
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
-  @UseInterceptors(FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, fileFilter: cardFileFilter }))
+  @UseInterceptors(FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, storage: cardStorage, fileFilter: cardFileFilter }))
   async create(
     @Req() req: Request,
     @UploadedFiles() files: FilesBody,
@@ -140,7 +140,7 @@ export class OrdersController {
 
   @Post(':reference/modifications')
   @Throttle({ short: { limit: 5, ttl: 60_000 } })
-  @UseInterceptors(FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, fileFilter: cardFileFilter }))
+  @UseInterceptors(FileFieldsInterceptor(CARD_FILE_FIELDS, { limits: CARD_UPLOAD_LIMITS, storage: cardStorage, fileFilter: cardFileFilter }))
   async modify(
     @Req() req: Request,
     @Param('reference') reference: string,

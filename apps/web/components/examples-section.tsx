@@ -19,7 +19,6 @@ const SHORT: Record<string, string> = {
   beaute: "Salon",
   boutique: "Boutique",
   hotel: "Hôtel",
-  clinique: "Clinique",
   chantier: "Quincaillerie",
   carte: "Carte de visite",
 };

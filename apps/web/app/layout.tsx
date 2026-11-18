@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { FileProvider } from "./context/FileContext";
 import WhatsAppButton from "@/components/whatsapp-button";
+import ApiWarmup from "@/components/api-warmup";
 import ScrollProgress from "@/components/scroll-progress";
 import RevealObserver from "@/components/reveal-observer";
 import GoogleOneTap from "@/components/account/google-one-tap";
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DialogsProvider>
             <ScrollProgress />
             <RevealObserver />
+            <ApiWarmup />
             <GoogleOneTap />
             <CookieBanner />
             {children}

@@ -12,14 +12,13 @@ import MaquisTheme from "@/components/card-themes/maquis-theme";
 import BeauteTheme from "@/components/card-themes/beaute-theme";
 import BoutiqueTheme from "@/components/card-themes/boutique-theme";
 import HotelTheme from "@/components/card-themes/hotel-theme";
-import CliniqueTheme from "@/components/card-themes/clinique-theme";
 import ChantierTheme from "@/components/card-themes/chantier-theme";
 import AnnuaireTheme from "@/components/card-themes/annuaire-theme";
 import type { CardThemeProps } from "@/components/card-themes/kit";
 import { paletteFor, paletteVars } from "@/lib/palette";
 
 interface RestaurantCardLayoutProps extends CardThemeProps {
-  /** classic · maps (Couverture) · minimal · premium (Avant-garde) · saas · exoticas · maquis · beaute · boutique · hotel · clinique · chantier */
+  /** classic · maps (Couverture) · minimal · premium (Avant-garde) · saas · exoticas · maquis · beaute · boutique · hotel · chantier */
   layout?: string;
   /** Palette : `custom#…` (couleurs libres), ancien `theme-N`, ou vide (palette de la disposition). */
   themeId?: string;
@@ -35,7 +34,6 @@ const THEMES = {
   beaute: BeauteTheme,
   boutique: BoutiqueTheme,
   hotel: HotelTheme,
-  clinique: CliniqueTheme,
   chantier: ChantierTheme,
   carte: CarteTheme,
   annuaire: AnnuaireTheme,
