@@ -12,6 +12,8 @@ import PayButton from "@/components/payment/pay-button";
 import CreateAction, { useAccountContact } from "@/components/account/create-action";
 import { InformationsBody } from "@/components/page-builder/informations-step";
 import PreviewPopover from "@/components/page-builder/preview-popover";
+import QrDesigner from "@/components/qr/qr-designer";
+import { paletteFor } from "@/lib/palette";
 import { AppearanceSections, PagePreview } from "@/components/page-builder/apparence-step";
 import { createOrder, rememberOrder } from "@/lib/orders";
 import { PREMIUM_PRICE, usePremium, useTrial } from "@/lib/premium";
@@ -62,7 +64,11 @@ export default function PageCreator() {
             <AppearanceSections />
           </Step>
 
-          <Step id="qr-final" n={3} title="Créer ma page">
+          <Step id="qr-design" n={3} title="Design du QR code">
+            <QrStep />
+          </Step>
+
+          <Step id="qr-final" n={4} title="Créer ma page">
             <PageOrder validate={() => validate.current()} />
           </Step>
         </div>
@@ -73,6 +79,18 @@ export default function PageCreator() {
         </aside>
       </div>
     </section>
+  );
+}
+
+/** Style du QR code de la page (couleurs, formes, logo) : enregistré avec la page, modifiable ensuite. */
+function QrStep() {
+  const { customization, restaurantInfo, setQrStyle } = useFile();
+  const brand = paletteFor(customization.themeId, customization.cardLayout).brand;
+  return (
+    <>
+      <p className="mb-5 text-sm leading-6 text-sage">Personnalisez le QR code qui ouvrira votre page. Vous pourrez le télécharger après la création.</p>
+      <QrDesigner value={customization.qrStyle} onChange={setQrStyle} logoUrl={restaurantInfo.logoPreview} brandColor={brand} />
+    </>
   );
 }
 
