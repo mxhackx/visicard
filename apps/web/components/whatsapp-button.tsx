@@ -13,6 +13,8 @@ export default function WhatsAppButton() {
   const premium = usePremium();
   const { openPremium } = useDialogs();
   const path = usePathname() || "/";
+  // Pages publiques des clients (/c/…) : aucun bouton Moncode, la page appartient à son propriétaire.
+  if (path.startsWith("/c/")) return null;
   const showPremium = premium.ready && !premium.active && !MASQUE.some((p) => path.startsWith(p));
 
   return (
