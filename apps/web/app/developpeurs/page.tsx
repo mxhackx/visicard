@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import CodeTabs from "@/components/code-tabs";
-import { Crown, KeyRound, Link2, Mail, MapPin, MessageSquare, Phone, Type, Wifi, ArrowRight } from "lucide-react";
+import { Crown, KeyRound, Link2, Mail, MapPin, MessageSquare, Phone, Type, Wifi, ArrowRight, CalendarDays, IdCard, FileJson, ImagePlus, RefreshCw, Workflow } from "lucide-react";
 import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -25,6 +25,8 @@ const TYPES: { id: string; fields: string; premium: boolean; icon: typeof Link2 
   { id: "sms", fields: "phone, message", premium: true, icon: MessageSquare },
   { id: "email", fields: "to, subject, body", premium: true, icon: Mail },
   { id: "geo", fields: "lat, lng", premium: true, icon: MapPin },
+  { id: "vcard", fields: "firstName, lastName, org, title, mobile, work, email, website, address", premium: true, icon: IdCard },
+  { id: "event", fields: "title, start, end (AAAA-MM-JJTHH:MM), location, description", premium: true, icon: CalendarDays },
 ];
 
 const OPTIONS: [string, string, string][] = [
@@ -33,6 +35,8 @@ const OPTIONS: [string, string, string][] = [
   ["margin", "0 à 10 (modules)", "2"],
   ["fg / bg", "couleurs hexadécimales, ex. #e3051d", "#111827 / #ffffff"],
   ["ecc", "L, M, Q ou H (correction d’erreur)", "M"],
+  ["logo", "adresse https publique ou data URL base64 (png, jpeg, webp ; 2 Mo)", "—"],
+  ["style", "{ fg, bg } : mêmes couleurs que sur le site", "—"],
   ["encoding", "json pour recevoir une data URL au lieu du fichier", "—"],
 ];
 
@@ -41,6 +45,50 @@ const ERRORS: [string, string, string][] = [
   ["401", "Clé refusée", "Clé absente, invalide ou révoquée."],
   ["402", "Premium requis", "Ce contenu est réservé aux comptes Premium (tout sauf les liens). La réponse renvoie upgradeUrl, le lien du paiement (5 000 FCFA par Mobile Money)."],
   ["429", "Trop de requêtes", "Quota mensuel atteint ou trop d’appels à la minute."],
+];
+
+const JSON_CREATE = `{
+  "type": "wifi",
+  "title": "Wi-Fi de la terrasse",
+  "data": { "ssid": "Moncode", "password": "motdepasse", "security": "WPA" },
+  "style": { "fg": "#c81d25", "bg": "#ffffff" },
+  "logo": "https://votre-site.com/logo.png"
+}`;
+
+const JSON_EXAMPLES = [
+  {
+    id: "creer",
+    label: "Créer",
+    language: "curl",
+    code: `curl -X POST ${BASE}/v1/codes \\
+  -H "X-API-Key: mck_live_votre_cle" \\
+  -H "Content-Type: application/json" \\
+  -d '${JSON_CREATE.replace(/\n\s*/g, " ")}'`,
+  },
+  {
+    id: "reponse",
+    label: "Réponse",
+    language: "JSON",
+    code: `{
+  "slug": "k3x9a2bq",
+  "created": true,
+  "type": "wifi",
+  "payload": "WIFI:T:WPA;S:Moncode;P:motdepasse;;",
+  "linkUrl": "https://www.moncode.bj/c/k3x9a2bq",
+  "editUrl": "https://www.moncode.bj/compte/qr/k3x9a2bq/modifier",
+  "qr": { "link": "data:image/png;base64,…", "content": "data:image/png;base64,…" }
+}`,
+  },
+  {
+    id: "modifier",
+    label: "Modifier",
+    language: "curl",
+    code: `# Le linkUrl (et son QR code imprimé) ne change pas : seul le contenu est remplacé.
+curl -X PATCH ${BASE}/v1/codes/k3x9a2bq \\
+  -H "X-API-Key: mck_live_votre_cle" \\
+  -H "Content-Type: application/json" \\
+  -d '{"type":"wifi","data":{"ssid":"Moncode","password":"nouveaumdp"}}'`,
+  },
 ];
 
 const EXAMPLES = [
@@ -171,6 +219,53 @@ export default function DeveloppeursPage() {
         </div>
       </Band>
 
+      <Band id="json">
+        <SectionHead title="Un seul JSON" subtitle="Le même que « Charger un JSON » sur le site : une requête, un QR code modifiable." />
+        <div className="mt-12 grid gap-4 sm:grid-cols-3">
+          {([
+            [FileJson, "Un seul corps JSON", "type, data, style, logo, title : rien d’autre à assembler, pas de formulaire à construire."],
+            [RefreshCw, "Un lien qui ne change jamais", "POST /v1/codes crée le QR code. PATCH /v1/codes/{slug} remplace son contenu : le QR code imprimé continue de fonctionner."],
+            [Workflow, "Prêt pour le no-code", "Make, Zapier, n8n : un module HTTP, la méthode POST, l’en-tête X-API-Key et le JSON en corps brut."],
+          ] as const).map(([Icon, t, d]) => (
+            <div key={t} className="rounded-2xl border border-line bg-white p-5 shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+              <span className="icon-tile h-11 w-11"><Icon className="h-5 w-5" /></span>
+              <p className="mt-4 font-semibold text-ink">{t}</p>
+              <p className="mt-1 text-sm leading-6 text-sage">{d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mx-auto mt-10 max-w-3xl">
+          <CodeTabs tabs={JSON_EXAMPLES} />
+        </div>
+        <div className="mx-auto mt-8 flex max-w-3xl items-start gap-4 rounded-2xl border border-line bg-white p-5 text-left shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+          <span className="icon-tile h-11 w-11 shrink-0"><ImagePlus className="h-5 w-5" /></span>
+          <div className="min-w-0 text-sm leading-6 text-sage">
+            <p className="font-semibold text-ink">Et les logos ?</p>
+            <p className="mt-1">Envoyez <code>logo</code> comme adresse https publique ou comme data URL base64 : l’image (png, jpeg ou webp, 2 Mo au plus) est posée au centre du QR code, dans les images de <code>/v1/qr</code> et de <code>/v1/codes</code>. Les formes des points et des coins se règlent depuis le site. Les pages digitales (photos, menu) ne se créent pas encore par l’API : utilisez le site, où le même JSON se charge d’un clic.</p>
+          </div>
+        </div>
+        <div className="mx-auto mt-6 max-w-3xl overflow-x-auto rounded-2xl border border-line bg-white p-5 text-sm shadow-[0_10px_28px_rgba(23,23,26,0.05)]">
+          <p className="font-semibold text-ink">Routes</p>
+          <table className="mt-3 w-full min-w-[30rem] text-left">
+            <tbody className="divide-y divide-line">
+              {[
+                ["POST", "/v1/qr", "Image du QR code (png, svg ou data URL), sans l’enregistrer"],
+                ["POST", "/v1/codes", "Crée un QR code enregistré dans votre compte"],
+                ["GET", "/v1/codes/{slug}", "Lit un QR code de votre compte"],
+                ["PATCH", "/v1/codes/{slug}", "Change son contenu, son lien reste le même"],
+                ["GET", "/v1/usage", "Votre quota du mois"],
+              ].map(([m, r, d]) => (
+                <tr key={m + r}>
+                  <td className="py-2.5 pr-3"><span className="rounded-md bg-forest px-2 py-0.5 text-xs font-bold text-white">{m}</span></td>
+                  <td className="py-2.5 pr-4 font-mono text-ink">{r}</td>
+                  <td className="py-2.5 text-sage">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Band>
+
       <Band id="types">
         <SectionHead title="Tous vos contenus" subtitle="Un type pour chaque usage : lien, Wi-Fi, appel, e-mail, position…" />
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
@@ -213,7 +308,7 @@ export default function DeveloppeursPage() {
             </li>
           ))}
         </ul>
-        <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-sage">Les QR codes générés par l’API sont statiques : ils fonctionnent sans Moncode et ne sont ni stockés ni modifiables.</p>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-sage">Les images de /v1/qr sont statiques : elles fonctionnent sans Moncode et ne sont pas stockées. Pour un QR code modifiable, utilisez /v1/codes (ci-dessus).</p>
       </Band>
 
       {/* Appel à l'action final */}

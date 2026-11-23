@@ -1,10 +1,14 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import * as QRCode from 'qrcode';
 import { primaryAppUrl } from '../app-url';
 import { ApiKeyGuard, type ApiRequest } from './api-key.guard';
 import { buildPayload } from './payloads';
+import { encodeDirect, isDirectType } from './direct-payload';
+import { loadLogo, overlayLogo, overlayLogoSvg } from './logo';
+import { CardsService } from '../cards/cards.service';
+import { normalizeQrStyle } from '../cards/qr-style';
 import { DevelopersService } from './developers.service';
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -14,7 +18,10 @@ const HEX = /^#[0-9a-f]{6}$/i;
 @UseGuards(ApiKeyGuard)
 @SkipThrottle({ short: true, default: true })
 export class V1Controller {
-  constructor(private readonly developers: DevelopersService) {}
+  constructor(
+    private readonly developers: DevelopersService,
+    private readonly cards: CardsService,
+  ) {}
 
   /** Informations sur la clé utilisée et son quota du mois. */
   @Get('usage')
@@ -42,39 +49,124 @@ export class V1Controller {
     return this.render(body ?? {}, req, res);
   }
 
-  private async render(input: Record<string, unknown>, req: ApiRequest, res: Response) {
+  /** Contenu du QR code : écriture JSON du site (`type` + `data`), ou champs à plat (ancienne écriture). */
+  private resolve(input: Record<string, unknown>): { type: string; payload: string } {
     const type = typeof input.type === 'string' && input.type ? input.type : 'url';
+    const nested = typeof input.data === 'object' && input.data !== null && !Array.isArray(input.data);
+    if (isDirectType(type) && (nested || type === 'vcard' || type === 'event')) {
+      return { type, payload: encodeDirect(type, (nested ? input.data : input) as Record<string, unknown>) };
+    }
+    if (type === 'vcard' || type === 'event') throw new BadRequestException('Champ « data » attendu.');
+    return { type, payload: buildPayload(type, input) };
+  }
+
+  private async gate(req: ApiRequest, type: string) {
     if (!(await this.developers.canGenerate(req.apiKey!, type))) {
       throw new HttpException(
         {
           statusCode: 402,
           error: 'Payment Required',
-          message: 'Les liens (type=url) sont gratuits ; les autres contenus (wifi, tel, sms, email, geo, text…) exigent un compte Premium.',
+          message: 'Les liens (type=url) sont gratuits ; les autres contenus (wifi, tel, sms, email, geo, vcard, event, text…) exigent un compte Premium.',
           /** Où activer Premium (5 000 FCFA, Mobile Money) : le compte, pas la clé, porte l'offre. */
           upgradeUrl: `${primaryAppUrl()}/paiement?suite=%2Fdeveloppeurs`,
         },
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
-    const payload = buildPayload(type, input);
-    const format = input.format === 'svg' ? 'svg' : 'png';
+  }
+
+  /** Couleurs : `style.fg` / `style.bg` (écriture du site) ou `fg` / `bg` à plat. */
+  private colors(input: Record<string, unknown>) {
+    const style = typeof input.style === 'object' && input.style !== null ? (input.style as Record<string, unknown>) : {};
+    const pick = (a: unknown, b: unknown, d: string) => (typeof a === 'string' && HEX.test(a) ? a : typeof b === 'string' && HEX.test(b) ? b : d);
+    return { fg: pick(style.fg, input.fg, '#111827'), bg: pick(style.bg, input.bg, '#ffffff'), style };
+  }
+
+  /** Dessine le QR code (couleurs et logo). Les formes des points et des coins sont réservées aux téléchargements du site. */
+  private async draw(payload: string, input: Record<string, unknown>, format: 'png' | 'svg', logo: Buffer | null) {
     const size = Math.min(2000, Math.max(100, Number(input.size) || 512));
     const margin = Math.min(10, Math.max(0, input.margin === undefined ? 2 : Number(input.margin) || 0));
-    const fg = typeof input.fg === 'string' && HEX.test(input.fg) ? input.fg : '#111827';
-    const bg = typeof input.bg === 'string' && HEX.test(input.bg) ? input.bg : '#ffffff';
-    const ecc = ['L', 'M', 'Q', 'H'].includes(String(input.ecc)) ? (String(input.ecc) as 'L' | 'M' | 'Q' | 'H') : 'M';
+    const { fg, bg } = this.colors(input);
+    const wanted = ['L', 'M', 'Q', 'H'].includes(String(input.ecc)) ? (String(input.ecc) as 'L' | 'M' | 'Q' | 'H') : 'M';
+    const ecc = logo ? 'H' : wanted; // un logo masque le centre : correction maximale
     const options = { width: size, margin, errorCorrectionLevel: ecc, color: { dark: fg, light: bg } } as const;
-
     try {
       if (format === 'svg') {
-        res.type('image/svg+xml').send(await QRCode.toString(payload, { ...options, type: 'svg' }));
-      } else if (input.encoding === 'base64' || input.encoding === 'json') {
-        res.json({ type, payload, format: 'png', dataUrl: await QRCode.toDataURL(payload, options) });
-      } else {
-        res.type('image/png').send(await QRCode.toBuffer(payload, { ...options, type: 'png' }));
+        const svg = await QRCode.toString(payload, { ...options, type: 'svg' });
+        return logo ? overlayLogoSvg(svg, logo) : svg;
       }
-    } catch {
+      const png = await QRCode.toBuffer(payload, { ...options, type: 'png' });
+      return logo ? await overlayLogo(png, logo, size) : png;
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
       throw new BadRequestException('Contenu trop long pour un QR code.');
     }
+  }
+
+  private async render(input: Record<string, unknown>, req: ApiRequest, res: Response) {
+    const type = typeof input.type === 'string' && input.type ? input.type : 'url';
+    await this.gate(req, type);
+    const { payload } = this.resolve(input);
+    const logo = input.logo ? await loadLogo(input.logo) : null;
+    const format = input.format === 'svg' ? 'svg' : 'png';
+    const out = await this.draw(payload, input, format, logo);
+    if (format === 'svg') res.type('image/svg+xml').send(out as string);
+    else if (input.encoding === 'base64' || input.encoding === 'json') {
+      res.json({ type, payload, format: 'png', dataUrl: `data:image/png;base64,${(out as Buffer).toString('base64')}` });
+    } else res.type('image/png').send(out as Buffer);
+  }
+
+  private urls(slug: string) {
+    const app = primaryAppUrl();
+    return { linkUrl: `${app}/c/${slug}`, editUrl: `${app}/compte/qr/${slug}/modifier` };
+  }
+
+  /**
+   * Crée un QR code enregistré dans le compte de la clé : un QR code « lien » (`linkUrl`) qui ne change jamais,
+   * et le contenu qu'il ouvre, modifiable ensuite par `PATCH /v1/codes/{slug}` avec le même JSON.
+   */
+  @Post('codes')
+  @HttpCode(200)
+  async createCode(@Body() body: Record<string, unknown>, @Req() req: ApiRequest) {
+    const input = body ?? {};
+    const type = typeof input.type === 'string' && input.type ? input.type : 'url';
+    await this.gate(req, type);
+    const { payload } = this.resolve(input);
+    const { fg, bg, style } = this.colors(input);
+    const qrStyle = normalizeQrStyle(JSON.stringify({ ...style, fg, bg }));
+    const logo = input.logo ? await loadLogo(input.logo) : null;
+    const k = req.apiKey!;
+    const title = typeof input.title === 'string' ? input.title : undefined;
+    const saved = await this.cards.createDirect({ id: k.userId, role: k.admin ? 'admin' : 'user' }, { payload, qrStyle, title });
+    const { linkUrl, editUrl } = this.urls(saved.slug);
+    const png = async (data: string) => `data:image/png;base64,${((await this.draw(data, input, 'png', logo)) as Buffer).toString('base64')}`;
+    return { slug: saved.slug, created: saved.saved, type, payload, linkUrl, editUrl, qr: { link: await png(linkUrl), content: await png(payload) } };
+  }
+
+  /** Lit un QR code du compte de la clé. */
+  @Get('codes/:slug')
+  async readCode(@Param('slug') slug: string, @Req() req: ApiRequest) {
+    const k = req.apiKey!;
+    const card = await this.cards.findOwnedBy(slug, k.userId, k.admin);
+    return { slug, title: card.title, payload: card.contentUrl, status: card.status, ...this.urls(slug) };
+  }
+
+  /** Modifie le contenu (et le nom) d'un QR code : son `linkUrl` ne change pas. Même JSON que pour la création. */
+  @Patch('codes/:slug')
+  async updateCode(@Param('slug') slug: string, @Body() body: Record<string, unknown>, @Req() req: ApiRequest) {
+    const input = body ?? {};
+    const k = req.apiKey!;
+    const hasContent = input.data !== undefined || input.type !== undefined;
+    let payload: string | undefined;
+    if (hasContent) {
+      const { type, payload: p } = this.resolve(input);
+      await this.gate(req, type);
+      payload = p;
+    }
+    const saved = await this.cards.updateDirect({ id: k.userId, role: k.admin ? 'admin' : 'user' }, slug, {
+      payload,
+      title: typeof input.title === 'string' ? input.title : undefined,
+    });
+    return { ...saved, ...this.urls(slug) };
   }
 }
