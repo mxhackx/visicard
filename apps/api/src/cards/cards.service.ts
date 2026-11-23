@@ -223,6 +223,43 @@ export class CardsService {
     return { slug: created.slug, saved: true, draft: asDraft };
   }
 
+  /**
+   * Modifie le contenu d'un QR code « direct » de son propriétaire : le lien de relais (/c/slug) ne change jamais,
+   * seul ce qu'il affiche ou ouvre est mis à jour. Un contenu autre qu'un lien web exige Premium (ou administrateur).
+   */
+  async updateDirect(
+    user: { id: string; role?: string },
+    slug: string,
+    input: { payload?: string; title?: string },
+  ) {
+    const admin = user.role === 'admin';
+    const card = await this.findOwnedBy(slug, user.id, admin);
+    if (card.serviceType !== 'direct') throw new BadRequestException('Seuls les QR codes à contenu direct se modifient ici.');
+    const data: Prisma.CardUpdateInput = {};
+    if (input.payload !== undefined) {
+      const payload = input.payload.trim();
+      if (!payload || payload.length > 1500) throw new BadRequestException('Contenu du QR code manquant ou trop long.');
+      if (!/^https?:\/\/\S+$/i.test(payload) && !admin) {
+        const owner = await this.prisma.adminUser.findUnique({ where: { id: user.id }, select: { premiumUntil: true } });
+        if (!(owner?.premiumUntil && owner.premiumUntil.getTime() > Date.now())) {
+          throw new ForbiddenException('Ce contenu exige un compte Premium : seuls les liens sont gratuits.');
+        }
+      }
+      data.contentUrl = payload;
+      data.imageUrl = payload;
+    }
+    if (input.title !== undefined) {
+      const title = input.title.trim().slice(0, 80);
+      if (title) {
+        data.title = title;
+        data.clientName = title;
+      }
+    }
+    if (!Object.keys(data).length) throw new BadRequestException('Rien à modifier.');
+    const saved = await this.prisma.card.update({ where: { slug }, data });
+    return { slug: saved.slug, payload: saved.contentUrl, title: saved.title };
+  }
+
   async createCard(
     files: UploadedCardFiles,
     metadata?: CardMetadata,

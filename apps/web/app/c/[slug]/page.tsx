@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Catalog, RequestMode } from "@/lib/business";
+import DirectRelay from "@/components/card-page/direct-relay";
 import BusinessSections from "@/components/card-page/business-sections";
 
 interface CardData {
@@ -139,6 +140,9 @@ export default function CardViewPage() {
       </div>
     );
   }
+
+  // QR code à contenu direct : le lien de relais montre ou ouvre ce que le propriétaire a saisi (modifiable depuis son compte).
+  if (card.serviceType === "direct" && card.contentUrl) return <DirectRelay payload={card.contentUrl} />;
 
   const serviceType = (card.serviceType ?? "page") as "page" | "media" | "document";
 

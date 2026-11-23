@@ -144,6 +144,27 @@ export class CardsController {
     return this.cardsService.createDirect(user, body ?? {});
   }
 
+  /** Modifie le contenu d'un QR code direct de son compte ; son lien de relais (/c/slug) reste le même. */
+  @Patch(':slug/direct')
+  @Throttle({ short: { limit: 20, ttl: 60_000 } })
+  async updateDirect(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Param('slug') slug: string,
+    @Body() body: { payload?: string; title?: string },
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = cookieOf(req, 'access_token');
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || !session.user) throw new UnauthorizedException('Connexion requise.');
+    const b = body ?? {};
+    return this.cardsService.updateDirect(
+      { id: session.user.id, role: session.user.role },
+      slug,
+      { payload: typeof b.payload === 'string' ? b.payload : undefined, title: typeof b.title === 'string' ? b.title : undefined },
+    );
+  }
+
   /**
    * Création de carte d'intervention (Protégée)
    */

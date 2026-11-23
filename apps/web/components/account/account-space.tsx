@@ -12,6 +12,7 @@ import { PREMIUM_PRICE, usePremium } from "@/lib/premium";
 import { formatPhone, toPhone } from "./auth-form";
 import { STATUS_LABELS, fcfa, formatDate } from "@/lib/orders";
 import StyledQr from "@/components/qr/styled-qr";
+import { SITE_URL } from "@/lib/site";
 import SendQrButton from "./send-qr-button";
 import ScanStatsPanel from "./scan-stats";
 import DataPrivacy from "./data-privacy";
@@ -200,9 +201,10 @@ export default function AccountSpace() {
                     <span className="icon-tile h-11 w-11 shrink-0"><QrCode className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink">{o.title}</span>
-                      <span className="block text-xs text-sage">Lien gratuit · {formatDate(o.createdAt)} · contenu inscrit dans le QR code (non modifiable)</span>
+                      <span className="block text-xs text-sage">Lien gratuit · {formatDate(o.createdAt)} · contenu inscrit dans le QR code</span>
                     </span>
                     <StyledQr data={o.payload} style={o.qrStyle} downloadName={`moncode-${o.slug}`} hideQr className="w-full sm:w-44" />
+                    {o.slug && <DirectLinkPanel slug={o.slug} qrStyle={o.qrStyle} />}
                     {o.slug && <div className="w-full"><SendQrButton slug={o.slug} /></div>}
                   </li>
                 );
@@ -234,6 +236,7 @@ export default function AccountSpace() {
                     <ArrowRight className="hidden h-4 w-4 shrink-0 text-sage sm:block" />
                   </Link>
                   {o.slug && o.status === "paid" && (
+                    <>
                     <div className="ml-1 flex flex-wrap items-center gap-x-5 gap-y-1">
                       <SendQrButton slug={o.slug} />
                       {o.serviceType !== "direct" && o.cardStatus === "active" && (
@@ -242,6 +245,8 @@ export default function AccountSpace() {
                         </Link>
                       )}
                     </div>
+                    {o.serviceType === "direct" && o.cardStatus === "active" && <DirectLinkPanel slug={o.slug} qrStyle={o.qrStyle} />}
+                    </>
                   )}
                 </li>
               );
@@ -253,6 +258,22 @@ export default function AccountSpace() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** QR code « lien » d'un contenu direct (il pointe vers /c/slug et ne change jamais) et accès à la modification des infos. */
+function DirectLinkPanel({ slug, qrStyle }: { slug: string; qrStyle?: string | null }) {
+  return (
+    <div className="mt-2 flex w-full flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-cream/50 p-3">
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="text-sm font-semibold text-ink">QR code lien <span className="font-normal text-sage">· ne change jamais</span></p>
+        <p className="text-xs leading-5 text-sage">Imprimez celui-ci : vous pouvez modifier les infos sans changer le QR code.</p>
+        <Link href={`/compte/qr/${slug}/modifier`} className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-semibold text-forest hover:underline">
+          <PencilLine className="h-4 w-4" /> Modifier les infos
+        </Link>
+      </div>
+      <StyledQr data={`${SITE_URL}/c/${slug}`} style={qrStyle} downloadName={`moncode-${slug}-lien`} hideQr className="w-full sm:w-44" />
+    </div>
   );
 }
 
