@@ -74,10 +74,10 @@ export default function DirectResult({ payload, style, slug, reference, invoiceN
               </div>
             ))}
             <div className="flex items-center justify-between gap-4 py-2.5">
-              <dt className="text-sage">Facture</dt>
+              <dt className="text-sage">{invoiceNumber ? "Facture" : "Devis"}</dt>
               <dd className="text-right font-medium text-ink/90">
-                <Link href={invoiceHref} className="inline-flex items-center gap-1.5 text-forest underline-offset-4 hover:underline">
-                  <Receipt className="h-4 w-4" /> {invoiceNumber ?? "Voir"}
+                <Link href={invoiceNumber ? invoiceHref : invoiceHref.replace(/\/facture$/, "/devis")} className="inline-flex items-center gap-1.5 text-forest underline-offset-4 hover:underline">
+                  <Receipt className="h-4 w-4" /> {invoiceNumber ?? "Voir le devis"}
                 </Link>
               </dd>
             </div>

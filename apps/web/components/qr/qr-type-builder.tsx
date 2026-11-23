@@ -243,8 +243,8 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:mt-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
         {/* Cadre fixe : le contour de la section reste visible pendant que le contenu défile à l'intérieur. */}
-        <div className="min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
-        <div className="min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
+        <div className="relative min-w-0 lg:min-h-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-cream/50">
+        <div className="relative min-w-0 space-y-6 lg:h-full lg:overflow-y-auto lg:p-3">
           {/* Sur téléphone, le bouton est au-dessus de la carte « Contenu » ; sur grand écran, il est dans son en-tête. */}
           {premium.ready && !premium.active && (
             <button type="button" onClick={() => openPremium({ label: "Débloquer Premium", suite })} className="premium-gold inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-[0_8px_22px_rgba(185,121,26,0.28)] transition active:scale-[0.98] hover:brightness-105 sm:hidden">

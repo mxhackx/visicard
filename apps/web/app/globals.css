@@ -796,3 +796,15 @@ main:has(> footer) > * {
 main:has(> footer) > footer {
   margin-top: auto;
 }
+
+/* Impression des devis et factures : papier A4, marges fixes, aucune ombre ni fond de page. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+}

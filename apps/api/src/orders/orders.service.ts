@@ -334,16 +334,22 @@ export class OrdersService {
     const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     if (claimed.count === 0) return order;
 
-    const year = new Date().getFullYear();
-    const invoiceNumber = `FAC-${year}-${String(await this.nextNumber(`facture-${year}`)).padStart(4, '0')}`;
-    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { invoiceNumber } });
+    // Une facture n'existe que pour un vrai paiement : une commande couverte par Premium (montant 0) n'a qu'un devis,
+    // la seule facture est celle de l'abonnement (voir PremiumService).
+    let invoiceNumber: string | null = null;
+    let updated = order;
+    if (order.amount > 0) {
+      const year = new Date().getFullYear();
+      invoiceNumber = `FAC-${year}-${String(await this.nextNumber(`facture-${year}`)).padStart(4, '0')}`;
+      updated = await this.prisma.order.update({ where: { id: orderId }, data: { invoiceNumber } });
+    }
 
     if (order.kind === 'creation') {
       await this.prisma.card.update({ where: { id: order.cardId }, data: { status: 'active' } });
     } else if (order.pendingChanges) {
       await this.cards.applyChanges(order.cardId, fromJson(order.pendingChanges));
     }
-    this.logger.log(`Commande ${order.reference} payée (${invoiceNumber})${paymentId ? ` via ${paymentId}` : ''}`);
+    this.logger.log(`Commande ${order.reference} payée (${invoiceNumber ?? 'sans facture : incluse dans Premium'})${paymentId ? ` via ${paymentId}` : ''}`);
     return updated;
   }
 

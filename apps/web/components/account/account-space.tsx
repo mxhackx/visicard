@@ -323,7 +323,8 @@ function Invoices({ orders }: { orders: AccountOrder[] }) {
       alive = false;
     };
   }, [authToken]);
-  const invoices = orders.filter((o) => o.invoiceNumber && o.reference);
+  // Une seule facture par paiement : celles de l'abonnement. Les QR codes couverts par Premium (0 FCFA) n'ont qu'un devis.
+  const invoices = orders.filter((o) => o.invoiceNumber && o.reference && o.amount > 0);
   const empty = receipts !== null && receipts.length === 0 && invoices.length === 0;
 
   return (
@@ -356,7 +357,7 @@ function Invoices({ orders }: { orders: AccountOrder[] }) {
       <section className="surface p-5 sm:p-6">
         <h2 className="text-base font-semibold text-ink/90">Factures des commandes</h2>
         {invoices.length === 0 ? (
-          <p className="mt-3 text-sm text-sage">{empty ? "Aucune facture pour le moment : elles apparaissent ici après chaque création de QR code." : "Aucune facture de commande."}</p>
+          <p className="mt-3 text-sm text-sage">{empty ? "Aucune facture pour le moment : elle apparaît ici après votre paiement Premium." : "Aucune facture de commande."}</p>
         ) : (
           <ul className="mt-3 divide-y divide-line text-sm">
             {invoices.map((o) => (

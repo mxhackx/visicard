@@ -15,10 +15,12 @@ export default function WhatsAppButton() {
   const path = usePathname() || "/";
   // Pages publiques des clients (/c/…) : aucun bouton Moncode, la page appartient à son propriétaire.
   if (path.startsWith("/c/")) return null;
+  // Factures et devis : une feuille propre, sans bouton flottant (à l'écran comme à l'impression).
+  if (/\/(facture|devis)(\/|$)/.test(path)) return null;
   const showPremium = premium.ready && !premium.active && !MASQUE.some((p) => path.startsWith(p));
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex flex-col items-center gap-3 sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-5 right-5 z-40 flex print:hidden flex-col items-center gap-3 sm:bottom-6 sm:right-6">
       {showPremium && (
         <button
           type="button"

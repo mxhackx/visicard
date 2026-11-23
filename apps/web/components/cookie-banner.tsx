@@ -20,7 +20,7 @@ export default function CookieBanner() {
   if (consent !== null || !late || pathname.startsWith("/admin")) return null;
 
   return (
-    <div role="dialog" aria-label="Cookies et services tiers" className="fixed inset-x-3 bottom-3 z-[75] sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[26rem]">
+    <div role="dialog" aria-label="Cookies et services tiers" className="fixed inset-x-3 bottom-3 print:hidden z-[75] sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[26rem]">
       <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_24px_60px_rgba(23,23,26,0.22)]">
         <div className="flex items-start gap-3">
           <span className="icon-tile h-10 w-10 shrink-0"><Cookie className="h-5 w-5" /></span>

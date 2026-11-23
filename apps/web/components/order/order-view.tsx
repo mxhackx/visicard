@@ -463,15 +463,15 @@ function QrPanel({ order, admin }: { order: Order; admin?: boolean }) {
       </div>
       <div className="flex items-center justify-between border-t border-line bg-cream-deep px-6 py-4">
         <div>
-          <p className="text-sm font-semibold text-ink/90">Facture {order.invoiceNumber}</p>
-          <p className="text-xs text-sage">Payée le {formatDate(order.paidAt)} · {fcfa(order.amount)}</p>
+          <p className="text-sm font-semibold text-ink/90">{order.invoiceNumber ? `Facture ${order.invoiceNumber}` : `Devis ${order.quoteNumber}`}</p>
+          <p className="text-xs text-sage">{order.invoiceNumber ? `Payée le ${formatDate(order.paidAt)} · ${fcfa(order.amount)}` : "Inclus dans votre abonnement Premium"}</p>
         </div>
         <Link
-          href={admin ? `/admin/commandes/${order.reference}/facture` : `/commande/${order.reference}/facture`}
+          href={`${admin ? `/admin/commandes/${order.reference}` : `/commande/${order.reference}`}/${order.invoiceNumber ? "facture" : "devis"}`}
           className="btn btn-outline btn-sm"
         >
           <Receipt className="h-4 w-4" />
-          Facture
+          {order.invoiceNumber ? "Facture" : "Devis"}
         </Link>
       </div>
     </div>

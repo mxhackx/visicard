@@ -24,7 +24,7 @@ export default function ScrollProgress() {
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-ink"
+      className="fixed inset-x-0 top-0 z-[60] h-0.5 print:hidden origin-left bg-ink"
       style={{ transform: `scaleX(${progress})` }}
       aria-hidden="true"
     />
