@@ -6,6 +6,7 @@ import { primaryAppUrl } from '../app-url';
 import { ApiKeyGuard, type ApiRequest } from './api-key.guard';
 import { buildPayload } from './payloads';
 import { encodeDirect, isDirectType } from './direct-payload';
+import { parseCsv } from './csv';
 import { loadLogo, overlayLogo, overlayLogoSvg } from './logo';
 import { CardsService } from '../cards/cards.service';
 import { normalizeQrStyle } from '../cards/qr-style';
@@ -141,6 +142,55 @@ export class V1Controller {
     const { linkUrl, editUrl } = this.urls(saved.slug);
     const png = async (data: string) => `data:image/png;base64,${((await this.draw(data, input, 'png', logo)) as Buffer).toString('base64')}`;
     return { slug: saved.slug, created: saved.saved, type, payload, linkUrl, editUrl, qr: { link: await png(linkUrl), content: await png(payload) } };
+  }
+
+  /**
+   * Création en masse : `{ "type": "url", "items": [ { "url": "…", "title": "…" } ] }` ou `{ "type": "url", "csv": "titre,url\\nA,https://…" }`.
+   * Jusqu'à 100 QR codes par appel, chacun avec son résultat (une ligne refusée n'arrête pas les autres).
+   */
+  @Post('codes/bulk')
+  @HttpCode(200)
+  async bulkCodes(@Body() body: Record<string, unknown>, @Req() req: ApiRequest) {
+    const input = body ?? {};
+    const type = typeof input.type === 'string' ? input.type : 'url';
+    if (!isDirectType(type)) throw new BadRequestException(`« type » : ${['url', 'text', 'vcard', 'tel', 'sms', 'email', 'wifi', 'event', 'geo'].join(', ')}.`);
+    await this.gate(req, type);
+
+    let items: Record<string, unknown>[];
+    if (typeof input.csv === 'string') {
+      const { headers, rows } = parseCsv(input.csv);
+      if (!headers.length) throw new BadRequestException('« csv » est vide : la première ligne donne les colonnes.');
+      items = rows.map((cells) => Object.fromEntries(headers.map((h, i) => [h, (cells[i] ?? '').trim()])));
+    } else if (Array.isArray(input.items)) {
+      items = input.items.filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null && !Array.isArray(i));
+    } else throw new BadRequestException('Envoyez « items » (liste) ou « csv » (texte).');
+    if (!items.length) throw new BadRequestException('Aucun QR code à créer.');
+    if (items.length > 100) throw new BadRequestException('100 QR codes au maximum par appel.');
+
+    const { fg, bg, style } = this.colors(input);
+    const qrStyle = normalizeQrStyle(JSON.stringify({ ...style, fg, bg }));
+    const prepared = items.map((item) => {
+      const source = typeof item.data === 'object' && item.data !== null ? (item.data as Record<string, unknown>) : item;
+      const normalized = { ...source, hidden: source.hidden === true || /^(true|1|oui|yes)$/i.test(String(source.hidden ?? '')) };
+      const title = [item.title, item.titre, item.nom, item.name].find((t) => typeof t === 'string' && t.trim()) as string | undefined;
+      try {
+        return { payload: encodeDirect(type, normalized), title };
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Ligne invalide.' };
+      }
+    });
+    const valid = prepared.flatMap((p, index) => ('payload' in p && p.payload ? [{ index, payload: p.payload, title: p.title }] : []));
+    const k = req.apiKey!;
+    const created = valid.length
+      ? await this.cards.createDirectBatch({ id: k.userId, role: k.admin ? 'admin' : 'user' }, valid.map(({ payload, title }) => ({ payload, title })), qrStyle)
+      : [];
+    const results = prepared.map((p, index) => {
+      if ('error' in p) return { index, error: p.error };
+      const at = valid.findIndex((v) => v.index === index);
+      const r = created[at];
+      return r?.slug ? { index, slug: r.slug, created: r.created, payload: p.payload, ...this.urls(r.slug) } : { index, error: r?.error ?? 'Création impossible.' };
+    });
+    return { type, total: results.length, created: results.filter((r) => 'slug' in r).length, failed: results.filter((r) => 'error' in r).length, results };
   }
 
   /** Lit un QR code du compte de la clé. */

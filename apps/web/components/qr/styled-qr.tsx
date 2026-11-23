@@ -18,7 +18,7 @@ const usableLogo = (url?: string | null) =>
     img.src = url;
   });
 
-function optionsFor(data: string, style: QrStyle, size: number, logoUrl?: string | null): Partial<Options> {
+export function optionsFor(data: string, style: QrStyle, size: number, logoUrl?: string | null): Partial<Options> {
   const withLogo = Boolean(style.logo && logoUrl);
   return {
     width: size,
@@ -34,6 +34,16 @@ function optionsFor(data: string, style: QrStyle, size: number, logoUrl?: string
     backgroundOptions: { color: style.bg },
     imageOptions: { crossOrigin: "anonymous", margin: Math.round(size * 0.012), imageSize: 0.32, hideBackgroundDots: true },
   };
+}
+
+/** PNG d'impression (1200 px par défaut) d'un contenu, dans un style donné : sert à la génération en masse. */
+export async function renderQrPng(data: string, style: QrStyle | string | null | undefined, size = 1200): Promise<Blob> {
+  const { default: QRCodeStylingClass } = await import("qr-code-styling");
+  const resolved = typeof style === "object" && style !== null ? style : parseQrStyle(style);
+  const file = new QRCodeStylingClass({ ...optionsFor(data, resolved, size, null), type: "canvas" });
+  const raw = await file.getRawData("png");
+  if (!raw) throw new Error("QR code non généré.");
+  return raw as Blob;
 }
 
 /**

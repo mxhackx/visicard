@@ -80,6 +80,16 @@ const JSON_EXAMPLES = [
 }`,
   },
   {
+    id: "masse",
+    label: "En masse (CSV)",
+    language: "curl",
+    code: `# Une ligne par QR code, 100 au maximum par appel. La 1re ligne donne les colonnes (champs du type + titre).
+curl -X POST ${BASE}/v1/codes/bulk \\
+  -H "X-API-Key: mck_live_votre_cle" \\
+  -H "Content-Type: application/json" \\
+  -d '{"type":"url","csv":"titre,url\\nBoutique 1,https://exemple.com/1\\nBoutique 2,https://exemple.com/2"}'`,
+  },
+  {
     id: "modifier",
     label: "Modifier",
     language: "curl",
@@ -251,6 +261,7 @@ export default function DeveloppeursPage() {
               {[
                 ["POST", "/v1/qr", "Image du QR code (png, svg ou data URL), sans l’enregistrer"],
                 ["POST", "/v1/codes", "Crée un QR code enregistré dans votre compte"],
+                ["POST", "/v1/codes/bulk", "Jusqu’à 100 QR codes d’un coup : « items » (liste) ou « csv » (texte)"],
                 ["GET", "/v1/codes/{slug}", "Lit un QR code de votre compte"],
                 ["PATCH", "/v1/codes/{slug}", "Change son contenu, son lien reste le même"],
                 ["GET", "/v1/usage", "Votre quota du mois"],

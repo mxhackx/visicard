@@ -224,6 +224,29 @@ export class CardsService {
   }
 
   /**
+   * Création en masse (CSV, API) : jusqu'à 100 QR codes directs d'un coup, enregistrés dans le compte.
+   * Chaque ligne a son résultat : une ligne refusée n'empêche pas les autres.
+   */
+  async createDirectBatch(
+    user: { id: string; role?: string },
+    items: { payload: string; title?: string }[],
+    qrStyle?: string,
+  ): Promise<{ index: number; slug?: string; created?: boolean; error?: string }[]> {
+    if (!Array.isArray(items) || !items.length) throw new BadRequestException('Aucun QR code à créer.');
+    if (items.length > 100) throw new BadRequestException('100 QR codes au maximum par envoi.');
+    const results: { index: number; slug?: string; created?: boolean; error?: string }[] = [];
+    for (const [index, item] of items.entries()) {
+      try {
+        const r = await this.createDirect(user, { payload: item.payload, title: item.title, qrStyle });
+        results.push({ index, slug: r.slug, created: r.saved });
+      } catch (e) {
+        results.push({ index, error: e instanceof Error ? e.message : 'Création impossible.' });
+      }
+    }
+    return results;
+  }
+
+  /**
    * Modifie le contenu d'un QR code « direct » de son propriétaire : le lien de relais (/c/slug) ne change jamais,
    * seul ce qu'il affiche ou ouvre est mis à jour. Un contenu autre qu'un lien web exige Premium (ou administrateur).
    */

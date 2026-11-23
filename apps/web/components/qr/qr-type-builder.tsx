@@ -20,6 +20,7 @@ import PreviewPopover from "@/components/page-builder/preview-popover";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { QR_DOTS, parseQrStyle, DEFAULT_QR_STYLE } from "@/lib/qr-style";
 import JsonImport from "./json-import";
+import CsvImport from "./csv-import";
 import PayButton from "@/components/payment/pay-button";
 import {
   DENSE_PAYLOAD,
@@ -262,7 +263,8 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
             </div>
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
             {!media && (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <CsvImport defaultType={dtype} qrStyle={qrStyle} />
                 <JsonImport
                   screen={type}
                   onQr={(r) => {

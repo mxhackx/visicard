@@ -144,6 +144,25 @@ export class CardsController {
     return this.cardsService.createDirect(user, body ?? {});
   }
 
+  /** Création en masse de QR codes directs (CSV du site) : compte requis, 100 QR codes au maximum par envoi. */
+  @Post('direct/bulk')
+  @HttpCode(200)
+  @Throttle({ short: { limit: 5, ttl: 60_000 } })
+  async saveDirectBulk(
+    @Req() req: Request,
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() body: { items?: { payload?: string; title?: string }[]; qrStyle?: string },
+  ) {
+    let token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (!token) token = cookieOf(req, 'access_token');
+    const session = token ? await this.authService.validateToken(token) : null;
+    if (!session?.valid || !session.user) throw new UnauthorizedException('Connexion requise.');
+    const items = (Array.isArray(body?.items) ? body.items : [])
+      .filter((i) => typeof i?.payload === 'string')
+      .map((i) => ({ payload: i.payload as string, title: typeof i.title === 'string' ? i.title : undefined }));
+    return { results: await this.cardsService.createDirectBatch({ id: session.user.id, role: session.user.role }, items, typeof body?.qrStyle === 'string' ? body.qrStyle : undefined) };
+  }
+
   /** Modifie le contenu d'un QR code direct de son compte ; son lien de relais (/c/slug) reste le même. */
   @Patch(':slug/direct')
   @Throttle({ short: { limit: 20, ttl: 60_000 } })
