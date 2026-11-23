@@ -7,7 +7,7 @@ import JsonLd from "@/components/json-ld";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import TypeArt from "@/components/qr/type-art";
-import ManuelNav from "@/components/manuel-nav";
+import Hero from "@/components/hero";
 import { DIRECT_QR_TYPES } from "@/lib/qr-payloads";
 
 export const metadata: Metadata = pageMetadata({
@@ -46,25 +46,16 @@ export default function ManuelPage() {
   return (
     <main className="page-hero-bg min-h-screen">
       <JsonLd data={[breadcrumbJsonLd([["Accueil", "/"], ["Manuel d’utilisation", "/manuel"]]), faqJsonLd(FAQ.map(([q, a]) => [q, a] as [string, string]))]} />
-      {/* Colonne fixe à gauche (logo + « Manuel d'utilisation » + sommaire).
-          L'en-tête du site est affiché sur la colonne de contenu, sans son logo (déjà porté par la colonne)
-          : les deux tiennent sur la même ligne en haut de l'écran. */}
-      <ManuelNav items={TOC} />
+      <Header />
+      <Hero
+        lines={["Votre QR code,", "pas à pas"]}
+        points={["Créer, payer et télécharger en quelques minutes", "Modifier votre page sans réimprimer", "Imprimer et tester pour que ça scanne du premier coup"]}
+        cta={{ href: "/creer", label: "Créer un QR code" }}
+      />
 
-      <div className="min-w-0 lg:ml-72">
-        <div className="relative">
-          <Header logoOnMobileOnly />
-          <div className="header-spacer"></div>
-        </div>
-
-        <section className="px-4 pb-16 pt-8 sm:px-6 lg:px-10 lg:pt-12">
-          <p className="eyebrow">Manuel d’utilisation</p>
-          <h1 className="page-title mt-3">Votre QR code, pas à pas</h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-sage">
-            Tout ce qu’il faut savoir pour créer, payer, télécharger, modifier et imprimer votre QR code.
-          </p>
-
-          <div className="mt-8 min-w-0 space-y-6 lg:mt-10">
+      <div className="min-w-0">
+        <section className="px-4 pb-16 pt-8 sm:px-6 lg:pt-12">
+          <div className="mx-auto min-w-0 max-w-4xl space-y-6">
 
             <Block id="demarrer" title="Démarrer">
               <p>Choisissez ce que votre QR code doit faire, remplissez deux ou trois informations, puis payez et téléchargez.</p>
