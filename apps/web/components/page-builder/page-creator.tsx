@@ -12,6 +12,8 @@ import PayButton from "@/components/payment/pay-button";
 import CreateAction, { useAccountContact } from "@/components/account/create-action";
 import { InformationsBody } from "@/components/page-builder/informations-step";
 import PreviewPopover from "@/components/page-builder/preview-popover";
+import JsonImport from "@/components/qr/json-import";
+import { sectorById } from "@/lib/sectors";
 import QrDesigner from "@/components/qr/qr-designer";
 import { paletteFor } from "@/lib/palette";
 import { AppearanceSections, PagePreview } from "@/components/page-builder/apparence-step";
@@ -27,6 +29,9 @@ export default function PageCreator() {
   const premium = usePremium();
   const { openPremium } = useDialogs();
   const validate = useRef<() => boolean>(() => true);
+  const { setRestaurantInfo, setSector, setCardLayout, setQrStyle } = useFile();
+  // Un JSON chargé : le formulaire de contenu est reconstruit pour relire le numéro et les champs.
+  const [imported, setImported] = useState(0);
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:h-[calc(100svh-var(--header-h)-1px)] lg:overflow-hidden lg:px-8 lg:pb-4 lg:pt-12">
@@ -55,8 +60,20 @@ export default function PageCreator() {
               <p className="mt-2 text-sm leading-6 text-sage">Votre page digitale : vos informations, son apparence, puis la création.</p>
             </div>
             <ContentPicker current="page" trial={trial} onTrial={startTrial} />
+            <div className="mt-4">
+              <JsonImport
+                screen="page"
+                onPage={(r) => {
+                  setRestaurantInfo((prev) => ({ ...prev, ...r.info, schedule: { ...prev.schedule, ...r.info.schedule } }));
+                  if (r.sector) setSector(r.sector, r.layout ?? sectorById(r.sector).layout);
+                  else if (r.layout) setCardLayout(r.layout);
+                  if (r.qrStyle) setQrStyle(r.qrStyle);
+                  setImported((n) => n + 1);
+                }}
+              />
+            </div>
             <div className="mt-6 space-y-6">
-              <InformationsBody mode="client" embedded registerValidate={(fn) => (validate.current = fn)} />
+              <InformationsBody key={imported} mode="client" embedded registerValidate={(fn) => (validate.current = fn)} />
             </div>
           </Step>
 

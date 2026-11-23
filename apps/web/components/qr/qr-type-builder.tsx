@@ -19,6 +19,7 @@ import { Fields, LogoPicker, OrderPanel, hasInput, type AllData } from "./direct
 import PreviewPopover from "@/components/page-builder/preview-popover";
 import DevicePreview, { DeviceSwitch, type Device } from "@/components/page-builder/device-preview";
 import { QR_DOTS, parseQrStyle, DEFAULT_QR_STYLE } from "@/lib/qr-style";
+import JsonImport from "./json-import";
 import PayButton from "@/components/payment/pay-button";
 import {
   DENSE_PAYLOAD,
@@ -260,6 +261,18 @@ export default function QrTypeBuilder({ type }: { type: BuilderType }) {
               <p className="mt-2 text-sm leading-6 text-sage">{media ? "Envoyez votre fichier : le QR code ouvre une page de lecture mobile." : isUrl ? "Collez un lien, choisissez le style, téléchargez en PNG et SVG." : meta.hint}</p>
             </div>
             <ContentPicker current={type} trial={trial} onTrial={startTrial} />
+            {!media && (
+              <div className="mt-4">
+                <JsonImport
+                  screen={type}
+                  onQr={(r) => {
+                    setAll((a) => ({ ...a, [r.type]: { ...DIRECT_QR_DEFAULTS[r.type], ...r.data } }));
+                    if (r.style) setQrStyle(r.style);
+                    goTo("qr-style");
+                  }}
+                />
+              </div>
+            )}
             <div id="qr-fields" ref={fieldsRef} onKeyDown={onFieldsKey} className="mt-6 scroll-mt-3">
               {media ? (
                 <MediaFields kind={type as "media" | "document"} title={mediaTitle} onTitle={setMediaTitle} file={mediaFile} onFile={(f) => { setMediaFile(f); if (f) goTo("qr-style"); }} />
